@@ -107,49 +107,58 @@
   
   ## Time machine samba setup
   services.samba = {
-   enable = true;
-   securityType = "user";
-   extraConfig = ''
-     workgroup = WORKGROUP
-     server string = endor
-     netbios name = endor
-     security = user 
-     #use sendfile = yes
-     #max protocol = smb2
-     # note: localhost is the ipv6 localhost ::1
-     hosts allow = 192.168.40. 127.0.0.1 localhost 100.82.20.42 100.69.20.54 100.73.28.110
-     hosts deny = 0.0.0.0/0
-     guest account = nobody
-     map to guest = bad user
-   '';
-   shares = {
-     coruscant-tm = {
-         path = "/mnt/backup2/tm1";
-         "valid users" = "coruscant-tm";
-         public = "no";
-         writeable = "yes";
-         browseable = "yes";
-         "comment" = "Time Machine";
-         "force user" = "coruscant-tm";
-         "fruit:aapl" = "yes";
-         "fruit:time machine" = "yes";
-         "vfs objects" = "catia fruit streams_xattr";
-         "spotlight" = "yes";
-     };
-     pinkimac-tm = {
-         path = "/mnt/backup2/tm2";
-         "valid users" = "pinkimac-tm";
-         public = "no";
-         writeable = "yes";
-         browseable = "yes";
-         "comment" = "Time Machine";
-         "force user" = "pinkimac-tm";
-         "fruit:aapl" = "yes";
-         "fruit:time machine" = "yes";
-         "vfs objects" = "catia fruit streams_xattr";
-         "spotlight" = "yes";
-     };
-   };
+    enable = true;
+    securityType = "user";
+    extraConfig = ''
+      workgroup = WORKGROUP
+      server string = endor
+      netbios name = endor
+      security = user 
+      #use sendfile = yes
+      #max protocol = smb2
+      # note: localhost is the ipv6 localhost ::1
+      hosts allow = 192.168.40. 127.0.0.1 localhost 100.82.20.42 100.69.20.54 100.73.28.110 100.105.216.37 100.75.55.140
+      hosts deny = 0.0.0.0/0
+      guest account = nobody
+      map to guest = bad user
+    '';
+    shares = {
+      homeassisant-backup = {
+        path = "/mnt/backup2/homeassistant-backup";
+        "valid users" = "homeassistant";
+        public = "no";
+        writeable = "yes";
+        browseable = "yes";
+        "comment" = "Backups for Home Assistant";
+        "force user" = "homeassistant";
+      };
+      coruscant-tm = {
+        path = "/mnt/backup2/tm1";
+        "valid users" = "coruscant-tm";
+        public = "no";
+        writeable = "yes";
+        browseable = "yes";
+        "comment" = "Time Machine";
+        "force user" = "coruscant-tm";
+        "fruit:aapl" = "yes";
+        "fruit:time machine" = "yes";
+        "vfs objects" = "catia fruit streams_xattr";
+        "spotlight" = "yes";
+      };
+      pinkimac-tm = {
+        path = "/mnt/backup2/tm2";
+        "valid users" = "pinkimac-tm";
+        public = "no";
+        writeable = "yes";
+        browseable = "yes";
+        "comment" = "Time Machine";
+        "force user" = "pinkimac-tm";
+        "fruit:aapl" = "yes";
+        "fruit:time machine" = "yes";
+        "vfs objects" = "catia fruit streams_xattr";
+        "spotlight" = "yes";
+      };
+    };
   };
   services.samba.openFirewall = true;
   
