@@ -180,7 +180,7 @@
         "/home/mpfammatter/docker/photoprism-database/*"
       ];
       archive_name_format = "{hostname}-{now:%Y-%m-%d-%H%M%S}";
-      encryption_passcommand = "cat ${config.sops.secrets."borg/borg_passphrase".path}";
+      encryption_passcommand = "/run/current-system/sw/bin/cat ${config.sops.secrets."borg/borg_passphrase".path}";
       ssh_command = "${pkgs.openssh}/bin/ssh -i /home/mpfammatter/.ssh/id_ed25519";
       keep_daily = 1;
       keep_weekly = 4;
@@ -188,22 +188,6 @@
       keep_yearly = 2;
     };
   };
-  # systemd.services.borgmatic-init = {
-  #   serviceConfig = {
-  #     Type = "oneshot";
-  #     TimeoutStartSec = "60";
-  #   };
-  #   wantedBy = [ "multi-users.target" ];
-  #   before = [ "borgmatic.service" ];
-  #   # requires = [ "borgmatic.service" ];
-  #   environment = {inherit(config.services.borgmatic.environment);};
-  #   script = ''
-  #     set -e
-
-  #     export BORG_PASSPHRASE=$(cat ${config.sops.secrets."borg/borg_passphrase".path})
-  #     export BORGBASE_PATH=$(cat ${config.sops.secrets."borg/endor/borgbase_path".path})
-  #   '';
-  # };
 
   virtualisation.docker.enable = true;
 
