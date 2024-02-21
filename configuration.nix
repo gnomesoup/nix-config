@@ -68,6 +68,10 @@
     isSystemUser = true;
     group = "sambauser";
   };
+  users.users.eadu-backup = {
+    isNormalUser = true;
+    group = "sambauser";
+  };
 
   home-manager = {
     extraSpecialArgs = { inherit inputs; };
