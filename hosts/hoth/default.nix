@@ -8,12 +8,11 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      inputs.home-manager.nixosModules.default
-      inputs.sops-nix.nixosModules.sops
+      # inputs.sops-nix.nixosModules.sops
     ];
 
 
-  sops.defaultSopsFile = ../secrets/secrets.yaml;
+  sops.defaultSopsFile = ../../secrets/secrets.yaml;
   sops.defaultSopsFormat = "yaml";
   sops.age.keyFile = "/home/mpfammatter/.config/sops/age/keys.txt";
   sops.secrets."borg/borg_passphrase" = { };
@@ -76,13 +75,6 @@
   users.users.eadu-backup = {
     isNormalUser = true;
     extraGroups = ["sambauser"];
-  };
-
-  home-manager = {
-    extraSpecialArgs = { inherit inputs; };
-    users = {
-      "mpfammatter" = import ../users/mpfammatter/home.nix;
-    };
   };
 
   # List packages installed in system profile. To search, run:

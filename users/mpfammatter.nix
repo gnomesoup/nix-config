@@ -15,6 +15,5 @@
       userEmail = "pfammatter@gmail.com";
     };
     home-manager.enable = true;
-    vscode = { enable = true; };
   };
 }

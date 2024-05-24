@@ -13,7 +13,7 @@
             "ll" = "ls -lah --color=auto";
             "gs" = "git status";
             "drs" = "darwin-rebuild switch --flake ~/nix-config#$(scutil --get LocalHostName)";
-            "nrs" = "nixos-rebuild switch --flake ~/nix-config#$(hostname)";
+            "nrs" = "sudo nixos-rebuild switch --flake ~/nix-config#$(hostname)";
         };
     };
 }

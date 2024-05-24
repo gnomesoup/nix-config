@@ -12,6 +12,7 @@
     };
 
     sops-nix.url = "github:Mic92/sops-nix";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, sops-nix }: {
@@ -21,10 +22,11 @@
       system = "x86_64-linux";
       modules = [
         ./hosts/hoth
+        sops-nix.nixosModules.sops
         home-manager.nixosModules.home-manager {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.users.test = import ./users/mpfammatter.nix;
+          home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
         }
       ];
     };
@@ -51,7 +53,7 @@
           home-manager.darwinModules.home-manager {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
-            home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
+            home-manager.users.mpfammatter = import ./users/mpfammatter-ui.nix;
             home-manager.backupFileExtension = "backup";
           }
         ];
