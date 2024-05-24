@@ -31,16 +31,31 @@
 
     # Build darwin flake using:
     # $ darwin-rebuild build --flake .#Tests-Virtual-Machine
-    darwinConfigurations."Tests-Virtual-Machine" = nix-darwin.lib.darwinSystem {
-      specialArgs = { inherit self;};
-      modules = [
-        ./hosts/Tests-Virtual-Machine
-        home-manager.darwinModules.home-manager {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.users.test = import ./users/test.nix;
-        }
-      ];
+    darwinConfigurations = {
+      "Tests-Virtual-Machine" = nix-darwin.lib.darwinSystem {
+        specialArgs = { inherit self;};
+        modules = [
+          ./hosts/Tests-Virtual-Machine
+          home-manager.darwinModules.home-manager {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.test = import ./users/test.nix;
+          }
+        ];
+      };
+
+      "Coruscant" = nix-darwin.lib.darwinSystem {
+        specialArgs = { inherit self;};
+        modules = [
+          ./hosts/Coruscant
+          home-manager.darwinModules.home-manager {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
+            home-manager.backupFileExtension = "backup";
+          }
+        ];
+      };
     };
 
     # Expose the package set, including overlays, for convenience.
