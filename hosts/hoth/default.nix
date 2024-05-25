@@ -53,6 +53,7 @@
   '';
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
+  users.defaultUserShell = pkgs.zsh;
   users.groups.sambauser = {};
   users.users.mpfammatter = {
     isNormalUser = true;
@@ -93,6 +94,7 @@
   #   enable = true;
   #   enableSSHSupport = true;
   # };
+  programs.zsh.enable = true;
 
   # List services that you want to enable:
 

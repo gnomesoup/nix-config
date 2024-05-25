@@ -16,4 +16,8 @@
             "nrs" = "sudo nixos-rebuild switch --flake ~/nix-config#$(hostname)";
         };
     };
+    programs.starship = {
+        enable = true;
+        enableZshIntegration = true;
+    };
 }
