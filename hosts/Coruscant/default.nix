@@ -1,7 +1,7 @@
 { pkgs, vars, ... }:
 
 {
-    imports = [ ../modules/appleDefaults.nix ../modules/fonts.nix];
+    imports = [ ../modules/nixvim.nix ../modules/appleDefaults.nix ../modules/fonts.nix];
 
     environment.systemPackages =
         [ pkgs.vim pkgs.git pkgs.nixpkgs-fmt pkgs.raycast ];
@@ -24,7 +24,9 @@
         config.allowUnfree = true;
     };
 
-    programs.zsh.enable = true;
+    programs = {
+        zsh.enable = true;
+    };
 
     services = {
         nix-daemon.enable = true;

@@ -13,9 +13,15 @@
 
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+
+    nixvim = {
+        url = "github:nix-community/nixvim";
+        # If using a stable channel you can use `url = "github:nix-community/nixvim/nixos-<version>"`
+        inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, sops-nix }: {
+  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, sops-nix, nixvim }: {
     # Build nixos flake using:
     # $ nixos-rebuild build --flake .#<ComputerName>
     nixosConfigurations."hoth" = nixpkgs.lib.nixosSystem {
@@ -23,6 +29,7 @@
       modules = [
         ./hosts/hoth
         sops-nix.nixosModules.sops
+        nixvim.nixosModules.nixvim
         home-manager.nixosModules.home-manager {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
@@ -38,6 +45,7 @@
         specialArgs = { inherit self;};
         modules = [
           ./hosts/Tests-Virtual-Machine
+          nixvim.nixDarwinModules.nixvim
           home-manager.darwinModules.home-manager {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
@@ -50,6 +58,7 @@
         specialArgs = { inherit self;};
         modules = [
           ./hosts/Coruscant
+          nixvim.nixDarwinModules.nixvim
           home-manager.darwinModules.home-manager {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
