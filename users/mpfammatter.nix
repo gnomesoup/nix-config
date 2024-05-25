@@ -15,5 +15,6 @@
       userEmail = "pfammatter@gmail.com";
     };
     home-manager.enable = true;
+    direnv.enable = true;
   };
 }
