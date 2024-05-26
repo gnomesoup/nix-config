@@ -24,19 +24,35 @@
   outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, sops-nix, nixvim }: {
     # Build nixos flake using:
     # $ nixos-rebuild build --flake .#<ComputerName>
-    nixosConfigurations."hoth" = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        ./hosts/hoth
-        sops-nix.nixosModules.sops
-        nixvim.nixosModules.nixvim
-        home-manager.nixosModules.home-manager {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
-          home-manager.backupFileExtension = "backup";
-        }
-      ];
+    nixosConfigurations = {
+      "hoth" = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          ./hosts/hoth
+          sops-nix.nixosModules.sops
+          nixvim.nixosModules.nixvim
+          home-manager.nixosModules.home-manager {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
+            home-manager.backupFileExtension = "backup";
+          }
+        ];
+      };
+      "nixvm" = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          ./hosts/nixvm
+          sops-nix.nixosModules.sops
+          nixvim.nixosModules.nixvim
+          home-manager.nixosModules.home-manager {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
+            home-manager.backupFileExtension = "backup";
+          }
+        ];
+      };
     };
 
     # Build darwin flake using:

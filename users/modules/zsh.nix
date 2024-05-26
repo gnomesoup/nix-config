@@ -18,6 +18,7 @@
             "drs" = "darwin-rebuild switch --flake ~/nix-config#$(scutil --get LocalHostName)";
             "nrs" = "sudo nixos-rebuild switch --flake ~/nix-config#$(hostname)";
             "garbage" = "nix-collect-garbage --delete-older-than 7d";
+            "iud" = "immich upload --delete ~/Downloads";
         };
     };
 }

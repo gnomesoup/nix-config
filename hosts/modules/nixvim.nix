@@ -4,8 +4,12 @@
     opts = {
         number = true;
         relativenumber = true;
+	autoindent = true;
+	expandtab = true;
+	shiftwidth = 2;
+	tabstop = 2;
     };
-    colorschemes.gruvbox.enable = true;
+    colorschemes.ayu.enable = true;
     keymaps = [
       { key = "m"; action = "h"; }
       { key = "n"; action = "j"; }
