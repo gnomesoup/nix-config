@@ -9,7 +9,7 @@
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
       ../modules/fonts.nix
-      # inputs.sops-nix.nixosModules.sops
+      ../modules/zsh.nix
     ];
 
 

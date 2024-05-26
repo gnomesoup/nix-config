@@ -5,7 +5,7 @@
         number = true;
         relativenumber = true;
     };
-    colorschemes.melange.enable = true;
+    colorschemes.gruvbox.enable = true;
     keymaps = [
       { key = "m"; action = "h"; }
       { key = "n"; action = "j"; }

@@ -1,4 +1,5 @@
 { pkgs, ... }: {
+    import = [ ./starship.nix ]
     programs.zsh = {
         enable = true;
         enableCompletion = true;
@@ -15,10 +16,5 @@
             "drs" = "darwin-rebuild switch --flake ~/nix-config#$(scutil --get LocalHostName)";
             "nrs" = "sudo nixos-rebuild switch --flake ~/nix-config#$(hostname)";
         };
-    };
-    programs.starship = {
-        enable = true;
-        enableZshIntegration = true;
-        # presets = [ "gruvbox-rainbow" ];
     };
 }

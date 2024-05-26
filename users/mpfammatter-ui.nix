@@ -1,3 +1,3 @@
 { pkgs, ... }: {
-  imports = [ ./mpfammatter.nix ./modules/zsh.nix ./modules/uiApps.nix];
+  imports = [ ./mpfammatter.nix ./modules/uiApps.nix];
 }
