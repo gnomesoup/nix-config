@@ -12,6 +12,7 @@
     pkgs.git
     pkgs.nixpkgs-fmt
     pkgs.raycast
+    pkgs.warp-terminal
   ];
 
   # Necessary for using flakes on this system.
