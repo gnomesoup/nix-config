@@ -34,6 +34,7 @@
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
+          home-manager.backupFileExtension = "backup";
         }
       ];
     };
@@ -50,6 +51,7 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.users.test = import ./users/test.nix;
+            home-manager.backupFileExtension = "backup";
           }
         ];
       };
