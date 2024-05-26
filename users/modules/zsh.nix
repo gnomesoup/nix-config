@@ -1,5 +1,5 @@
 { pkgs, ... }: {
-    import = [ ./starship.nix ]
+    imports = [ ./starship.nix ];
     programs.zsh = {
         enable = true;
         enableCompletion = true;
