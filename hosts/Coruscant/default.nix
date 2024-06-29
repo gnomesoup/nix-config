@@ -5,6 +5,7 @@
     ../modules/nixvim.nix
     ../modules/appleDefaults.nix
     ../modules/fonts.nix
+    ../modules/kmonad.nix
   ];
 
   environment.systemPackages = [

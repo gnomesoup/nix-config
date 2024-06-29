@@ -23,7 +23,7 @@
     kmonad = {
       url = "git+https://github.com/kmonad/kmonad?submodules=1&dir=nix";
       inputs.nixpkgs.follows = "nixpkgs";
-    }
+    };
   };
 
   outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, sops-nix, nixvim, kmonad }: {
