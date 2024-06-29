@@ -13,6 +13,7 @@
     pkgs.nixpkgs-fmt
     pkgs.raycast
     pkgs.warp-terminal
+    pkgs.utm
   ];
 
   # Necessary for using flakes on this system.
@@ -26,6 +27,7 @@
   };
 
   programs = {
+    direnv.enable = true;
     zsh.enable = true;
   };
 

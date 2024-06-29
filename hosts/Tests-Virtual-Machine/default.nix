@@ -1,13 +1,26 @@
-{ pkgs, self, ... }: {
+{ pkgs, self, ... }:
+{
   # List packages installed in system profile. To search by name, run:
   # $ nix-env -qaP | grep wget
-  environment.systemPackages =
-    [ pkgs.vim pkgs.git pkgs.nixpkgs-fmt pkgs.raycast ];
 
-  imports = [ ../modules/appleDefaults.nix ../modules/fonts.nix ];
+  environment.systemPackages = [
+    pkgs.vim
+    pkgs.git
+    pkgs.nixpkgs-fmt
+    pkgs.raycast
+    pkgs.warp-terminal
+  ];
+
+  imports = [
+    ../modules/nixvim.nix
+    ../modules/appleDefaults.nix
+    ../modules/fonts.nix
+  ];
   # Auto upgrade nix package and the daemon service.
   services.nix-daemon.enable = true;
-  services = { tailscale.enable = true; };
+  services = {
+    tailscale.enable = true;
+  };
   # nix.package = pkgs.nix;
 
   # Necessary for using flakes on this system.

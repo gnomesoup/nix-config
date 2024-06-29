@@ -19,9 +19,14 @@
         # If using a stable channel you can use `url = "github:nix-community/nixvim/nixos-<version>"`
         inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    kmonad = {
+      url = "git+https://github.com/kmonad/kmonad?submodules=1&dir=nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    }
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, sops-nix, nixvim }: {
+  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, sops-nix, nixvim, kmonad }: {
     # Build nixos flake using:
     # $ nixos-rebuild build --flake .#<ComputerName>
     nixosConfigurations = {
@@ -31,6 +36,7 @@
           ./hosts/hoth
           sops-nix.nixosModules.sops
           nixvim.nixosModules.nixvim
+          kmonad.nixosModules.default
           home-manager.nixosModules.home-manager {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
