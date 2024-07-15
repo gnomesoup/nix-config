@@ -36,7 +36,6 @@
           ./hosts/hoth
           sops-nix.nixosModules.sops
           nixvim.nixosModules.nixvim
-          kmonad.nixosModules.default
           home-manager.nixosModules.home-manager {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
@@ -83,6 +82,7 @@
         modules = [
           ./hosts/Coruscant
           nixvim.nixDarwinModules.nixvim
+          kmonad.nixosModules.default
           home-manager.darwinModules.home-manager {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
