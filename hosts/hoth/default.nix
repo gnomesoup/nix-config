@@ -118,21 +118,20 @@
   };
   services.samba = {
     enable = true;
-    securityType = "user";
-    extraConfig = ''
-      workgroup = WORKGROUP
-      server string = hoth
-      netbios name = hoth
-      security = user 
-      #use sendfile = yes
-      #max protocol = smb2
-      # note: localhost is the ipv6 localhost ::1
-      hosts allow = 192.168.40. 127.0.0.1 localhost 100.82.20.42 100.69.20.54 100.94.250.60 100.105.216.37 100.75.55.140 100.64.177.72
-      hosts deny = 0.0.0.0/0
-      guest account = nobody
-      map to guest = bad user
-    '';
-    shares = {
+    settings = {
+      global = {
+        "workgroup" = "WORKGROUP";
+        "server string" = "hoth";
+        "netbios name" = "hoth";
+        "security" = "user"; 
+        #use sendfile = yes
+        #max protocol = smb2
+        # note: localhost is the ipv6 localhost ::1
+        "hosts allow" = "192.168.40. 127.0.0.1 localhost 100.82.20.42 100.69.20.54 100.94.250.60 100.105.216.37 100.75.55.140 100.64.177.72";
+        "hosts deny" = "0.0.0.0/0";
+        "guest account" = "nobody";
+        "map to guest" = "bad user";
+      };
       homeassistant = {
         path = "/mnt/backup2/homeassistant";
         "valid users" = "ha-backup";
