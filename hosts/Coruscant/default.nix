@@ -18,7 +18,7 @@
 
   # Necessary for using flakes on this system.
   nix.settings.experimental-features = "nix-command flakes";
-  nix.settings.extra-nix-path = "nixpkgs=flake:nixpkgs";
+  # nix.settings.extra-nix-path = "nixpkgs=flake:nixpkgs";
 
   # Used for backwards compatibility, please read the changelog before changing.
   # $ darwin-rebuild changelog
