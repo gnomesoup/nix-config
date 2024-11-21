@@ -5,6 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nix-darwin.url = "github:LnL7/nix-darwin";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+    determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/0.1";
 
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -34,6 +35,7 @@
       home-manager,
       sops-nix,
       nixvim,
+      determinate,
       # kmonad,
     }:
     {
@@ -97,7 +99,26 @@
             inherit self;
           };
           modules = [
+            determinate.darwinModules.default
             ./hosts/Coruscant
+            nixvim.nixDarwinModules.nixvim
+            home-manager.darwinModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.mpfammatter = import ./users/mpfammatter-ui.nix;
+              home-manager.backupFileExtension = "backup";
+            }
+          ];
+        };
+
+        "exegol" = nix-darwin.lib.darwinSystem {
+          specialArgs = {
+            inherit self;
+          };
+          modules = [
+            determinate.darwinModules.default
+            ./hosts/exegol
             nixvim.nixDarwinModules.nixvim
             home-manager.darwinModules.home-manager
             {
