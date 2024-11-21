@@ -1,4 +1,4 @@
-{ pkgs, vars, ... }:
+{ pkgs, vars, self, ... }:
 
 {
   imports = [
