@@ -1,3 +1,7 @@
-{ pkgs, ... }: {
-  imports = [ ./mpfammatter.nix ./modules/uiApps.nix];
+{ pkgs, ... }:
+{
+  imports = [
+    ./mpfammatter.nix
+    ./modules/uiApps.nix
+  ];
 }

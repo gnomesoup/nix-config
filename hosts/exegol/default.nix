@@ -5,6 +5,7 @@
     ../modules/nixvim.nix
     ../modules/appleDefaults.nix
     ../modules/fonts.nix
+    ../modules/homebrew.nix
   ];
 
   environment.systemPackages = [
@@ -14,6 +15,7 @@
     pkgs.raycast
     pkgs.warp-terminal
     pkgs.utm
+    pkgs.logseq
   ];
 
   # Necessary for using flakes on this system.
@@ -31,6 +33,7 @@
   nixpkgs = {
     hostPlatform = "aarch64-darwin";
     config.allowUnfree = true;
+    config.allowBroken = true;
   };
 
   programs = {
