@@ -66,6 +66,10 @@
     isSystemUser = true;
     group = "sambauser";
   };
+  users.users.exegol-tm = {
+    isSystemUser = true;
+    group = "sambauser";
+  };
   users.users.pinkimac-tm = {
     isSystemUser = true;
     group = "sambauser";
@@ -153,6 +157,19 @@
         browseable = "yes";
         "comment" = "Time Machine";
         "force user" = "coruscant-tm";
+        "fruit:aapl" = "yes";
+        "fruit:time machine" = "yes";
+        "vfs objects" = "catia fruit streams_xattr";
+        "spotlight" = "yes";
+      };
+      exegol-tm = {
+        path = "/mnt/backup2/tm1";
+        "valid users" = "exegol-tm";
+        public = "no";
+        writeable = "yes";
+        browseable = "yes";
+        "comment" = "Time Machine";
+        "force user" = "exegol-tm";
         "fruit:aapl" = "yes";
         "fruit:time machine" = "yes";
         "vfs objects" = "catia fruit streams_xattr";
