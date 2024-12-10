@@ -58,7 +58,7 @@
   services.xserver.enable = true;
 
   # Enable the KDE Plasma Desktop Environment.
-  services.displayManager.sddm.wayland.enable = true;
+  services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
 
   # Configure keymap in X11
@@ -71,7 +71,7 @@
   services.printing.enable = true;
 
   # Enable sound with pipewire.
-  sound.enable = true;
+  # sound.enable = true;
   hardware.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
@@ -98,6 +98,7 @@
     extraGroups = [ "networkmanager" "wheel" "docker"];
     packages = with pkgs; [
       kate
+      borgbackup
     #  thunderbird
     ];
   };
@@ -134,6 +135,11 @@
 
   # Enable the OpenSSH daemon.
   # services.openssh.enable = true;
+  services.immich = {
+    enable = true;
+    secretsFile = "/run/secrets/immich";
+    database.createDB=false;
+  };
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
