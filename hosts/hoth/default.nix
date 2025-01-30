@@ -131,7 +131,7 @@
         #use sendfile = yes
         #max protocol = smb2
         # note: localhost is the ipv6 localhost ::1
-        "hosts allow" = "192.168.40. 127.0.0.1 localhost 100.82.20.42 100.69.20.54 100.94.250.60 100.105.216.37 100.75.55.140 100.64.177.72";
+        "hosts allow" = "192.168.40. 127.0.0.1 localhost 100.82.20.42 100.69.20.54 100.94.250.60 100.105.216.37 100.75.55.140 100.64.177.72 100.102.138.5";
         "hosts deny" = "0.0.0.0/0";
         "guest account" = "nobody";
         "map to guest" = "bad user";
@@ -163,7 +163,7 @@
         "spotlight" = "yes";
       };
       exegol-tm = {
-        path = "/mnt/backup2/tm1";
+        path = "/mnt/backup2/tm3";
         "valid users" = "exegol-tm";
         public = "no";
         writeable = "yes";
