@@ -15,10 +15,11 @@
     pkgs.raycast
     pkgs.warp-terminal
     pkgs.utm
-    pkgs.logseq
+    pkgs.vscodium
   ];
 
   # Necessary for using flakes on this system.
+  nix.enable = false;
   nix.settings.experimental-features = "nix-command flakes";
   
   # nix.settings.extra-nix-path = "nixpkgs=flake:nixpkgs";
@@ -42,7 +43,6 @@
   };
 
   services = {
-    nix-daemon.enable = true;
     tailscale.enable = true;
   };
 
