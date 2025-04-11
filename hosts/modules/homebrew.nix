@@ -8,6 +8,7 @@
       "chromium"
       "nextcloud"
       "vorta"
+      "brave-browser"
     ];
   };
 }
