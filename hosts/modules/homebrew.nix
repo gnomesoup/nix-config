@@ -9,6 +9,7 @@
       "nextcloud"
       "vorta"
       "brave-browser"
+      "raspberry-pi-imager"
     ];
   };
 }
