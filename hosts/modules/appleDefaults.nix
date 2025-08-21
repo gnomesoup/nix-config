@@ -6,7 +6,7 @@
       ApplePressAndHoldEnabled = false;
     };
     defaults.dock.persistent-apps = [
-      "/Applications/Safari.app"
+      "/Applications/Brave Browser.app"
       "/Applications/Chromium.app"
       "/System/Applications/Messages.app"
       "/System/Applications/Maps.app"
@@ -21,6 +21,7 @@
       "/Applications/Microsoft Teams.app"
       "/Applications/Microsoft Outlook.app"
       "/nix/store/ar5w4hm0lfazi6ijs67bfwxlcyj9nwqr-vscode-1.95.2/Applications/Visual Studio Code.app"
+      "/nix/store/1w8pcjnlhy5dyzragnhwqp3wp7p1bkw7-vscodium-1.98.2.25078/Applications/VSCodium.app"
       "/nix/store/6fancnr8g8zyibmf8xiyrlhzrma06mvj-system-applications/Applications/Logseq.app"
       "/nix/store/6fancnr8g8zyibmf8xiyrlhzrma06mvj-system-applications/Applications/Warp.app"
     ];

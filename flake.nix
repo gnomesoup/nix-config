@@ -100,7 +100,6 @@
             inherit self;
           };
           modules = [
-            determinate.darwinModules.default
             ./hosts/Coruscant
             nixvim.nixDarwinModules.nixvim
             home-manager.darwinModules.home-manager
@@ -118,7 +117,6 @@
             inherit self;
           };
           modules = [
-            determinate.darwinModules.default
             ./hosts/exegol
             nixvim.nixDarwinModules.nixvim
             home-manager.darwinModules.home-manager
