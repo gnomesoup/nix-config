@@ -3,7 +3,7 @@
     # pkgs.plover.dev
     pkgs.zoom-us
     # pkgs.brave
-    pkgs.ladybird
+    # pkgs.ladybird
   ];
 
   programs = {

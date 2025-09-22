@@ -15,7 +15,7 @@
             "gs" = "git status";
             "ga" = "git add .";
             "gc" = "git commit";
-            "drs" = "darwin-rebuild switch --flake ~/nix-config#$(scutil --get LocalHostName)";
+            "drs" = "sudo darwin-rebuild switch --flake ~/nix-config#$(scutil --get LocalHostName)";
             "nrs" = "sudo nixos-rebuild switch --flake ~/nix-config#$(hostname)";
             "garbage" = "nix-collect-garbage --delete-older-than 7d";
             "iud" = "immich upload --delete ~/Downloads";
