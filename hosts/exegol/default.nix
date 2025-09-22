@@ -13,7 +13,6 @@
     pkgs.git
     pkgs.nixpkgs-fmt
     pkgs.raycast
-    pkgs.warp-terminal
     pkgs.utm
     pkgs.vscodium
   ];
