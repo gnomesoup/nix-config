@@ -149,6 +149,19 @@
         "vfs objects" = "catia fruit streams_xattr";
         "spotlight" = "yes";
       };
+      pinchflat = {
+        path = "/mnt/backup2/pinchflat/downloads";
+        "valid users" = "pinkimac-tm";
+        public = "no";
+        writeable = "yes";
+        browseable = "yes";
+        "comment" = "Pinchflat Downloads";
+        "force user" = "pinkimac-tm";
+        "fruit:aapl" = "yes";
+        "fruit:time machine" = "yes";
+        "vfs objects" = "catia fruit streams_xattr";
+        "spotlight" = "yes";
+      };
       coruscant-tm = {
         path = "/mnt/backup2/tm1";
         "valid users" = "coruscant-tm";
