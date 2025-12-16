@@ -15,6 +15,7 @@
     pkgs.raycast
     pkgs.utm
     pkgs.vscodium
+    pkgs.borgbackup
   ];
 
   # Necessary for using flakes on this system.

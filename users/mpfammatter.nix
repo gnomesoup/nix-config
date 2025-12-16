@@ -11,8 +11,8 @@
   programs = {
     git = {
       enable = true;
-      userName = "Michael Pfammatter";
-      userEmail = "pfammatter@gmail.com";
+      settings.userName = "Michael Pfammatter";
+      settings.userEmail = "pfammatter@gmail.com";
     };
     home-manager.enable = true;
   };

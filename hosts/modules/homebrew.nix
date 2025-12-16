@@ -10,6 +10,8 @@
       "vorta"
       "brave-browser"
       "raspberry-pi-imager"
+      "calibre"
+      "librewolf"
     ];
   };
 }

@@ -6,7 +6,7 @@
       ApplePressAndHoldEnabled = false;
     };
     defaults.dock.persistent-apps = [
-      "/Applications/Brave Browser.app"
+      "/Applications/Librewolf.app"
       "/Applications/Chromium.app"
       "/System/Applications/Messages.app"
       "/System/Applications/Maps.app"
