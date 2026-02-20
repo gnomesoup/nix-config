@@ -1,10 +1,17 @@
-{ pkgs, ... }: {
-  imports = [ ./modules/zsh.nix ];
+{ pkgs, ... }:
+{
+  imports = [
+    ./modules/zsh.nix
+    ./modules/wezterm.nix
+  ];
   home = {
     username = "test";
     homeDirectory = "/Users/test";
     stateVersion = "23.11";
-    packages = [ pkgs.immich-cli pkgs.nixfmt-rfc-style ];
+    packages = [
+      pkgs.immich-cli
+      pkgs.nixfmt-rfc-style
+    ];
   };
   programs = {
     git = {
@@ -13,6 +20,8 @@
       userEmail = "pfammatter@gmail.com";
     };
     home-manager.enable = true;
-    vscode = { enable = true; };
+    vscode = {
+      enable = true;
+    };
   };
 }

@@ -43,6 +43,18 @@ Treat changes as infrastructure updates: prefer declarative changes and reversib
 - `nix build .#checks.x86_64-linux.<checkName>` — run an individual check output once defined.
 - `nixos-rebuild test --flake .#nixvm` — best proxy for “single test” on NixOS desktop hosts.
 
+## Single-Test Equivalents
+- Prefer `nix build .#checks.<system>.<checkName>` as the closest thing to a single test.
+- For Darwin-specific checks, use `nix build .#checks.aarch64-darwin.<checkName>`.
+- For Linux-specific checks, use `nix build .#checks.x86_64-linux.<checkName>`.
+- If you need one module evaluation, use `nix eval` on the attribute you changed.
+
+## Diagnostics & Debugging
+- `nix flake show` first when unsure about outputs or system names.
+- `nix eval .#nixosConfigurations.<host>.options.<path>` to inspect option types.
+- `nix eval .#nixosConfigurations.<host>.config.<path>` to inspect resolved config.
+- `journalctl -u <service>` after `*-rebuild` to validate service behavior.
+
 ## Lint & Formatting
 - `nix fmt` — run repo-wide formatting; configure `nixfmt-rfc-style` in devShells if needed.
 - `nix fmt hosts/hoth/default.nix` — scope formatting to a single file before committing.
@@ -70,12 +82,14 @@ Treat changes as infrastructure updates: prefer declarative changes and reversib
 - Attribute names with slashes require quotes (`"borg/borg_passphrase"`).
 - Lists should stay on one line when short; otherwise break into one entry per line with trailing comma omitted.
 - Prefer explicit types (booleans, ints) over stringly values; consult `nixos-option` for expected types.
+- Use `lib.mkDefault` for conservative defaults and `lib.mkForce` only when documented.
 
 ## Naming Conventions
 - Hosts follow canon names (e.g., `hoth`, `Coruscant`); keep lowercase for Linux, capitalized for macOS as observed.
 - Module files use kebab-case; functions or attrsets use camelCase (e.g., `home.packages`).
 - Secrets keys mirror directory structure (`borg/borg_passphrase`); keep names stable to avoid re-encryption.
 - Git branches: `feat/<topic>`, `fix/<bug>`, or `chore/<task>`.
+- Flake outputs keep existing naming; avoid renaming hosts without updating CI references.
 
 ## Error Handling & Validation
 - Fail fast: if an option might be unset, guard with `lib.mkDefault` or `lib.mkIf config.services...`.
@@ -95,6 +109,7 @@ Treat changes as infrastructure updates: prefer declarative changes and reversib
 - Extend this guide when you discover new host patterns; keep sections concise but actionable.
 - Only add inline comments for non-obvious hardware quirks or temporary workarounds.
 - Update `readme.md` when onboarding steps change; cross-link here as needed.
+- Keep `flake.lock` changes scoped to intentional input updates; avoid incidental churn.
 
 ## Cursor / Copilot Rules
 - No `.cursor/rules` or `.cursorrules` present at this time.
