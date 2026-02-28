@@ -23,6 +23,7 @@
       "/nix/store/ar5w4hm0lfazi6ijs67bfwxlcyj9nwqr-vscode-1.95.2/Applications/Visual Studio Code.app"
       "/nix/store/1w8pcjnlhy5dyzragnhwqp3wp7p1bkw7-vscodium-1.98.2.25078/Applications/VSCodium.app"
       "/Applications/Logseq.app"
+      "/nix/store/w2dalyg4cv1k6r09cnwhvmr0323kg39a-wezterm-0-unstable-2025-10-14/Applications/WezTerm.app"
     ];
   };
 }
