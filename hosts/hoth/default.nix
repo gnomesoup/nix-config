@@ -10,6 +10,7 @@
       ./hardware-configuration.nix
       ../modules/fonts.nix
       ../modules/nixvim.nix
+      ../../users/inigo.nix
     ];
 
 
@@ -152,10 +153,27 @@
       pinchflat = {
         path = "/mnt/backup2/pinchflat/downloads";
         "valid users" = "pinkimac-tm";
-        public = "no";
+        public = "yes";
         writeable = "yes";
         browseable = "yes";
+        "create mask" = 0644;
+        "directory mask" = 2777;
         "comment" = "Pinchflat Downloads";
+        "force user" = "pinkimac-tm";
+        "fruit:aapl" = "yes";
+        "fruit:time machine" = "yes";
+        "vfs objects" = "catia fruit streams_xattr";
+        "spotlight" = "yes";
+      };
+      jellyfin = {
+        path = "/mnt/backup2/jellyfin";
+        "valid users" = "pinkimac-tm, exegol-tm";
+        public = "yes";
+        writeable = "yes";
+        browseable = "yes";
+        "create mask" = 0644;
+        "directory mask" = 2777;
+        "comment" = "Jellyfin";
         "force user" = "pinkimac-tm";
         "fruit:aapl" = "yes";
         "fruit:time machine" = "yes";
