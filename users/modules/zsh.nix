@@ -20,7 +20,7 @@
             "garbage" = "nix-collect-garbage --delete-older-than 7d";
             "iud" = "immich upload --delete ~/Downloads";
             "doco" = "docker compose";
-            "doco oc" = "docker compose run --rm openclaw-cli";
+            "docooc" = "docker compose run --rm openclaw-cli";
         };
     };
 }
