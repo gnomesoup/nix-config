@@ -40,6 +40,28 @@
       # kmonad,
     }:
     {
+      homeConfigurations = {
+        "mpfammatter-linux" = home-manager.lib.homeManagerConfiguration {
+          pkgs = import nixpkgs {
+            system = "x86_64-linux";
+          };
+          modules = [
+            ./users/mpfammatter.nix
+          ];
+        };
+
+        "mpfammatter-darwin" = home-manager.lib.homeManagerConfiguration {
+          pkgs = import nixpkgs {
+            system = "aarch64-darwin";
+            config.allowUnfree = true;
+            config.allowBroken = true;
+          };
+          modules = [
+            ./users/mpfammatter-ui.nix
+          ];
+        };
+      };
+
       # Build nixos flake using:
       # $ nixos-rebuild build --flake .#<ComputerName>
       nixosConfigurations = {
