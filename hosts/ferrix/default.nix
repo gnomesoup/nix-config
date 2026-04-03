@@ -12,11 +12,11 @@
       ../modules/nixvim.nix
     ];
 
-  sops.defaultSopsFile = ../../secrets/secrets.yaml;
-  sops.defaultSopsFormat = "yaml";
-  sops.age.keyFile = "/home/mpfammatter/.config/sops/age/keys.txt";
-  sops.secrets."borg/borg_passphrase" = { };
-  sops.secrets."borg/endor/borgbase_path" = { };
+  # sops.defaultSopsFile = ../../secrets/secrets.yaml;
+  # sops.defaultSopsFormat = "yaml";
+  # sops.age.keyFile = "/home/mpfammatter/.config/sops/age/keys.txt";
+  # sops.secrets."borg/borg_passphrase" = { };
+  # sops.secrets."borg/endor/borgbase_path" = { };
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
