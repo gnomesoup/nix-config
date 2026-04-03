@@ -34,6 +34,12 @@
   # Enable networking
   networking.networkmanager.enable = true;
 
+  services.logind.settings.Login = {
+    HandleLidSwitch = "ignore";
+    HandleLidSwitchDocked = "ignore";
+    HandleLidSwitchExternalPower = "ignore";
+  };
+
   # Set your time zone.
   time.timeZone = "America/New_York";
 
