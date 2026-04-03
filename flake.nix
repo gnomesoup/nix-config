@@ -80,6 +80,21 @@
             }
           ];
         };
+        "ferrix" = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            ./hosts/ferrix
+            sops-nix.nixosModules.sops
+            nixvim.nixosModules.nixvim
+            home-manager.nixosModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
+              home-manager.backupFileExtension = "backup";
+            }
+          ];
+        };
         "nixvm" = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
