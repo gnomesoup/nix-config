@@ -20,6 +20,8 @@
             "nrs" = "sudo nixos-rebuild switch --flake ~/nix-config#$(hostname)";
             "garbage" = "nix-collect-garbage --delete-older-than 7d";
             "iud" = "immich upload --delete ~/Downloads";
+            "doco" = "docker compose";
+            "docooc" = "docker compose run --rm openclaw-cli";
         };
     };
 }
