@@ -10,12 +10,13 @@
     stateVersion = "23.11";
     packages = [
       pkgs.immich-cli
-      pkgs.nixfmt-rfc-style
+      pkgs.nixfmt
     ];
   };
   programs = {
     git = {
       enable = true;
+      signing.format = "openpgp";
       userName = "Michael Pfammatter";
       userEmail = "pfammatter@gmail.com";
     };
