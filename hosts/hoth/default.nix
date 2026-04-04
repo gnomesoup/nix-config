@@ -83,6 +83,10 @@
     isNormalUser = true;
     extraGroups = ["sambauser"];
   };
+  users.users.ferrix-smb = {
+    isSystemUser = true;
+    group = "sambauser";
+  };
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
@@ -91,6 +95,9 @@
     wget
     git
     borgbackup
+    sops
+    age
+    nixpkgs-fmt
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -152,14 +159,14 @@
       };
       pinchflat = {
         path = "/mnt/backup2/pinchflat/downloads";
-        "valid users" = "pinkimac-tm";
+        "valid users" = "ferrix-smb";
         public = "yes";
         writeable = "yes";
         browseable = "yes";
         "create mask" = 0644;
         "directory mask" = 2777;
         "comment" = "Pinchflat Downloads";
-        "force user" = "pinkimac-tm";
+        "force user" = "ferrix-smb";
         "fruit:aapl" = "yes";
         "fruit:time machine" = "yes";
         "vfs objects" = "catia fruit streams_xattr";
@@ -167,14 +174,14 @@
       };
       jellyfin = {
         path = "/mnt/backup2/jellyfin";
-        "valid users" = "pinkimac-tm, exegol-tm";
+        "valid users" = "ferrix-smb, exegol-tm";
         public = "yes";
         writeable = "yes";
         browseable = "yes";
         "create mask" = 0644;
         "directory mask" = 2777;
         "comment" = "Jellyfin";
-        "force user" = "pinkimac-tm";
+        "force user" = "ferrix-smb";
         "fruit:aapl" = "yes";
         "fruit:time machine" = "yes";
         "vfs objects" = "catia fruit streams_xattr";

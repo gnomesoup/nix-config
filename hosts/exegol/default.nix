@@ -8,14 +8,15 @@
     ../modules/homebrew.nix
   ];
 
-  environment.systemPackages = [
-    pkgs.vim
-    pkgs.git
-    pkgs.nixpkgs-fmt
-    pkgs.raycast
-    pkgs.utm
-    pkgs.vscodium
-    pkgs.borgbackup
+  environment.systemPackages = with pkgs; [
+    vim
+    git
+    nixpkgs-fmt
+    raycast
+    utm
+    borgbackup
+    sops
+    age
   ];
 
   # Necessary for using flakes on this system.
