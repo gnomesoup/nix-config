@@ -59,10 +59,10 @@
       "x-systemd.device-timeout=10s"
       "x-systemd.mount-timeout=10s"
       "vers=3.1.1"
-      "uid=mpfammatter"
-      "gid=users"
-      "file_mode=0644"
-      "dir_mode=0755"
+      "uid=jellyfin"
+      "gid=jellyfin"
+      "file_mode=0664"
+      "dir_mode=0775"
     ];
   };
 
@@ -78,10 +78,10 @@
       "x-systemd.device-timeout=10s"
       "x-systemd.mount-timeout=10s"
       "vers=3.1.1"
-      "uid=mpfammatter"
-      "gid=users"
-      "file_mode=0644"
-      "dir_mode=0755"
+      "uid=jellyfin"
+      "gid=jellyfin"
+      "file_mode=0664"
+      "dir_mode=0775"
     ];
   };
 
