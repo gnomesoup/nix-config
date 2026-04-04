@@ -16,6 +16,16 @@
   sops.defaultSopsFormat = "yaml";
   sops.age.keyFile = "/home/mpfammatter/.config/sops/age/keys.txt";
   sops.secrets."smb/passwords/ferrix-smb" = { };
+  sops.templates."smb-ferrix-smb" = {
+    content = ''
+      username=ferrix-smb
+      password=${config.sops.placeholder."smb/passwords/ferrix-smb"}
+      domain=WORKGROUP
+    '';
+    owner = "root";
+    group = "root";
+    mode = "0400";
+  };
   # sops.secrets."borg/borg_passphrase" = { };
   # sops.secrets."borg/endor/borgbase_path" = { };
 
@@ -34,6 +44,46 @@
 
   # Enable networking
   networking.networkmanager.enable = true;
+
+  boot.supportedFilesystems = [ "cifs" ];
+
+  fileSystems."/mnt/hoth-jellyfin" = {
+    device = "//192.168.40.183/jellyfin";
+    fsType = "cifs";
+    options = [
+      "credentials=${config.sops.templates."smb-ferrix-smb".path}"
+      "x-systemd.automount"
+      "noauto"
+      "nofail"
+      "x-systemd.idle-timeout=5min"
+      "x-systemd.device-timeout=10s"
+      "x-systemd.mount-timeout=10s"
+      "vers=3.1.1"
+      "uid=mpfammatter"
+      "gid=users"
+      "file_mode=0644"
+      "dir_mode=0755"
+    ];
+  };
+
+  fileSystems."/mnt/hoth-pinchflat" = {
+    device = "//192.168.40.183/pinchflat";
+    fsType = "cifs";
+    options = [
+      "credentials=${config.sops.templates."smb-ferrix-smb".path}"
+      "x-systemd.automount"
+      "noauto"
+      "nofail"
+      "x-systemd.idle-timeout=5min"
+      "x-systemd.device-timeout=10s"
+      "x-systemd.mount-timeout=10s"
+      "vers=3.1.1"
+      "uid=mpfammatter"
+      "gid=users"
+      "file_mode=0644"
+      "dir_mode=0755"
+    ];
+  };
 
   services.logind.settings.Login = {
     HandleLidSwitch = "ignore";

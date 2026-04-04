@@ -19,42 +19,6 @@
       fsType = "vfat";
       options = [ "fmask=0077" "dmask=0077" ];
     };
-  fileSystems."/mnt/hoth-jellyfin" = {
-    device = "//192.168.40.183/jellyfin";
-    fsType = "cifs";
-    options = [
-      "credentials=${config.sops.templates.\"smb/passwords/ferrix-smb\".path}"
-      "x-systemd.automount"
-      "noauto"
-      "nofail"
-      "x-systemd.idle-timeout=5min"
-      "x-systemd.device-timeout=10s"
-      "x-systemd.mount-timeout=10s"
-      "vers=3.1.1"
-      "uid=mpfammatter"
-      "gid=users"
-      "file_mode=0644"
-      "dir_mode=0755"
-    ];
-  };
-  fileSystems."/mnt/hoth-pinchflat" = {
-    device = "//192.168.40.183/pinchflat";
-    fsType = "cifs";
-    options = [
-      "credentials=${config.sops.templates.\"smb/passwords/ferrix-smb\".path}"
-      "x-systemd.automount"
-      "noauto"
-      "nofail"
-      "x-systemd.idle-timeout=5min"
-      "x-systemd.device-timeout=10s"
-      "x-systemd.mount-timeout=10s"
-      "vers=3.1.1"
-      "uid=mpfammatter"
-      "gid=users"
-      "file_mode=0644"
-      "dir_mode=0755"
-    ];
-  };
   swapDevices = [ ];
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
