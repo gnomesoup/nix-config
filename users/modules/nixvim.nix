@@ -1,15 +1,16 @@
+{ lib, ... }:
 {
   programs.nixvim = {
+    # Personal Colemak-DH overrides layered on top of the kickstart base config.
     enable = true;
-    opts = {
-      number = true;
-      relativenumber = true;
-      autoindent = true;
-      expandtab = true;
-      shiftwidth = 2;
-      tabstop = 2;
+    clipboard.providers = {
+      "wl-copy".enable = lib.mkForce false;
+      xsel.enable = lib.mkForce false;
     };
-    colorschemes.ayu.enable = true;
+    colorschemes = {
+      tokyonight.enable = lib.mkForce false;
+      monokai-pro.enable = true;
+    };
     keymaps = [
       { key = "m"; action = "h"; }
       { key = "n"; action = "j"; }
