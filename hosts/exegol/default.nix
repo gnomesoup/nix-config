@@ -2,7 +2,6 @@
 
 {
   imports = [
-    ../modules/nixvim.nix
     ../modules/appleDefaults.nix
     ../modules/fonts.nix
     ../modules/homebrew.nix

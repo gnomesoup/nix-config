@@ -9,7 +9,6 @@
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
       ../modules/fonts.nix
-      ../modules/nixvim.nix
     ];
 
   sops.defaultSopsFile = ../../secrets/secrets.yaml;

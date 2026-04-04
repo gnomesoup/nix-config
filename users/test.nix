@@ -1,6 +1,7 @@
 { pkgs, ... }:
 {
   imports = [
+    ./modules/nixvim.nix
     ./modules/zsh.nix
     ./modules/wezterm.nix
   ];

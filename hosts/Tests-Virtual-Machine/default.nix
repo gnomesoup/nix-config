@@ -11,7 +11,6 @@
     pkgs.warp-terminal
   ];
 
-  imports = [
     ../modules/nixvim.nix
     ../modules/appleDefaults.nix
     ../modules/fonts.nix

@@ -16,13 +16,13 @@
       "gs" = "git status";
       "ga" = "git add .";
       "gc" = "git commit";
-      "drs" = "sudo darwin-rebuild switch --flake ~/nix-config#$(scutil --get LocalHostName)";
+      "drs" = "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)";
       "hms" =
         if pkgs.stdenv.isDarwin then
           "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-darwin -b backup"
         else
           "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup";
-      "nrs" = "sudo nixos-rebuild switch --flake ~/nix-config#$(hostname)";
+      "nrs" = "sudo nixos-rebuild switch --flake path:$HOME/nix-config#$(hostname)";
       "garbage" = 
         if pkgs.stdenv.isDarwin then
           "nix-collect-garbage --delete-older-than 7d; sudo nix store optimise"

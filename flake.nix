@@ -46,6 +46,7 @@
             system = "x86_64-linux";
           };
           modules = [
+            nixvim.homeModules.nixvim
             ./users/mpfammatter.nix
           ];
         };
@@ -57,6 +58,7 @@
             config.allowBroken = true;
           };
           modules = [
+            nixvim.homeModules.nixvim
             ./users/mpfammatter-ui.nix
           ];
         };
@@ -70,11 +72,11 @@
           modules = [
             ./hosts/hoth
             sops-nix.nixosModules.sops
-            nixvim.nixosModules.nixvim
             home-manager.nixosModules.home-manager
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
+              home-manager.sharedModules = [ nixvim.homeModules.nixvim ];
               home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
               home-manager.backupFileExtension = "backup";
             }
@@ -85,11 +87,11 @@
           modules = [
             ./hosts/ferrix
             sops-nix.nixosModules.sops
-            nixvim.nixosModules.nixvim
             home-manager.nixosModules.home-manager
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
+              home-manager.sharedModules = [ nixvim.homeModules.nixvim ];
               home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
               home-manager.backupFileExtension = "backup";
             }
@@ -100,11 +102,11 @@
           modules = [
             ./hosts/nixvm
             sops-nix.nixosModules.sops
-            nixvim.nixosModules.nixvim
             home-manager.nixosModules.home-manager
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
+              home-manager.sharedModules = [ nixvim.homeModules.nixvim ];
               home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
               home-manager.backupFileExtension = "backup";
             }
@@ -121,11 +123,11 @@
           };
           modules = [
             ./hosts/Tests-Virtual-Machine
-            nixvim.nixDarwinModules.nixvim
             home-manager.darwinModules.home-manager
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
+              home-manager.sharedModules = [ nixvim.homeModules.nixvim ];
               home-manager.users.test = import ./users/test.nix;
               home-manager.backupFileExtension = "backup";
             }
@@ -138,11 +140,11 @@
           };
           modules = [
             ./hosts/Coruscant
-            nixvim.nixDarwinModules.nixvim
             home-manager.darwinModules.home-manager
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
+              home-manager.sharedModules = [ nixvim.homeModules.nixvim ];
               home-manager.users.mpfammatter = import ./users/mpfammatter-ui.nix;
               home-manager.backupFileExtension = "backup";
             }
@@ -155,11 +157,11 @@
           };
           modules = [
             ./hosts/exegol
-            nixvim.nixDarwinModules.nixvim
             home-manager.darwinModules.home-manager
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
+              home-manager.sharedModules = [ nixvim.homeModules.nixvim ];
               home-manager.users.mpfammatter = import ./users/mpfammatter-ui.nix;
               home-manager.backupFileExtension = "backup";
             }

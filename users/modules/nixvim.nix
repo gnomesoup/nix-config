@@ -2,12 +2,12 @@
   programs.nixvim = {
     enable = true;
     opts = {
-        number = true;
-        relativenumber = true;
-	autoindent = true;
-	expandtab = true;
-	shiftwidth = 2;
-	tabstop = 2;
+      number = true;
+      relativenumber = true;
+      autoindent = true;
+      expandtab = true;
+      shiftwidth = 2;
+      tabstop = 2;
     };
     colorschemes.ayu.enable = true;
     keymaps = [
