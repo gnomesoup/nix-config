@@ -12,9 +12,10 @@
       ../modules/nixvim.nix
     ];
 
-  # sops.defaultSopsFile = ../../secrets/secrets.yaml;
-  # sops.defaultSopsFormat = "yaml";
-  # sops.age.keyFile = "/home/mpfammatter/.config/sops/age/keys.txt";
+  sops.defaultSopsFile = ../../secrets/secrets.yaml;
+  sops.defaultSopsFormat = "yaml";
+  sops.age.keyFile = "/home/mpfammatter/.config/sops/age/keys.txt";
+  sops.secrets."smb/passwords/ferrix-smb" = { };
   # sops.secrets."borg/borg_passphrase" = { };
   # sops.secrets."borg/endor/borgbase_path" = { };
 
