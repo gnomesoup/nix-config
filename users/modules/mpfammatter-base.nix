@@ -2,6 +2,10 @@
 {
   home = {
     username = "mpfammatter";
+    sessionVariables = {
+      EDITOR = "nvim";
+      VISUAL = "nvim";
+    };
     homeDirectory = if pkgs.stdenv.isDarwin then "/Users/mpfammatter" else "/home/mpfammatter";
     stateVersion = "23.11";
     packages = [
