@@ -12,7 +12,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -45,6 +44,7 @@
             system = "x86_64-linux";
           };
           modules = [
+            sops-nix.homeManagerModules.sops
             kickstart-nixvim.homeManagerModules.default
             ./users/mpfammatter.nix
           ];
@@ -57,6 +57,7 @@
             config.allowBroken = true;
           };
           modules = [
+            sops-nix.homeManagerModules.sops
             kickstart-nixvim.homeManagerModules.default
             ./users/mpfammatter-ui.nix
           ];
@@ -75,7 +76,10 @@
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.sharedModules = [ kickstart-nixvim.homeManagerModules.default ];
+              home-manager.sharedModules = [
+                sops-nix.homeManagerModules.sops
+                kickstart-nixvim.homeManagerModules.default
+              ];
               home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
               home-manager.backupFileExtension = "backup";
             }
@@ -90,7 +94,10 @@
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.sharedModules = [ kickstart-nixvim.homeManagerModules.default ];
+              home-manager.sharedModules = [
+                sops-nix.homeManagerModules.sops
+                kickstart-nixvim.homeManagerModules.default
+              ];
               home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
               home-manager.backupFileExtension = "backup";
             }
@@ -105,7 +112,10 @@
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.sharedModules = [ kickstart-nixvim.homeManagerModules.default ];
+              home-manager.sharedModules = [
+                sops-nix.homeManagerModules.sops
+                kickstart-nixvim.homeManagerModules.default
+              ];
               home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
               home-manager.backupFileExtension = "backup";
             }
@@ -126,7 +136,10 @@
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.sharedModules = [ kickstart-nixvim.homeManagerModules.default ];
+              home-manager.sharedModules = [
+                sops-nix.homeManagerModules.sops
+                kickstart-nixvim.homeManagerModules.default
+              ];
               home-manager.users.test = import ./users/test.nix;
               home-manager.backupFileExtension = "backup";
             }
@@ -143,7 +156,10 @@
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.sharedModules = [ kickstart-nixvim.homeManagerModules.default ];
+              home-manager.sharedModules = [
+                sops-nix.homeManagerModules.sops
+                kickstart-nixvim.homeManagerModules.default
+              ];
               home-manager.users.mpfammatter = import ./users/mpfammatter-ui.nix;
               home-manager.backupFileExtension = "backup";
             }
@@ -160,7 +176,10 @@
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.sharedModules = [ kickstart-nixvim.homeManagerModules.default ];
+              home-manager.sharedModules = [
+                sops-nix.homeManagerModules.sops
+                kickstart-nixvim.homeManagerModules.default
+              ];
               home-manager.users.mpfammatter = import ./users/mpfammatter-ui.nix;
               home-manager.backupFileExtension = "backup";
             }

@@ -178,6 +178,28 @@ in
           silent = true;
         };
       }
+      {
+        mode = "n";
+        key = "<leader>ws";
+        action = "<cmd>split<CR>";
+        options = {
+          desc = "Horizontal window split";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>wv";
+        action = "<cmd>vsplit<CR>";
+        options = {
+          desc = "Vertical window split";
+          silent = true;
+        };
+      }
     ];
+    extraConfigVim = ''
+      set splitbelow
+      set splitright
+    '';
   };
 }

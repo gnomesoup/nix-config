@@ -2,16 +2,21 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{ config, lib, pkgs, inputs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-      ../modules/fonts.nix
-      ../../users/inigo.nix
-    ];
-
+  imports = [
+    # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+    ../modules/fonts.nix
+    ../../users/inigo.nix
+  ];
 
   sops.defaultSopsFile = ../../secrets/secrets.yaml;
   sops.defaultSopsFormat = "yaml";
@@ -23,7 +28,10 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
 
   networking.hostName = "hoth"; # Define your hostname.
   # Pick only one of the below networking options.
@@ -55,10 +63,13 @@
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.defaultUserShell = pkgs.zsh;
-  users.groups.sambauser = {};
+  users.groups.sambauser = { };
   users.users.mpfammatter = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "docker" ]; # Enable ‘sudo’ for the user.
+    extraGroups = [
+      "wheel"
+      "docker"
+    ]; # Enable ‘sudo’ for the user.
     packages = with pkgs; [
     ];
   };
@@ -80,7 +91,7 @@
   };
   users.users.eadu-backup = {
     isNormalUser = true;
-    extraGroups = ["sambauser"];
+    extraGroups = [ "sambauser" ];
   };
   users.users.ferrix-smb = {
     isSystemUser = true;
@@ -97,6 +108,7 @@
     sops
     age
     nixpkgs-fmt
+    wezterm
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -119,7 +131,7 @@
   # services.udisks2.enable = true;
   # services.udisks2.mountOnMedia = true;
   # services.devmon.enable = true;
-  
+
   ## Time machine samba setup
   # assign passwords to samba users manually with `smbpasswd -a $USER`
   services.samba-wsdd = {
@@ -134,11 +146,12 @@
         "workgroup" = "WORKGROUP";
         "server string" = "hoth";
         "netbios name" = "hoth";
-        "security" = "user"; 
+        "security" = "user";
         #use sendfile = yes
         #max protocol = smb2
         # note: localhost is the ipv6 localhost ::1
-        "hosts allow" = "192.168.40. 127.0.0.1 localhost 100.82.20.42 100.69.20.54 100.94.250.60 100.105.216.37 100.75.55.140 100.64.177.72 100.102.138.5";
+        "hosts allow" =
+          "192.168.40. 127.0.0.1 localhost 100.82.20.42 100.69.20.54 100.94.250.60 100.105.216.37 100.75.55.140 100.64.177.72 100.102.138.5";
         "hosts deny" = "0.0.0.0/0";
         "guest account" = "nobody";
         "map to guest" = "bad user";
@@ -257,11 +270,13 @@
         "/home/mpfammatter/docker/immich-db/*"
       ];
       archive_name_format = "endor-{now:%Y-%m-%d-%H%M%S}";
-      encryption_passcommand = "/run/current-system/sw/bin/cat ${config.sops.secrets."borg/borg_passphrase".path}";
+      encryption_passcommand = "/run/current-system/sw/bin/cat ${
+        config.sops.secrets."borg/borg_passphrase".path
+      }";
       ssh_command = "${pkgs.openssh}/bin/ssh -i /home/mpfammatter/.ssh/id_ed25519";
       keep_daily = 1;
       keep_weekly = 4;
-      keep_monthly = 12; 
+      keep_monthly = 12;
       keep_yearly = 2;
     };
   };
@@ -271,7 +286,10 @@
   programs.nix-ld.enable = true;
 
   # Open ports in the firewall.
-  networking.firewall.allowedTCPPorts = [ 1143 1025 ];
+  networking.firewall.allowedTCPPorts = [
+    1143
+    1025
+  ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
@@ -300,4 +318,3 @@
   system.stateVersion = "23.11"; # Did you read the comment?
 
 }
-
