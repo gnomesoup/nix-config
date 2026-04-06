@@ -1,4 +1,12 @@
-{ lib, ... }:
+{ lib, config, ... }:
+let
+  keys = config.vimBindingKeys;
+
+  mkNormalMap = key: action: {
+    mode = "n";
+    inherit key action;
+  };
+in
 {
   programs.nixvim = {
     # Personal Colemak-DH overrides layered on top of the kickstart base config.
@@ -11,20 +19,42 @@
       tokyonight.enable = lib.mkForce false;
       monokai-pro.enable = true;
     };
+    plugins = {
+      diffview.enable = true;
+      neogit = {
+        enable = true;
+        settings = {
+          integrations.diffview = true;
+          mappings.status = {
+            "${keys.right}" = "Toggle";
+          };
+        };
+      };
+      rainbow-delimiters.enable = true;
+    };
     keymaps = [
-      { key = "m"; action = "h"; }
-      { key = "n"; action = "j"; }
-      { key = "e"; action = "k"; }
-      { key = "i"; action = "l"; }
-      { key = "k"; action = "n"; }
-      { key = "k"; action = "N"; }
-      { key = "l"; action = "i"; }
-      { key = "L"; action = "I"; }
-      { key = "f"; action = "e"; }
-      { key = "F"; action = "E"; }
-      { key = "h"; action = "m"; }
-      { key = "t"; action = "f"; }
-      { key = "T"; action = "F"; }
+      (mkNormalMap keys.left "h")
+      (mkNormalMap keys.down "j")
+      (mkNormalMap keys.up "k")
+      (mkNormalMap keys.right "l")
+      (mkNormalMap keys.searchNext "n")
+      (mkNormalMap keys.searchPrev "N")
+      (mkNormalMap keys.insert "i")
+      (mkNormalMap keys.insertLineStart "I")
+      (mkNormalMap keys.wordEnd "e")
+      (mkNormalMap keys.WORDend "E")
+      (mkNormalMap keys.setMark "m")
+      (mkNormalMap keys.findForward "f")
+      (mkNormalMap keys.findBackward "F")
+      {
+        mode = "n";
+        key = "<leader>${keys.git}";
+        action = "<cmd>Neogit<CR>";
+        options = {
+          desc = "Open Neogit";
+          silent = true;
+        };
+      }
     ];
   };
 }

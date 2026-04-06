@@ -1,8 +1,23 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 let
+  keys = config.vimBindingKeys;
   weztermLua = ''
     local wezterm = require "wezterm"
     local act = wezterm.action
+    local keys = {
+      left = '${keys.left}',
+      down = '${keys.down}',
+      up = '${keys.up}',
+      right = '${keys.right}',
+      search_next = '${keys.searchNext}',
+      search_prev = '${keys.searchPrev}',
+      word_end = '${keys.wordEnd}',
+      WORD_end = '${keys.WORDend}',
+      find_forward = '${keys.findForward}',
+      find_backward = '${keys.findBackward}',
+      till_forward = '${keys.tillForward}',
+      till_backward = '${keys.tillBackward}',
+    }
 
     local function pick(list, index, fallback)
       if list ~= nil and list[index] ~= nil then
@@ -107,22 +122,22 @@ let
       search_mode = wezterm.gui.default_key_tables().search_mode
       resize_mode = {
         {
-          key = 'm',
+          key = keys.left,
           mods = 'NONE',
           action = act.AdjustPaneSize { 'Left', 5 }
         },
         {
-          key = 'n',
+          key = keys.down,
           mods = 'NONE',
           action = act.AdjustPaneSize { 'Down', 5 }
         },
         {
-          key = 'e',
+          key = keys.up,
           mods = 'NONE',
           action = act.AdjustPaneSize { 'Up', 5 }
         },
         {
-          key = 'i',
+          key = keys.right,
           mods = 'NONE',
           action = act.AdjustPaneSize { 'Right', 5 }
         },
@@ -138,63 +153,63 @@ let
         },
       }
       table.insert(copy_mode, {
-        key = 'm',
+        key = keys.left,
         mods = 'NONE',
         action = act.CopyMode 'MoveLeft'
       })
       table.insert(copy_mode, {
-        key = 'n',
+        key = keys.down,
         mods = 'NONE',
         action = act.CopyMode 'MoveDown'
       })
       table.insert(copy_mode, {
-        key = 'e',
+        key = keys.up,
         mods = 'NONE',
         action = act.CopyMode 'MoveUp'
       })
       table.insert(copy_mode, {
-        key = 'i',
+        key = keys.right,
         mods = 'NONE',
         action = act.CopyMode 'MoveRight'
       })
       table.insert(copy_mode, {
-        key = 'f',
+        key = keys.word_end,
         mods = 'NONE',
         action = act.CopyMode 'MoveForwardWordEnd'
       })
       table.insert(copy_mode, {
-        key = 'F',
+        key = keys.WORD_end,
         mods = 'NONE',
         action = act.CopyMode 'MoveForwardWordEnd'
       })
       table.insert(copy_mode, {
-        key = 't',
+        key = keys.find_forward,
         mods = 'NONE',
         action = act.CopyMode { JumpForward = { prev_char = false } }
       })
       table.insert(copy_mode, {
-        key = 'T',
+        key = keys.find_backward,
         mods = 'NONE',
         action = act.CopyMode { JumpBackward = { prev_char = false } }
       })
       table.insert(copy_mode, {
-        key = 'r',
+        key = keys.till_forward,
         mods = 'NONE',
         action = act.CopyMode { JumpForward = { prev_char = true } }
       })
       table.insert(copy_mode, {
-        key = 'R',
+        key = keys.till_backward,
         mods = 'NONE',
         action = act.CopyMode { JumpBackward = { prev_char = true } }
       })
 
       table.insert(search_mode, {
-        key = 'k',
+        key = keys.search_next,
         mods = 'NONE',
         action = act.CopyMode 'NextMatch'
       })
       table.insert(search_mode, {
-        key = 'K',
+        key = keys.search_prev,
         mods = 'NONE',
         action = act.CopyMode 'PriorMatch'
       })
@@ -214,28 +229,28 @@ let
       },
       -- navigation
       {
-        key = 'm',
+        key = keys.left,
         mods = 'LEADER',
         action = act.ActivatePaneDirection "Left"
       },
       {
-        key = 'i',
+        key = keys.right,
         mods = 'LEADER',
         action = act.ActivatePaneDirection "Right"
       },
       {
-        key = 'n',
+        key = keys.down,
         mods = 'LEADER',
         action = act.ActivatePaneDirection "Down"
       },
       {
-        key = 'e',
+        key = keys.up,
         mods = 'LEADER',
         action = act.ActivatePaneDirection "Up"
       },
       {
         mods = 'LEADER|SHIFT',
-        key = 'm',
+        key = keys.left,
         action = act.TogglePaneZoomState
       },
       {

@@ -1,6 +1,7 @@
 { pkgs, ... }:
 {
   imports = [
+    ./modules/vimBindingKeyboardLayout.nix
     ./modules/nixvim.nix
     ./modules/zsh.nix
     ./modules/wezterm.nix
