@@ -5,11 +5,11 @@
 { config, pkgs, ... }:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-      ../modules/fonts.nix
-    ];
+  imports = [
+    # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+    ../modules/fonts.nix
+  ];
 
   sops.defaultSopsFile = ../../secrets/secrets.yaml;
   sops.defaultSopsFormat = "yaml";
@@ -28,7 +28,10 @@
   # sops.secrets."borg/borg_passphrase" = { };
   # sops.secrets."borg/endor/borgbase_path" = { };
 
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
 
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
@@ -158,10 +161,13 @@
   users.users.mpfammatter = {
     isNormalUser = true;
     description = "Michael Pfammatter";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+    ];
     packages = with pkgs; [
       kdePackages.kate
-    #  thunderbird
+      #  thunderbird
     ];
     shell = pkgs.zsh;
   };
@@ -185,6 +191,7 @@
     sops
     age
     nixpkgs-fmt
+    wezterm
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -224,7 +231,7 @@
   #     ssh_command = "${pkgs.openssh}/bin/ssh -i /home/mpfammatter/.ssh/id_ed25519";
   #     keep_daily = 1;
   #     keep_weekly = 4;
-  #     keep_monthly = 12; 
+  #     keep_monthly = 12;
   #     keep_yearly = 2;
   #   };
   # };

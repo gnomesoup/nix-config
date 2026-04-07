@@ -5,6 +5,17 @@
     enable = true;
     enableCompletion = true;
     initContent = ''
+      ${
+        if pkgs.stdenv.isDarwin then
+          ''
+            if command -v ssh-add >/dev/null 2>&1; then
+              ssh-add --apple-load-keychain >/dev/null 2>&1 || true
+            fi
+          ''
+        else
+          ""
+      }
+
       hms-kbl() {
         emulate -L zsh
 
