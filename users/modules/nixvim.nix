@@ -153,7 +153,39 @@ in
       rainbow-delimiters.enable = true;
       telescope.settings.pickers.find_files.hidden = true;
     };
-    extraConfigLua = autosaveLua;
+    extraConfigLua = autosaveLua + ''
+      -- CloseOtherBuffers: delete all loaded buffers except current one (non-destructive)
+      function CloseOtherBuffers()
+        local cur = vim.api.nvim_get_current_buf()
+        local buflist = vim.fn.tabpagebuflist(0)
+        for _, bufnr in ipairs(buflist) do
+          if bufnr ~= cur and vim.api.nvim_buf_is_loaded(bufnr) then
+            local binfo = vim.fn.getbufinfo(bufnr)[1]
+            if binfo ~= nil and binfo.loaded and binfo.listed then
+              pcall(vim.api.nvim_buf_delete, bufnr, {force = false})
+            end
+          end
+        end
+      end
+      -- GoToBufferIndex: jump to n-th buffer in tab page
+      function GoToBufferIndex(n)
+        local buflist = vim.fn.tabpagebuflist(0)
+        if not buflist or #buflist == 0 then
+          vim.notify("No buffers", vim.log.levels.WARN, { title = "GoToBufferIndex" })
+          return
+        end
+        if n < 1 or n > #buflist then
+          vim.notify(("No buffer at index %d"):format(n), vim.log.levels.WARN, { title = "GoToBufferIndex" })
+          return
+        end
+        local target = buflist[n]
+        if target and vim.api.nvim_buf_is_valid(target) then
+          vim.cmd("buffer " .. tostring(target))
+        else
+          vim.notify(("Buffer %s is not valid"):format(tostring(target)), vim.log.levels.WARN, { title = "GoToBufferIndex" })
+        end
+      end
+    '';
     keymaps = [
     ]
     ++ normalMaps
@@ -180,6 +212,15 @@ in
       }
       {
         mode = "n";
+        key = "<leader>w";
+        action = "<Nop>";
+        options = {
+          desc = "[W]indow";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
         key = "<leader>ws";
         action = "<cmd>split<CR>";
         options = {
@@ -193,6 +234,123 @@ in
         action = "<cmd>vsplit<CR>";
         options = {
           desc = "Vertical window split";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>b";
+        action = "<Nop>";
+        options = {
+          desc = "[B]uffer";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>bd";
+        action = "<cmd>bdelete<CR>";
+        options = {
+          desc = "Delete current buffer";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>bM";
+        action = "<cmd>lua CloseOtherBuffers()<CR>";
+        options = {
+          desc = "Close other buffers (non-destructive)";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader><Tab>";
+        action = "<cmd>b#<CR>";
+        options = {
+          desc = "Switch to last buffer";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>1";
+        action = "<cmd>lua GoToBufferIndex(1)<CR>";
+        options = {
+          desc = "Go to buffer 1";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>2";
+        action = "<cmd>lua GoToBufferIndex(2)<CR>";
+        options = {
+          desc = "Go to buffer 2";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>3";
+        action = "<cmd>lua GoToBufferIndex(3)<CR>";
+        options = {
+          desc = "Go to buffer 3";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>4";
+        action = "<cmd>lua GoToBufferIndex(4)<CR>";
+        options = {
+          desc = "Go to buffer 4";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>5";
+        action = "<cmd>lua GoToBufferIndex(5)<CR>";
+        options = {
+          desc = "Go to buffer 5";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>6";
+        action = "<cmd>lua GoToBufferIndex(6)<CR>";
+        options = {
+          desc = "Go to buffer 6";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>7";
+        action = "<cmd>lua GoToBufferIndex(7)<CR>";
+        options = {
+          desc = "Go to buffer 7";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>8";
+        action = "<cmd>lua GoToBufferIndex(8)<CR>";
+        options = {
+          desc = "Go to buffer 8";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>9";
+        action = "<cmd>lua GoToBufferIndex(9)<CR>";
+        options = {
+          desc = "Go to buffer 9";
           silent = true;
         };
       }
