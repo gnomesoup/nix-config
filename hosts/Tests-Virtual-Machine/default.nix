@@ -3,15 +3,15 @@
   # List packages installed in system profile. To search by name, run:
   # $ nix-env -qaP | grep wget
 
-  environment.systemPackages = [
-    pkgs.vim
-    pkgs.git
-    pkgs.nixpkgs-fmt
-    pkgs.raycast
-    pkgs.warp-terminal
+  environment.systemPackages = with pkgs; [
+    vim
+    git
+    nixpkgs-fmt
+    raycast
+    warp-terminal
   ];
 
-    ../modules/nixvim.nix
+  imports = [
     ../modules/appleDefaults.nix
     ../modules/fonts.nix
   ];

@@ -2,17 +2,23 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-      ../modules/fonts.nix
-    ];
+  imports = [
+    # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+    ../modules/fonts.nix
+  ];
 
   # Allow unfree
-  nixpkgs.config.allowUnfreePredicate = pkg:
+  nixpkgs.config.allowUnfreePredicate =
+    pkg:
     builtins.elem (lib.getName pkg) [
       "vscode"
     ];
@@ -47,7 +53,7 @@
     LC_TELEPHONE = "en_US.UTF-8";
     LC_TIME = "en_US.UTF-8";
   };
-  
+
   # Extend sudo password timeout
   security.sudo.extraConfig = ''
     Defaults:${config.users.users.mpfammatter.name} timestamp_timeout=60
@@ -71,7 +77,7 @@
 
   # Enable sound with pipewire.
   # sound.enable = true;
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -94,11 +100,15 @@
   users.users.mpfammatter = {
     isNormalUser = true;
     description = "Micheal";
-    extraGroups = [ "networkmanager" "wheel" "docker"];
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+      "docker"
+    ];
     packages = with pkgs; [
-      kate
+      kdePackages.kate
       borgbackup
-    #  thunderbird
+      #  thunderbird
     ];
   };
 
@@ -119,7 +129,7 @@
     vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
     git
     htop
-  #  wget
+    #  wget
   ];
   virtualisation.docker.enable = true;
   # Some programs need SUID wrappers, can be configured further or are
@@ -137,7 +147,7 @@
   services.immich = {
     enable = true;
     secretsFile = "/run/secrets/immich";
-    database.createDB=false;
+    database.createDB = false;
   };
 
   # Open ports in the firewall.

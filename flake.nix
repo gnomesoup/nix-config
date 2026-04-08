@@ -5,7 +5,6 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nix-darwin.url = "github:LnL7/nix-darwin";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
-    determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/0.1";
 
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -34,7 +33,6 @@
       home-manager,
       sops-nix,
       kickstart-nixvim,
-      determinate,
       # kmonad,
     }:
     {
@@ -117,6 +115,25 @@
                 kickstart-nixvim.homeManagerModules.default
               ];
               home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
+              home-manager.backupFileExtension = "backup";
+            }
+          ];
+        };
+      };
+
+      nixosConfigurations = {
+        "jedha" = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            ./hosts/jedha
+            home-manager.nixosModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.sharedModules = [
+                kickstart-nixvim.homeManagerModules.default
+              ];
+              home-manager.users.mpfammatter = import ./users/jedha.nix;
               home-manager.backupFileExtension = "backup";
             }
           ];
