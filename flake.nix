@@ -14,6 +14,11 @@
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
 
+    nixos-wsl = {
+      url = "github:nix-community/NixOS-WSL";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     kickstart-nixvim = {
       url = "github:JMartJonesy/kickstart.nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -33,6 +38,7 @@
       home-manager,
       sops-nix,
       kickstart-nixvim,
+      nixos-wsl,
       # kmonad,
     }:
     {
@@ -123,6 +129,7 @@
 
       nixosConfigurations = {
         "jedha" = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit nixos-wsl; };
           system = "x86_64-linux";
           modules = [
             ./hosts/jedha

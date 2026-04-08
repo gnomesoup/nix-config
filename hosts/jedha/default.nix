@@ -1,8 +1,13 @@
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  nixos-wsl,
+  ...
+}:
 
 {
   imports = [
-    <nixos-wsl/modules>
+    nixos-wsl.nixosModules.default
     ../modules/fonts.nix
   ];
 
