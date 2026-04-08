@@ -14,8 +14,8 @@ After pressing `Ctrl-a`, use one of the bindings below before the leader timeout
 
 | Keys | Description |
 | --- | --- |
-| `Ctrl-a -` | Split the current pane vertically |
-| `Ctrl-a =` | Split the current pane horizontally |
+| `Ctrl-a v` | Split the current pane horizontally |
+| `Ctrl-a h` | Split the current pane vertically |
 | `Super-w` | Close the current pane |
 | `Ctrl-a m` | Focus pane left |
 | `Ctrl-a n` | Focus pane down |

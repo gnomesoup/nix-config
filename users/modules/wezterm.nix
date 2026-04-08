@@ -1,8 +1,18 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 let
+  keys = config.vimBindingKeys;
   weztermLua = ''
     local wezterm = require "wezterm"
     local act = wezterm.action
+
+    local function first_existing_path(paths)
+      for _, path in ipairs(paths) do
+        if path ~= nil and #wezterm.glob(path) > 0 then
+          return path
+        end
+      end
+      return nil
+    end
 
     local function pick(list, index, fallback)
       if list ~= nil and list[index] ~= nil then
@@ -27,12 +37,6 @@ let
 
       local bar_bg = color_or(tab_bar.background, palette.background)
       local text = color_or(active_tab.fg_color, "#ffffff")
-    local function status_style(window)
-      local effective = window:effective_config()
-      local palette = effective.resolved_palette
-      local tab_bar = palette.tab_bar or {}
-      local inactive_tab = tab_bar.inactive_tab or {}
-      local active_tab = tab_bar.active_tab or {}
 
       return {
         bar_bg = bar_bg,
@@ -51,6 +55,9 @@ let
       end
 
       local key_table = window:active_key_table()
+      if key_table == "resize_mode" then
+        return "RESIZE", "table"
+      end
       if key_table == "copy_mode" then
         return "COPY", "copy"
       end
@@ -83,133 +90,188 @@ let
         { Text = " " .. icon .. " " .. label .. " " },
         "ResetAttributes",
       })
+      window:set_right_status("")
     end)
 
     local config = wezterm.config_builder and wezterm.config_builder() or {}
+    config.unix_domains = {
+      {
+        name = 'unix',
+      },
+    }
+    config.default_gui_startup_args = { 'connect', 'unix' }
+    config.ssh_backend = 'LibSsh'
+
+    local preferred_auth_sock = first_existing_path {
+      os.getenv 'SSH_AUTH_SOCK',
+      first_existing_path(wezterm.glob '/private/tmp/com.apple.launchd.*/Listeners'),
+    }
+    if preferred_auth_sock ~= nil then
+      config.default_ssh_auth_sock = preferred_auth_sock
+    end
 
     config.color_scheme = "Monokai Pro (Gogh)"
     config.font = wezterm.font_with_fallback {
       "FiraCode Nerd Font",
     }
     config.font_size = 15.0
-    config.hide_tab_bar_if_only_one_tab = true
+    config.hide_tab_bar_if_only_one_tab = false
     config.use_fancy_tab_bar = false
     config.tab_bar_at_bottom = true
-    config.status_update_interval = 100
-    -- config.window_decorations = "RESIZE"
+    config.status_update_interval = 500
+    config.pane_focus_follows_mouse = false
     config.adjust_window_size_when_changing_font_size = false
 
-    -- leader key config
     config.leader = { key = 'a', mods = 'CTRL', timeout_milliseconds = 1000 }
 
     local copy_mode = nil
     local search_mode = nil
+    local resize_mode = nil
     if wezterm.gui then
       copy_mode = wezterm.gui.default_key_tables().copy_mode
       search_mode = wezterm.gui.default_key_tables().search_mode
+      resize_mode = {
+        {
+          key = '${keys.left}',
+          mods = 'NONE',
+          action = act.AdjustPaneSize { 'Left', 5 }
+        },
+        {
+          key = '${keys.down}',
+          mods = 'NONE',
+          action = act.AdjustPaneSize { 'Down', 5 }
+        },
+        {
+          key = '${keys.up}',
+          mods = 'NONE',
+          action = act.AdjustPaneSize { 'Up', 5 }
+        },
+        {
+          key = '${keys.right}',
+          mods = 'NONE',
+          action = act.AdjustPaneSize { 'Right', 5 }
+        },
+        {
+          key = 'Escape',
+          mods = 'NONE',
+          action = act.PopKeyTable
+        },
+        {
+          key = 'q',
+          mods = 'NONE',
+          action = act.PopKeyTable
+        },
+      }
       table.insert(copy_mode, {
-        key = 'm',
+        key = '${keys.left}',
         mods = 'NONE',
         action = act.CopyMode 'MoveLeft'
       })
       table.insert(copy_mode, {
-        key = 'n',
+        key = '${keys.down}',
         mods = 'NONE',
         action = act.CopyMode 'MoveDown'
       })
       table.insert(copy_mode, {
-        key = 'e',
+        key = '${keys.up}',
         mods = 'NONE',
         action = act.CopyMode 'MoveUp'
       })
       table.insert(copy_mode, {
-        key = 'i',
+        key = '${keys.right}',
         mods = 'NONE',
         action = act.CopyMode 'MoveRight'
       })
       table.insert(copy_mode, {
-        key = 'f',
+        key = '${keys.wordEnd}',
         mods = 'NONE',
         action = act.CopyMode 'MoveForwardWordEnd'
       })
       table.insert(copy_mode, {
-        key = 'F',
+        key = '${keys.WORDend}',
         mods = 'NONE',
         action = act.CopyMode 'MoveForwardWordEnd'
       })
       table.insert(copy_mode, {
-        key = 't',
+        key = '${keys.findForward}',
         mods = 'NONE',
         action = act.CopyMode { JumpForward = { prev_char = false } }
       })
       table.insert(copy_mode, {
-        key = 'T',
+        key = '${keys.findBackward}',
         mods = 'NONE',
         action = act.CopyMode { JumpBackward = { prev_char = false } }
       })
       table.insert(copy_mode, {
-        key = 'r',
+        key = '${keys.tillForward}',
         mods = 'NONE',
         action = act.CopyMode { JumpForward = { prev_char = true } }
       })
       table.insert(copy_mode, {
-        key = 'R',
+        key = '${keys.tillBackward}',
         mods = 'NONE',
         action = act.CopyMode { JumpBackward = { prev_char = true } }
       })
 
       table.insert(search_mode, {
-        key = 'k',
+        key = '${keys.searchNext}',
         mods = 'NONE',
         action = act.CopyMode 'NextMatch'
       })
       table.insert(search_mode, {
-        key = 'K',
+        key = '${keys.searchPrev}',
         mods = 'NONE',
         action = act.CopyMode 'PriorMatch'
       })
     end
 
     config.keys = {
-      -- splitting
       {
         mods   = "LEADER",
-        key    = "-",
+        key    = "v",
+        action = act.SplitHorizontal { domain = 'CurrentPaneDomain' }
+      },
+      {
+        mods   = "LEADER",
+        key    = "h",
         action = act.SplitVertical { domain = 'CurrentPaneDomain' }
       },
       {
-        mods   = "LEADER",
-        key    = "=",
-        action = act.SplitHorizontal { domain = 'CurrentPaneDomain' }
-      },
-      -- navigation
-      {
-        key = 'm',
+        key = '${keys.left}',
         mods = 'LEADER',
         action = act.ActivatePaneDirection "Left"
       },
       {
-        key = 'i',
+        key = '${keys.right}',
         mods = 'LEADER',
         action = act.ActivatePaneDirection "Right"
       },
       {
-        key = 'n',
+        key = '${keys.down}',
         mods = 'LEADER',
         action = act.ActivatePaneDirection "Down"
       },
       {
-        key = 'e',
+        key = '${keys.up}',
         mods = 'LEADER',
         action = act.ActivatePaneDirection "Up"
       },
       {
         mods = 'LEADER|SHIFT',
-        key = 'm',
+        key = '${keys.left}',
         action = act.TogglePaneZoomState
       },
       {
         mods = 'LEADER',
+        key = 'w',
+        action = act.ActivateKeyTable {
+          name = 'resize_mode',
+          one_shot = false,
+          timeout_milliseconds = 1000,
+        }
+      },
+      {
+        mods = 'CTRL',
         key = 'w',
         action = act.PaneSelect {
           mode = 'Activate'
@@ -220,7 +282,21 @@ let
         key = 'w',
         action = act.CloseCurrentPane { confirm = true }
       },
-      -- activate copy mode
+      {
+        mods = 'LEADER',
+        key = '1',
+        action = act.ActivateTab(0)
+      },
+      {
+        mods = 'LEADER',
+        key = '2',
+        action = act.ActivateTab(1)
+      },
+      {
+        mods = 'LEADER',
+        key = '3',
+        action = act.ActivateTab(2)
+      },
       {
         key = 'Enter',
         mods = 'LEADER',
@@ -230,7 +306,8 @@ let
 
     config.key_tables = {
       copy_mode = copy_mode,
-      search_mode = search_mode
+      search_mode = search_mode,
+      resize_mode = resize_mode,
     }
 
     return config
