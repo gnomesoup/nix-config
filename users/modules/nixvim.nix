@@ -150,6 +150,44 @@ in
           };
         };
       };
+      "which-key" = {
+        settings = {
+          replace = {
+            desc = [
+              [
+                "<space>"
+                "SPACE"
+              ]
+              [
+                "<leader>"
+                "SPACE"
+              ]
+              [
+                "<[cC][rR]>"
+                "RETURN"
+              ]
+              [
+                "<[tT][aA][bB]>"
+                "TAB"
+              ]
+              [
+                "<[bB][sS]>"
+                "BACKSPACE"
+              ]
+            ];
+          };
+          spec = [
+            {
+              __unkeyed-1 = "<leader>w=";
+              icon = {
+                icon = "󰆾";
+                hl = "WhichKeyIconGreen";
+                color = "green";
+              };
+            }
+          ];
+        };
+      };
       rainbow-delimiters.enable = true;
       telescope.settings.pickers.find_files.hidden = true;
     };
@@ -360,6 +398,33 @@ in
         action = "<cmd>lua GoToBufferIndex(9)<CR>";
         options = {
           desc = "Go to buffer 9";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>q";
+        action = "<Nop>";
+        options = {
+          desc = "[Q]uit";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>qq";
+        action = "<cmd>q<CR>";
+        options = {
+          desc = "Quit the frame";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>qQ";
+        action = "<cmd>qa<CR>";
+        options = {
+          desc = "Quit all";
           silent = true;
         };
       }
