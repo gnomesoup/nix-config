@@ -239,6 +239,15 @@ in
       }
       {
         mode = "n";
+        key = "<leader>w=";
+        action = "<cmd>wincmd =<CR>";
+        options = {
+          desc = "Equalize window sizes";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
         key = "<leader>b";
         action = "<Nop>";
         options = {
