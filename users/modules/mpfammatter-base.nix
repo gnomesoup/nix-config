@@ -11,6 +11,7 @@
     packages = [
       pkgs.immich-cli
       pkgs.nixfmt
+      pkgs.opencode
     ];
   };
 
