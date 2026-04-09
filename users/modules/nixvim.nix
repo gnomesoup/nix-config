@@ -150,6 +150,9 @@ in
           };
         };
       };
+      # which-key settings are defined below (merged into a single block)
+      rainbow-delimiters.enable = true;
+      telescope.settings.pickers.find_files.hidden = true;
       "which-key" = {
         settings = {
           replace = {
@@ -176,6 +179,10 @@ in
               ]
             ];
           };
+          icons = {
+            mappings = true;
+            colors = true;
+          };
           spec = [
             {
               __unkeyed-1 = "<leader>w=";
@@ -185,11 +192,81 @@ in
                 color = "green";
               };
             }
+            # Move focus left  (<leader>wm)
+            {
+              __unkeyed-1 = "<leader>w${keys.left}";
+              icon = {
+                icon = " ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            # Move focus down (<leader>wn)
+            {
+              __unkeyed-1 = "<leader>w${keys.down}";
+              icon = {
+                icon = " ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            # Move focus up (<leader>we)
+            {
+              __unkeyed-1 = "<leader>w${keys.up}";
+              icon = {
+                icon = " ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            # Move focus right (<leader>wi)
+            {
+              __unkeyed-1 = "<leader>w${keys.right}";
+              icon = {
+                icon = " ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            # Move buffer left  (<leader>wm)
+            {
+              __unkeyed-1 = "<leader>b${keys.left}";
+              icon = {
+                icon = " ";
+                color = "green";
+                hl = "WhichKeyIconRed";
+              };
+            }
+            # Move buffer down (<leader>wn)
+            {
+              __unkeyed-1 = "<leader>b${keys.down}";
+              icon = {
+                icon = " ";
+                color = "red";
+                hl = "WhichKeyIconRed";
+              };
+            }
+            # Move buffer up (<leader>we)
+            {
+              __unkeyed-1 = "<leader>b${keys.up}";
+              icon = {
+                icon = " ";
+                color = "red";
+                hl = "WhichKeyIconRed";
+              };
+            }
+            # Move buffer right (<leader>wi)
+            {
+              __unkeyed-1 = "<leader>b${keys.right}";
+              icon = {
+                icon = " ";
+                color = "red";
+                hl = "WhichKeyIconRed";
+              };
+            }
           ];
         };
       };
-      rainbow-delimiters.enable = true;
-      telescope.settings.pickers.find_files.hidden = true;
     };
     extraConfigLua = autosaveLua + ''
       -- CloseOtherBuffers: delete all loaded buffers except current one (non-destructive)
@@ -222,6 +299,29 @@ in
         else
           vim.notify(("Buffer %s is not valid"):format(tostring(target)), vim.log.levels.WARN, { title = "GoToBufferIndex" })
         end
+      end
+
+      -- MoveBuffer: swap current buffer with the buffer in the adjacent window (h/j/k/l)
+      function MoveBuffer(dir)
+        local curwin = vim.api.nvim_get_current_win()
+        local curbuf = vim.api.nvim_win_get_buf(curwin)
+
+        -- attempt to go to neighbour window
+        pcall(vim.cmd, "wincmd " .. dir)
+        local target_win = vim.api.nvim_get_current_win()
+        if target_win == curwin then
+          vim.notify("No window in that direction", vim.log.levels.WARN, { title = "MoveBuffer" })
+          return
+        end
+
+        local target_buf = vim.api.nvim_win_get_buf(target_win)
+
+        -- swap buffers
+        vim.api.nvim_win_set_buf(target_win, curbuf)
+        vim.api.nvim_win_set_buf(curwin, target_buf)
+
+        -- restore focus to original window
+        vim.api.nvim_set_current_win(curwin)
       end
     '';
     keymaps = [
@@ -286,6 +386,42 @@ in
       }
       {
         mode = "n";
+        key = "<leader>w${keys.left}";
+        action = "<cmd>wincmd h<CR>";
+        options = {
+          desc = "Focus left window";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>w${keys.down}";
+        action = "<cmd>wincmd j<CR>";
+        options = {
+          desc = "Focus down window";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>w${keys.up}";
+        action = "<cmd>wincmd k<CR>";
+        options = {
+          desc = "Focus up window";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>w${keys.right}";
+        action = "<cmd>wincmd l<CR>";
+        options = {
+          desc = "Focus right window";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
         key = "<leader>b";
         action = "<Nop>";
         options = {
@@ -308,6 +444,42 @@ in
         action = "<cmd>lua CloseOtherBuffers()<CR>";
         options = {
           desc = "Close other buffers (non-destructive)";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>b${keys.left}";
+        action = "<cmd>lua MoveBuffer('h')<CR>";
+        options = {
+          desc = "Move buffer left";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>b${keys.down}";
+        action = "<cmd>lua MoveBuffer('j')<CR>";
+        options = {
+          desc = "Move buffer down";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>b${keys.up}";
+        action = "<cmd>lua MoveBuffer('k')<CR>";
+        options = {
+          desc = "Move buffer up";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>b${keys.right}";
+        action = "<cmd>lua MoveBuffer('l')<CR>";
+        options = {
+          desc = "Move buffer right";
           silent = true;
         };
       }
