@@ -63,6 +63,14 @@
             "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup"
         }
       }
+
+      if command -v opencode >/dev/null 2>&1; then
+        source <(opencode completion)
+      fi
+
+      if command -v openclaw >/dev/null 2>&1; then
+        source <(openclaw completion --shell zsh)
+      fi
     '';
     shellAliases = {
       "ls" = "ls --color=auto";
