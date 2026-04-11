@@ -233,7 +233,7 @@ in
               __unkeyed-1 = "<leader>b${keys.left}";
               icon = {
                 icon = " ";
-                color = "green";
+                color = "red";
                 hl = "WhichKeyIconRed";
               };
             }
@@ -264,6 +264,78 @@ in
                 hl = "WhichKeyIconRed";
               };
             }
+            {
+              __unkeyed-1 = "<leader>1";
+              icon = {
+                icon = "① ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>2";
+              icon = {
+                icon = "② ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>3";
+              icon = {
+                icon = "③ ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>4";
+              icon = {
+                icon = "④ ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>5";
+              icon = {
+                icon = "⑤ ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>6";
+              icon = {
+                icon = "⑥ ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>7";
+              icon = {
+                icon = "⑦ ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>8";
+              icon = {
+                icon = "⑧ ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>9";
+              icon = {
+                icon = "⑨ ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
           ];
         };
       };
@@ -282,46 +354,72 @@ in
           end
         end
       end
-      -- GoToBufferIndex: jump to n-th buffer in tab page
-      function GoToBufferIndex(n)
-        local buflist = vim.fn.tabpagebuflist(0)
-        if not buflist or #buflist == 0 then
-          vim.notify("No buffers", vim.log.levels.WARN, { title = "GoToBufferIndex" })
+      -- GoToWindowIndex: jump to the n-th visible window in column order
+      function _G.GoToWindowIndex(n)
+        local wins = vim.api.nvim_tabpage_list_wins(0)
+        local ordered = {}
+
+        for _, win in ipairs(wins) do
+          local config = vim.api.nvim_win_get_config(win)
+          if config.relative == "" then
+            local pos = vim.api.nvim_win_get_position(win)
+            table.insert(ordered, {
+              win = win,
+              row = pos[1],
+              col = pos[2],
+            })
+          end
+        end
+
+        table.sort(ordered, function(a, b)
+          if a.col == b.col then
+            return a.row < b.row
+          end
+          return a.col < b.col
+        end)
+
+        if #ordered == 0 then
+          vim.notify("No windows", vim.log.levels.WARN, { title = "GoToWindowIndex" })
           return
         end
-        if n < 1 or n > #buflist then
-          vim.notify(("No buffer at index %d"):format(n), vim.log.levels.WARN, { title = "GoToBufferIndex" })
+
+        if n < 1 or n > #ordered then
+          vim.notify(("No window at index %d"):format(n), vim.log.levels.WARN, { title = "GoToWindowIndex" })
           return
         end
-        local target = buflist[n]
-        if target and vim.api.nvim_buf_is_valid(target) then
-          vim.cmd("buffer " .. tostring(target))
-        else
-          vim.notify(("Buffer %s is not valid"):format(tostring(target)), vim.log.levels.WARN, { title = "GoToBufferIndex" })
-        end
+
+        vim.api.nvim_set_current_win(ordered[n].win)
       end
 
-      -- MoveBuffer: swap current buffer with the buffer in the adjacent window (h/j/k/l)
-      function MoveBuffer(dir)
+      -- MoveBufferAndFocus: swap the current buffer with the adjacent window and follow it
+      function _G.MoveBufferAndFocus(dir)
         local curwin = vim.api.nvim_get_current_win()
         local curbuf = vim.api.nvim_win_get_buf(curwin)
+        local curpos = vim.api.nvim_win_get_cursor(curwin)
 
-        -- attempt to go to neighbour window
-        pcall(vim.cmd, "wincmd " .. dir)
+        local ok, err = pcall(vim.cmd, "wincmd " .. dir)
+        if not ok then
+          vim.notify(
+            "MoveBuffer: can't move to window (" .. tostring(err) .. ")",
+            vim.log.levels.WARN,
+            { title = "MoveBuffer" }
+          )
+          return
+        end
+
         local target_win = vim.api.nvim_get_current_win()
         if target_win == curwin then
-          vim.notify("No window in that direction", vim.log.levels.WARN, { title = "MoveBuffer" })
+          vim.notify("MoveBuffer: no window in that direction", vim.log.levels.WARN, { title = "MoveBuffer" })
           return
         end
 
         local target_buf = vim.api.nvim_win_get_buf(target_win)
 
-        -- swap buffers
         vim.api.nvim_win_set_buf(target_win, curbuf)
         vim.api.nvim_win_set_buf(curwin, target_buf)
 
-        -- restore focus to original window
-        vim.api.nvim_set_current_win(curwin)
+        vim.api.nvim_set_current_win(target_win)
+        pcall(vim.api.nvim_win_set_cursor, target_win, curpos)
       end
     '';
     keymaps = [
@@ -450,7 +548,7 @@ in
       {
         mode = "n";
         key = "<leader>b${keys.left}";
-        action = "<cmd>lua MoveBuffer('h')<CR>";
+        action = "<cmd>lua _G.MoveBufferAndFocus('h')<CR>";
         options = {
           desc = "Move buffer left";
           silent = true;
@@ -459,7 +557,7 @@ in
       {
         mode = "n";
         key = "<leader>b${keys.down}";
-        action = "<cmd>lua MoveBuffer('j')<CR>";
+        action = "<cmd>lua _G.MoveBufferAndFocus('j')<CR>";
         options = {
           desc = "Move buffer down";
           silent = true;
@@ -468,7 +566,7 @@ in
       {
         mode = "n";
         key = "<leader>b${keys.up}";
-        action = "<cmd>lua MoveBuffer('k')<CR>";
+        action = "<cmd>lua _G.MoveBufferAndFocus('k')<CR>";
         options = {
           desc = "Move buffer up";
           silent = true;
@@ -477,7 +575,7 @@ in
       {
         mode = "n";
         key = "<leader>b${keys.right}";
-        action = "<cmd>lua MoveBuffer('l')<CR>";
+        action = "<cmd>lua _G.MoveBufferAndFocus('l')<CR>";
         options = {
           desc = "Move buffer right";
           silent = true;
@@ -495,81 +593,81 @@ in
       {
         mode = "n";
         key = "<leader>1";
-        action = "<cmd>lua GoToBufferIndex(1)<CR>";
+        action = "<cmd>lua _G.GoToWindowIndex(1)<CR>";
         options = {
-          desc = "Go to buffer 1";
+          desc = "Go to window 1";
           silent = true;
         };
       }
       {
         mode = "n";
         key = "<leader>2";
-        action = "<cmd>lua GoToBufferIndex(2)<CR>";
+        action = "<cmd>lua _G.GoToWindowIndex(2)<CR>";
         options = {
-          desc = "Go to buffer 2";
+          desc = "Go to window 2";
           silent = true;
         };
       }
       {
         mode = "n";
         key = "<leader>3";
-        action = "<cmd>lua GoToBufferIndex(3)<CR>";
+        action = "<cmd>lua _G.GoToWindowIndex(3)<CR>";
         options = {
-          desc = "Go to buffer 3";
+          desc = "Go to window 3";
           silent = true;
         };
       }
       {
         mode = "n";
         key = "<leader>4";
-        action = "<cmd>lua GoToBufferIndex(4)<CR>";
+        action = "<cmd>lua _G.GoToWindowIndex(4)<CR>";
         options = {
-          desc = "Go to buffer 4";
+          desc = "Go to window 4";
           silent = true;
         };
       }
       {
         mode = "n";
         key = "<leader>5";
-        action = "<cmd>lua GoToBufferIndex(5)<CR>";
+        action = "<cmd>lua _G.GoToWindowIndex(5)<CR>";
         options = {
-          desc = "Go to buffer 5";
+          desc = "Go to window 5";
           silent = true;
         };
       }
       {
         mode = "n";
         key = "<leader>6";
-        action = "<cmd>lua GoToBufferIndex(6)<CR>";
+        action = "<cmd>lua _G.GoToWindowIndex(6)<CR>";
         options = {
-          desc = "Go to buffer 6";
+          desc = "Go to window 6";
           silent = true;
         };
       }
       {
         mode = "n";
         key = "<leader>7";
-        action = "<cmd>lua GoToBufferIndex(7)<CR>";
+        action = "<cmd>lua _G.GoToWindowIndex(7)<CR>";
         options = {
-          desc = "Go to buffer 7";
+          desc = "Go to window 7";
           silent = true;
         };
       }
       {
         mode = "n";
         key = "<leader>8";
-        action = "<cmd>lua GoToBufferIndex(8)<CR>";
+        action = "<cmd>lua _G.GoToWindowIndex(8)<CR>";
         options = {
-          desc = "Go to buffer 8";
+          desc = "Go to window 8";
           silent = true;
         };
       }
       {
         mode = "n";
         key = "<leader>9";
-        action = "<cmd>lua GoToBufferIndex(9)<CR>";
+        action = "<cmd>lua _G.GoToWindowIndex(9)<CR>";
         options = {
-          desc = "Go to buffer 9";
+          desc = "Go to window 9";
           silent = true;
         };
       }
