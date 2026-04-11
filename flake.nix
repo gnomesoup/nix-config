@@ -31,15 +31,14 @@
   };
 
   outputs =
-    inputs@{
-      self,
-      nix-darwin,
-      nixpkgs,
-      home-manager,
-      sops-nix,
-      kickstart-nixvim,
-      nixos-wsl,
-      # kmonad,
+    inputs@{ self
+    , nix-darwin
+    , nixpkgs
+    , home-manager
+    , sops-nix
+    , kickstart-nixvim
+    , nixos-wsl
+    , # kmonad,
     }:
     {
       homeConfigurations = {
@@ -102,7 +101,12 @@
                 sops-nix.homeManagerModules.sops
                 kickstart-nixvim.homeManagerModules.default
               ];
-              home-manager.users.mpfammatter = import ./users/mpfammatter.nix;
+              home-manager.users.mpfammatter =
+                { pkgs, ... }:
+                {
+                  imports = [ ./users/mpfammatter.nix ];
+                  home.packages = [ pkgs.openclaw ];
+                };
               home-manager.backupFileExtension = "backup";
             }
           ];
