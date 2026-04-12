@@ -1,7 +1,6 @@
 { config, pkgs, ... }:
 
 let
-  stateDir = "/var/lib/zulip";
   composeFile = pkgs.writeText "zulip-compose.yaml" ''
     ---
     services:
@@ -15,7 +14,7 @@ let
           POSTGRES_USER: "zulip"
           POSTGRES_PASSWORD_FILE: /run/secrets/zulip__postgres_password
         volumes:
-          - "${stateDir}/postgresql-14:/var/lib/postgresql/data:rw"
+          - "postgresql-14:/var/lib/postgresql/data:rw"
 
       memcached:
         image: "memcached:alpine"
@@ -52,7 +51,7 @@ let
           RABBITMQ_DEFAULT_USER: "zulip"
           RABBITMQ_PASSWORD_FILE: /run/secrets/zulip__rabbitmq_password
         volumes:
-          - "${stateDir}/rabbitmq:/var/lib/rabbitmq:rw"
+          - "rabbitmq:/var/lib/rabbitmq:rw"
 
       redis:
         image: "redis:alpine"
@@ -66,7 +65,7 @@ let
         environment:
           REDIS_PASSWORD_FILE: /run/secrets/zulip__redis_password
         volumes:
-          - "${stateDir}/redis:/data:rw"
+          - "redis:/data:rw"
 
       zulip:
         image: "ghcr.io/zulip/zulip-server:11.6-1"
@@ -88,7 +87,7 @@ let
           SETTING_RABBITMQ_HOST: "rabbitmq"
           SETTING_REDIS_HOST: "redis"
         volumes:
-          - "${stateDir}/data:/data:rw"
+          - "zulip:/data:rw"
         ulimits:
           nofile:
             soft: 1000000
@@ -112,6 +111,12 @@ let
         file: ${config.sops.secrets."zulip/secret_key".path}
       zulip__email_password:
         file: ${config.sops.secrets."zulip/email_password".path}
+
+    volumes:
+      zulip:
+      postgresql-14:
+      rabbitmq:
+      redis:
   '';
 in
 {
@@ -142,14 +147,6 @@ in
     mode = "0400";
   };
 
-  systemd.tmpfiles.rules = [
-    "d ${stateDir} 0750 root root - -"
-    "d ${stateDir}/data 0750 root root - -"
-    "d ${stateDir}/postgresql-14 0750 root root - -"
-    "d ${stateDir}/rabbitmq 0750 root root - -"
-    "d ${stateDir}/redis 0750 root root - -"
-  ];
-
   networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 8080 ];
 
   systemd.services.zulip-init = {
@@ -169,15 +166,8 @@ in
     script = ''
       set -euo pipefail
 
-      marker="${stateDir}/data/.initialized"
-
-      if [ -e "$marker" ]; then
-        exit 0
-      fi
-
       ${pkgs.docker}/bin/docker compose --project-name zulip -f ${composeFile} pull
       ${pkgs.docker}/bin/docker compose --project-name zulip -f ${composeFile} run --rm zulip app:init
-      ${pkgs.coreutils}/bin/touch "$marker"
     '';
   };
 
