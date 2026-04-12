@@ -27,12 +27,14 @@ let
             echo "zulip@$${HOSTNAME}:$$(cat $${MEMCACHED_PASSWORD_FILE})" > "$${MEMCACHED_SASL_PWDB}"
             echo "zulip@localhost:$$(cat $${MEMCACHED_PASSWORD_FILE})" >> "$${MEMCACHED_SASL_PWDB}"
             exec memcached -S
-        secrets:
-          - zulip__memcached_password
         environment:
           SASL_CONF_PATH: "/home/memcache/memcached.conf"
           MEMCACHED_SASL_PWDB: "/home/memcache/memcached-sasl-db"
-          MEMCACHED_PASSWORD_FILE: /run/secrets/zulip__memcached_password
+          MEMCACHED_PASSWORD_FILE: "/home/memcache/memcached-password"
+        volumes:
+          - "${
+            config.sops.templates."zulip-memcached-password".path
+          }:/home/memcache/memcached-password:ro"
 
       rabbitmq:
         image: "rabbitmq:4.2"
@@ -145,6 +147,15 @@ in
     owner = "root";
     group = "root";
     mode = "0400";
+  };
+
+  sops.templates."zulip-memcached-password" = {
+    content = ''
+      ${config.sops.placeholder."zulip/memcached_password"}
+    '';
+    owner = "root";
+    group = "root";
+    mode = "0444";
   };
 
   networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 8080 ];
