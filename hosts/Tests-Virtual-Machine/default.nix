@@ -6,6 +6,7 @@
   environment.systemPackages = with pkgs; [
     vim
     git
+    python3
     nixpkgs-fmt
     raycast
     warp-terminal

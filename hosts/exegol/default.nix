@@ -1,4 +1,9 @@
-{ pkgs, vars, self, ... }:
+{
+  pkgs,
+  vars,
+  self,
+  ...
+}:
 
 {
   imports = [
@@ -10,6 +15,7 @@
   environment.systemPackages = with pkgs; [
     vim
     git
+    python3
     nixpkgs-fmt
     raycast
     utm
@@ -21,7 +27,7 @@
   # Necessary for using flakes on this system.
   nix.enable = false;
   nix.settings.experimental-features = "nix-command flakes";
-  
+
   # nix.settings.extra-nix-path = "nixpkgs=flake:nixpkgs";
 
   system.configurationRevision = self.rev or self.dirtyRev or null;

@@ -9,6 +9,7 @@
   environment.systemPackages = [
     pkgs.vim
     pkgs.git
+    pkgs.python3
     pkgs.nixpkgs-fmt
     pkgs.raycast
     pkgs.warp-terminal

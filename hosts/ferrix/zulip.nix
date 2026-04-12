@@ -134,7 +134,10 @@ in
   sops.templates."zulip-settings.env" = {
     content = ''
       SETTING_EXTERNAL_HOST=chat.mmjo.com
+      SETTING_ALLOWED_HOSTS=["ferrix","100.69.193.7"]
       SETTING_ZULIP_ADMINISTRATOR=${config.sops.placeholder."zulip/admin_email"}
+      SETTING_ZULIP_SERVICE_PUSH_NOTIFICATIONS=True
+      SETTING_ZULIP_SERVICE_SUBMIT_USAGE_STATISTICS=True
       SETTING_EMAIL_HOST=smtp.protonmail.ch
       SETTING_EMAIL_PORT=587
       SETTING_EMAIL_USE_TLS=True

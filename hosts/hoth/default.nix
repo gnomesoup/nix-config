@@ -104,6 +104,7 @@
     vim
     wget
     git
+    python3
     borgbackup
     sops
     age
