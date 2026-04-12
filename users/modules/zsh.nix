@@ -100,6 +100,8 @@
       "gs" = "git status";
       "ga" = "git add .";
       "gc" = "git commit";
+      "gp" = "git pull origin";
+      "gP" = "git push origin";
       "drs" = "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)";
       "hms" =
         if pkgs.stdenv.isDarwin then
