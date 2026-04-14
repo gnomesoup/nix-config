@@ -93,6 +93,9 @@ let
   autosaveLua = ''
     local autosave_group = vim.api.nvim_create_augroup("nixvim_autosave", { clear = true })
 
+    -- Make eol character show in grey (same as trail/tab)
+    vim.cmd("highlight NonText guifg=grey guibg=NONE ctermfg=grey ctermbg=NONE")
+
     vim.g.autosave_enabled = true
 
     vim.api.nvim_create_user_command("ToggleAutoSave", function()
@@ -129,6 +132,84 @@ let
           pcall(vim.cmd, "silent write")
         end)
       end,
+    })
+
+    -- Toggle whitespace visibility: shows all spaces as · and EOL as ↲
+    vim.api.nvim_create_user_command("ToggleWhitespace", function()
+      local listchars = vim.opt.listchars:get()
+      local list = vim.opt.list:get()
+
+      if listchars.space then
+        -- Turn off: remove space and eol
+        vim.opt.listchars = {
+          tab = listchars.tab or "» ",
+          trail = listchars.trail or "·",
+          nbsp = listchars.nbsp or "␣",
+        }
+        vim.notify("Whitespace hidden", vim.log.levels.INFO, { title = "Whitespace" })
+      else
+        -- Turn on: add space and eol, ensure list is enabled
+        vim.opt.listchars = {
+          space = "·",
+          tab = listchars.tab or "» ",
+          trail = "·",
+          eol = "⏎",
+          nbsp = listchars.nbsp or "␣",
+        }
+        if not list then
+          vim.opt.list = true
+        end
+        vim.notify("Whitespace visible", vim.log.levels.INFO, { title = "Whitespace" })
+      end
+    end, {})
+
+    -- Rebuild home-manager (session is auto-saved by VimLeavePre on quit)
+    vim.api.nvim_create_user_command("HomeManagerRebuild", function()
+      vim.notify("Rebuilding home-manager config...", vim.log.levels.INFO, { title = "Rebuild" })
+
+      -- Determine platform-specific hms command
+      local hms_cmd = "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-darwin -b backup"
+      if vim.fn.has("unix") == 1 and vim.fn.isdirectory("/run/current-system") == 1 then
+        hms_cmd = "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup"
+      end
+
+      vim.fn.jobstart(hms_cmd, {
+        on_exit = function()
+          vim.notify("Config updated. Quit and reopen Neovim to apply.", vim.log.levels.INFO, { title = "Rebuild" })
+          vim.cmd("quitall")
+        end
+      })
+    end, {})
+
+    -- Reload lua config without rebuilding (for quick testing)
+    vim.api.nvim_create_user_command("ReloadLuaConfig", function()
+      vim.cmd("luafile ~/.config/nvim/init.lua")
+      vim.notify("Lua config reloaded", vim.log.levels.INFO, { title = "Reload" })
+    end, {})
+
+    -- Git-based project sessions
+    vim.api.nvim_create_autocmd("VimLeavePre", {
+      callback = function()
+        local git_root = vim.fn.finddir('.git', vim.loop.cwd())
+        if #git_root > 0 then
+          local session_path = vim.fn.fnamemodify(git_root, ':p:h') .. "/.nvimsession"
+          vim.cmd("mksession! " .. session_path)
+        end
+      end,
+    })
+
+    vim.api.nvim_create_autocmd("VimEnter", {
+      callback = function()
+        local git_root = vim.fn.finddir('.git', vim.loop.cwd())
+        if #git_root > 0 then
+          local session_path = vim.fn.fnamemodify(git_root, ':p:h') .. "/.nvimsession"
+          if vim.fn.filereadable(session_path) == 1 then
+            vim.cmd("source " .. session_path)
+          end
+        end
+      end,
+      nested = true,
+      once = true,
     })
   '';
 in
@@ -341,6 +422,14 @@ in
                 hl = "WhichKeyIconGreen";
               };
             }
+            {
+              __unkeyed-1 = "<leader>bs";
+              icon = {
+                icon = "󰈔 ";
+                color = "red";
+                hl = "WhichKeyIconRed";
+              };
+            }
             # NeoCodeium: AI completion (c = codeium) - prefix keymap added below
             {
               __unkeyed-1 = "<leader>ct";
@@ -500,7 +589,7 @@ in
       {
         mode = "i";
         key = "<Tab>";
-        action = "require('neocodeium').accept()";
+        action = "<cmd>lua require('neocodeium').accept()<CR>";
         options = {
           desc = "Accept neocodeium suggestion";
           silent = true;
@@ -510,7 +599,7 @@ in
       {
         mode = "i";
         key = "<S-Tab>";
-        action = "require('neocodeium').cycle_or_complete()";
+        action = "<cmd>lua require('neocodeium').cycle_or_complete()<CR>";
         options = {
           desc = "Cycle neocodeium suggestion";
           silent = true;
@@ -520,7 +609,7 @@ in
       {
         mode = "i";
         key = "<C-w>";
-        action = "require('neocodeium').accept_word()";
+        action = "<cmd>lua require('neocodeium').accept_word()<CR>";
         options = {
           desc = "Accept word from neocodeium";
           silent = true;
@@ -530,7 +619,7 @@ in
       {
         mode = "i";
         key = "<C-a>";
-        action = "require('neocodeium').accept_line()";
+        action = "<cmd>lua require('neocodeium').accept_line()<CR>";
         options = {
           desc = "Accept line from neocodeium";
           silent = true;
@@ -540,7 +629,7 @@ in
       {
         mode = "i";
         key = "<C-e>";
-        action = "require('neocodeium').clear()";
+        action = "<cmd>lua require('neocodeium').clear()<CR>";
         options = {
           desc = "Clear neocodeium suggestion";
           silent = true;
@@ -626,6 +715,33 @@ in
         action = "<cmd>ToggleAutoSave<CR>";
         options = {
           desc = "Toggle [A]utosave";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>tw";
+        action = "<cmd>ToggleWhitespace<CR>";
+        options = {
+          desc = "Toggle [W]hitespace visibility";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>qr";
+        action = "<cmd>ReloadLuaConfig<CR>";
+        options = {
+          desc = "[R]eload lua config";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>qR";
+        action = "<cmd>HomeManagerRebuild<CR>";
+        options = {
+          desc = "[R]ebuild home-manager and restart";
           silent = true;
         };
       }
@@ -725,6 +841,15 @@ in
         action = "<cmd>lua CloseOtherBuffers()<CR>";
         options = {
           desc = "Close other buffers (non-destructive)";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>bs";
+        action = "<cmd>vnew<CR>";
+        options = {
+          desc = "Scratch buffer (vertical)";
           silent = true;
         };
       }
@@ -874,7 +999,7 @@ in
       }
       {
         mode = "n";
-        key = "<leader>qQ";
+        key = "<leader>qa";
         action = "<cmd>qa<CR>";
         options = {
           desc = "Quit all";

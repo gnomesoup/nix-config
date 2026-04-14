@@ -31,14 +31,14 @@
   };
 
   outputs =
-    inputs@{ self
-    , nix-darwin
-    , nixpkgs
-    , home-manager
-    , sops-nix
-    , kickstart-nixvim
-    , nixos-wsl
-    , # kmonad,
+    inputs@{
+      self,
+      nix-darwin,
+      nixpkgs,
+      home-manager,
+      sops-nix,
+      kickstart-nixvim,
+      nixos-wsl, # kmonad,
     }:
     {
       homeConfigurations = {
