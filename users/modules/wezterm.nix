@@ -19,6 +19,23 @@ let
 
     config.leader = { key = 'a', mods = 'CTRL', timeout_milliseconds = 1000 }
 
+    -- Use enumerate_ssh_hosts with explicit paths (default_ssh_domains has a bug with Include directive)
+    local ssh_domains = {}
+    local hosts = wezterm.enumerate_ssh_hosts(
+      os.getenv("HOME") .. "/.ssh/config",
+      os.getenv("HOME") .. "/.ssh/config.d/remote.conf"
+    )
+    for host, cfg in pairs(hosts) do
+      table.insert(ssh_domains, {
+        name = host,
+        remote_address = cfg.hostname,
+        username = cfg.user,
+        assume_shell = 'Posix',
+      })
+    end
+    config.ssh_domains = ssh_domains
+    wezterm.log_info("SSH Domains generated:", #ssh_domains)
+
     config.keys = {
       {
         mods = "LEADER",
@@ -27,7 +44,7 @@ let
       },
       {
         mods = "LEADER",
-        key = "h",
+        key = "s",
         action = act.SplitVertical { domain = 'CurrentPaneDomain' }
       },
       {
