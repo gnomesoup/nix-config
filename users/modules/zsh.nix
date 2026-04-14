@@ -117,6 +117,8 @@
       "iud" = "immich upload --delete ~/Downloads";
       "doco" = "docker compose";
       "docooc" = "docker compose run --rm openclaw-cli";
+      "wz" = "wezterm";
+      "wzc" = "wezterm cli";
     };
   };
 }
