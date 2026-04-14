@@ -341,19 +341,11 @@ in
                 hl = "WhichKeyIconGreen";
               };
             }
-            # NeoCodeium: AI completion (c = codeium)
-            {
-              __unkeyed-1 = "<leader>c";
-              icon = {
-                icon = "󰚩 ";
-                color = "purple";
-                hl = "WhichKeyIconPurple";
-              };
-            }
+            # NeoCodeium: AI completion (c = codeium) - prefix keymap added below
             {
               __unkeyed-1 = "<leader>ct";
               icon = {
-                icon = "wechseln ";
+                icon = "󰐕 ";
                 color = "purple";
                 hl = "WhichKeyIconPurple";
               };
@@ -369,7 +361,7 @@ in
             {
               __unkeyed-1 = "<leader>ce";
               icon = {
-                icon = ".Enable ";
+                icon = "󰗤 ";
                 color = "purple";
                 hl = "WhichKeyIconPurple";
               };
@@ -393,7 +385,7 @@ in
             {
               __unkeyed-1 = "<leader>co";
               icon = {
-                icon = "warf ";
+                icon = "󰐅 ";
                 color = "purple";
                 hl = "WhichKeyIconPurple";
               };
@@ -505,6 +497,66 @@ in
     ++ visualMaps
     ++ operatorPendingMaps
     ++ [
+      {
+        mode = "i";
+        key = "<Tab>";
+        action = "require('neocodeium').accept()";
+        options = {
+          desc = "Accept neocodeium suggestion";
+          silent = true;
+          noremap = true;
+        };
+      }
+      {
+        mode = "i";
+        key = "<S-Tab>";
+        action = "require('neocodeium').cycle_or_complete()";
+        options = {
+          desc = "Cycle neocodeium suggestion";
+          silent = true;
+          noremap = true;
+        };
+      }
+      {
+        mode = "i";
+        key = "<C-w>";
+        action = "require('neocodeium').accept_word()";
+        options = {
+          desc = "Accept word from neocodeium";
+          silent = true;
+          noremap = true;
+        };
+      }
+      {
+        mode = "i";
+        key = "<C-a>";
+        action = "require('neocodeium').accept_line()";
+        options = {
+          desc = "Accept line from neocodeium";
+          silent = true;
+          noremap = true;
+        };
+      }
+      {
+        mode = "i";
+        key = "<C-e>";
+        action = "require('neocodeium').clear()";
+        options = {
+          desc = "Clear neocodeium suggestion";
+          silent = true;
+          noremap = true;
+        };
+      }
+      # NeoCodeium prefix
+      {
+        mode = "n";
+        key = "<leader>c";
+        action = "<Nop>";
+        options = {
+          desc = "[C]ompletions";
+          silent = true;
+        };
+      }
       {
         mode = "n";
         key = "<leader>${keys.git}";
