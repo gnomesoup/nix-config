@@ -1,4 +1,9 @@
-{ lib, config, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 let
   keys = config.vimBindingKeys;
 
@@ -336,11 +341,83 @@ in
                 hl = "WhichKeyIconGreen";
               };
             }
+            # NeoCodeium: AI completion (c = codeium)
+            {
+              __unkeyed-1 = "<leader>c";
+              icon = {
+                icon = "󰚩 ";
+                color = "purple";
+                hl = "WhichKeyIconPurple";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>ct";
+              icon = {
+                icon = "wechseln ";
+                color = "purple";
+                hl = "WhichKeyIconPurple";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>cb";
+              icon = {
+                icon = "󰐔 ";
+                color = "purple";
+                hl = "WhichKeyIconPurple";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>ce";
+              icon = {
+                icon = ".Enable ";
+                color = "purple";
+                hl = "WhichKeyIconPurple";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>cd";
+              icon = {
+                icon = "󰤿 ";
+                color = "purple";
+                hl = "WhichKeyIconPurple";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>cr";
+              icon = {
+                icon = "󰑓 ";
+                color = "purple";
+                hl = "WhichKeyIconPurple";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>co";
+              icon = {
+                icon = "warf ";
+                color = "purple";
+                hl = "WhichKeyIconPurple";
+              };
+            }
           ];
         };
       };
     };
+    # neocodeium: AI completion powered by Windsurf/Codeium
+    # https://github.com/monkoose/neocodeium
+    extraPlugins = [
+      (pkgs.vimUtils.buildVimPlugin {
+        pname = "neocodeium";
+        version = "v1.16.3";
+        src = pkgs.fetchFromGitHub {
+          owner = "monkoose";
+          repo = "neocodeium";
+          rev = "v1.16.3";
+          sha256 = "1zr6rrvk00d3gwg7sf1vqd1z1gw2qwl0h08zcbc30x8v0iradsai";
+        };
+      })
+    ];
     extraConfigLua = autosaveLua + ''
+      require("neocodeium").setup({})
       -- CloseOtherBuffers: delete all loaded buffers except current one (non-destructive)
       function CloseOtherBuffers()
         local cur = vim.api.nvim_get_current_buf()
@@ -434,6 +511,60 @@ in
         action = "<cmd>Neogit<CR>";
         options = {
           desc = "Open Neogit";
+          silent = true;
+        };
+      }
+      {
+        mode = "i";
+        key = "<A-${keys.findForward}>";
+        action = "<cmd>lua require('neocodeium').accept()<CR>";
+        options = {
+          desc = "Accept neocodeium suggestion";
+          silent = true;
+        };
+      }
+      {
+        mode = "i";
+        key = "<A-${keys.wordEnd}>";
+        action = "<cmd>lua require('neocodeium').accept_word()<CR>";
+        options = {
+          desc = "Accept word from neocodeium";
+          silent = true;
+        };
+      }
+      {
+        mode = "i";
+        key = "<A-a>";
+        action = "<cmd>lua require('neocodeium').accept_line()<CR>";
+        options = {
+          desc = "Accept line from neocodeium";
+          silent = true;
+        };
+      }
+      {
+        mode = "i";
+        key = "<A-${keys.down}>";
+        action = "<cmd>lua require('neocodeium').cycle_or_complete()<CR>";
+        options = {
+          desc = "Cycle/complete neocodeium suggestion";
+          silent = true;
+        };
+      }
+      {
+        mode = "i";
+        key = "<A-${keys.up}>";
+        action = "<cmd>lua require('neocodeium').cycle_or_complete(-1)<CR>";
+        options = {
+          desc = "Cycle neocodeium suggestion reverse";
+          silent = true;
+        };
+      }
+      {
+        mode = "i";
+        key = "<A-${keys.right}>";
+        action = "<cmd>lua require('neocodeium').clear()<CR>";
+        options = {
+          desc = "Clear neocodeium suggestion";
           silent = true;
         };
       }
@@ -695,6 +826,61 @@ in
         action = "<cmd>qa<CR>";
         options = {
           desc = "Quit all";
+          silent = true;
+        };
+      }
+      # NeoCodeium commands
+      {
+        mode = "n";
+        key = "<leader>ct";
+        action = "<cmd>NeoCodeium toggle<CR>";
+        options = {
+          desc = "Toggle NeoCodeium globally";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>cb";
+        action = "<cmd>NeoCodeium toggle_buffer<CR>";
+        options = {
+          desc = "Toggle NeoCodeium for buffer";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>ce";
+        action = "<cmd>NeoCodeium enable<CR>";
+        options = {
+          desc = "Enable NeoCodeium globally";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>cd";
+        action = "<cmd>NeoCodeium disable<CR>";
+        options = {
+          desc = "Disable NeoCodeium globally";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>cr";
+        action = "<cmd>NeoCodeium restart<CR>";
+        options = {
+          desc = "Restart NeoCodeium server";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>co";
+        action = "<cmd>NeoCodeium open_log<CR>";
+        options = {
+          desc = "Open NeoCodeium log";
           silent = true;
         };
       }

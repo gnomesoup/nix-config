@@ -45,7 +45,7 @@
         Arch = "󰣇";
       };
       hostname = {
-        ssh_only = true;
+        ssh_only = false;
         style = "bg:color_orange fg:color_bg1";
         format = "[ $hostname ]($style)";
       };
@@ -54,6 +54,9 @@
         style_user = "bg:color_orange fg:color_bg1";
         style_root = "bg:color_red fg:color_bg1";
         format = "[ $user ]($style)";
+        aliases = {
+          mpfammatter = "";
+        };
       };
       directory = {
         style = "bg:color_yellow fg:color_bg1";
@@ -122,7 +125,7 @@
         style = "bg:color_bg3";
         format = "[[ $symbol( $context) ](fg:#83a598 bg:color_bg3)]($style)";
       };
-      conda = { 
+      conda = {
         style = "bg:color_bg3";
         format = "[[ $symbol( $environment) ](fg:#83a598 bg:color_bg3)]($style)";
       };
