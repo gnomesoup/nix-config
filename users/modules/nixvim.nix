@@ -223,7 +223,7 @@ in
     };
     colorschemes = {
       tokyonight.enable = lib.mkForce false;
-      monokai-pro.enable = true;
+      monokai-pro.enable = lib.mkForce false;
     };
     plugins = {
       diffview.enable = true;
@@ -520,6 +520,8 @@ in
     # https://github.com/monkoose/neocodeium
     extraPlugins = [
       pkgs.vimPlugins.flash-nvim
+      pkgs.vimPlugins.gruvbox-nvim
+      pkgs.vimPlugins.sonokai
       (pkgs.vimUtils.buildVimPlugin {
         pname = "neocodeium";
         version = "v1.16.3";
@@ -532,6 +534,10 @@ in
       })
     ];
     extraConfigLua = autosaveLua + ''
+      vim.o.background = "dark"
+      require("gruvbox").setup({ contrast = "" })
+      vim.cmd.colorscheme("gruvbox")
+
       require("neocodeium").setup({})
       require("flash").setup({
         labels = "${keys.flashLabels}",
@@ -1132,6 +1138,7 @@ in
       }
     ];
     extraConfigVim = ''
+      set background=dark
       set splitbelow
       set splitright
     '';
