@@ -529,6 +529,14 @@ in
                 hl = "WhichKeyIconCyan";
               };
             }
+            {
+              __unkeyed-1 = "<leader>ts";
+              icon = {
+                icon = "󰖟 ";
+                color = "cyan";
+                hl = "WhichKeyIconCyan";
+              };
+            }
           ];
         };
       };
@@ -538,6 +546,7 @@ in
     extraPlugins = [
       pkgs.vimPlugins.flash-nvim
       pkgs.vimPlugins.gruvbox-nvim
+      pkgs.vimPlugins.nvim-scrollbar
       pkgs.vimPlugins.sonokai
       (pkgs.vimUtils.buildVimPlugin {
         pname = "neocodeium";
@@ -554,6 +563,13 @@ in
       vim.o.background = "dark"
       require("gruvbox").setup({ contrast = "" })
       vim.cmd.colorscheme("gruvbox")
+
+      require("scrollbar").setup({
+        handlers = {
+          diagnostic = true,
+          gitsigns = true,
+        },
+      })
 
       require("neocodeium").setup({})
       require("flash").setup({
@@ -798,6 +814,15 @@ in
         action = "<cmd>ColorizerToggle<CR>";
         options = {
           desc = "Toggle [C]olorizer";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>ts";
+        action = "<cmd>ScrollbarToggle<CR>";
+        options = {
+          desc = "Toggle [S]crollbar";
           silent = true;
         };
       }
