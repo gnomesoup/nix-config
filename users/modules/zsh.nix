@@ -102,6 +102,9 @@
       "gc" = "git commit";
       "gp" = "git pull origin";
       "gP" = "git push origin";
+      "gl" = "git log --oneline";
+      "glg" = "git log --graph --oneline";
+      "glp" = "git log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit";
       "apply" =
         if pkgs.stdenv.isDarwin then
           "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)"
