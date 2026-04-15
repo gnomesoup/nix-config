@@ -226,6 +226,15 @@ in
       monokai-pro.enable = lib.mkForce false;
     };
     plugins = {
+      colorizer = {
+        enable = true;
+        lazyLoad.enable = false;
+        autoLoad = true;
+        settings = {
+          filetypes = [ "*" ];
+          user_commands = true;
+        };
+      };
       diffview.enable = true;
       neogit = {
         enable = true;
@@ -512,6 +521,14 @@ in
                 hl = "WhichKeyIconOrange";
               };
             }
+            {
+              __unkeyed-1 = "<leader>tc";
+              icon = {
+                icon = "󱓻 ";
+                color = "cyan";
+                hl = "WhichKeyIconCyan";
+              };
+            }
           ];
         };
       };
@@ -772,6 +789,15 @@ in
         action = "<cmd>ToggleWhitespace<CR>";
         options = {
           desc = "Toggle [W]hitespace visibility";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>tc";
+        action = "<cmd>ColorizerToggle<CR>";
+        options = {
+          desc = "Toggle [C]olorizer";
           silent = true;
         };
       }
