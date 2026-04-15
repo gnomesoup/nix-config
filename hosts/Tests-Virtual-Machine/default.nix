@@ -9,15 +9,12 @@
     python3
     nixpkgs-fmt
     raycast
-    warp-terminal
   ];
 
   imports = [
     ../modules/appleDefaults.nix
     ../modules/fonts.nix
   ];
-  # Auto upgrade nix package and the daemon service.
-  services.nix-daemon.enable = true;
   services = {
     tailscale.enable = true;
   };
@@ -38,6 +35,7 @@
   # Used for backwards compatibility, please read the changelog before changing.
   # $ darwin-rebuild changelog
   system.stateVersion = 4;
+  system.primaryUser = "test";
 
   # The platform the configuration will be used on.
   nixpkgs = {

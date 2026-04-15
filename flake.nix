@@ -52,19 +52,6 @@
             ./users/mpfammatter.nix
           ];
         };
-
-        "mpfammatter-darwin" = home-manager.lib.homeManagerConfiguration {
-          pkgs = import nixpkgs {
-            system = "aarch64-darwin";
-            config.allowUnfree = true;
-            config.allowBroken = true;
-          };
-          modules = [
-            sops-nix.homeManagerModules.sops
-            kickstart-nixvim.homeManagerModules.default
-            ./users/mpfammatter-ui.nix
-          ];
-        };
       };
 
       # Build nixos flake using:

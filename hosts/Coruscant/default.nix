@@ -12,17 +12,23 @@
     pkgs.python3
     pkgs.nixpkgs-fmt
     pkgs.raycast
-    pkgs.warp-terminal
     pkgs.utm
   ];
 
   # Necessary for using flakes on this system.
-  nix.settings.experimental-features = "nix-command flakes";
+  nix.settings = {
+    experimental-features = "nix-command flakes";
+    substituters = [ "https://cache.nixos.org" ];
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+    ];
+  };
   # nix.settings.extra-nix-path = "nixpkgs=flake:nixpkgs";
 
   # Used for backwards compatibility, please read the changelog before changing.
   # $ darwin-rebuild changelog
   system.stateVersion = 4;
+  system.primaryUser = "mpfammatter";
 
   # The platform the configuration will be used on.
   nixpkgs = {
@@ -35,10 +41,7 @@
     zsh.enable = true;
   };
 
-  services = {
-    nix-daemon.enable = true;
-    tailscale.enable = true;
-  };
+  services.tailscale.enable = true;
 
   users.users.mpfammatter = {
     name = "mpfammatter";

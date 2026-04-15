@@ -118,7 +118,7 @@ Treat changes as infrastructure updates: prefer declarative changes and reversib
 ## Common Pitfalls
 - Forgetting to enable `nix-command flakes` on new hosts stalls rebuilds—mirror existing settings.
 - Missing `home-manager.backupFileExtension` duplicates dotfiles; keep it consistent with flake outputs.
-- Darwin hosts require `nix-daemon.enable = true`; ensure services stanza matches `Coruscant` pattern.
+- Darwin hosts using `system.defaults.*` should also set `system.primaryUser` so user-scoped defaults apply during activation.
 - Samba shares on `hoth` expect matching system users; do not rename without updating `services.samba.settings`.
 - `immich` service on `nixvm` assumes an external secrets file; never bake credentials directly.
 
@@ -136,6 +136,7 @@ Treat changes as infrastructure updates: prefer declarative changes and reversib
 - Keep TailScale credentials secure; enabling service on macOS requires admin rights.
 
 ## Quick Commands Cheat Sheet
+- Apply the active config automatically: `apply` alias → macOS uses `sudo darwin-rebuild switch --flake ~/nix-config#$(scutil --get LocalHostName)`, Linux uses `home-manager switch`.
 - Update inputs: `nix flake update` (run with care, review `flake.lock`).
 - Garbage collect build artifacts: `nix-collect-garbage --delete-older-than 7d` (alias `garbage`).
 - Switch active host automatically on macOS: `drs` alias → `sudo darwin-rebuild switch --flake ~/nix-config#$(scutil --get LocalHostName)`.

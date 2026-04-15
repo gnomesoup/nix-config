@@ -163,17 +163,17 @@ let
       end
     end, {})
 
-    -- Rebuild home-manager (session is auto-saved by VimLeavePre on quit)
+    -- Apply config changes (session is auto-saved by VimLeavePre on quit)
     vim.api.nvim_create_user_command("HomeManagerRebuild", function()
-      vim.notify("Rebuilding home-manager config...", vim.log.levels.INFO, { title = "Rebuild" })
+      vim.notify("Applying config...", vim.log.levels.INFO, { title = "Rebuild" })
 
-      -- Determine platform-specific hms command
-      local hms_cmd = "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-darwin -b backup"
+      -- Determine platform-specific apply command
+      local apply_cmd = "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)"
       if vim.fn.has("unix") == 1 and vim.fn.isdirectory("/run/current-system") == 1 then
-        hms_cmd = "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup"
+        apply_cmd = "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup"
       end
 
-      vim.fn.jobstart(hms_cmd, {
+      vim.fn.jobstart(apply_cmd, {
         on_exit = function()
           vim.notify("Config updated. Quit and reopen Neovim to apply.", vim.log.levels.INFO, { title = "Rebuild" })
           vim.cmd("quitall")

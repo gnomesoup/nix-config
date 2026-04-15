@@ -58,7 +58,7 @@
 
         ${
           if pkgs.stdenv.isDarwin then
-            "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-darwin -b backup"
+            "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)"
           else
             "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup"
         }
@@ -102,10 +102,15 @@
       "gc" = "git commit";
       "gp" = "git pull origin";
       "gP" = "git push origin";
+      "apply" =
+        if pkgs.stdenv.isDarwin then
+          "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)"
+        else
+          "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup";
       "drs" = "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)";
       "hms" =
         if pkgs.stdenv.isDarwin then
-          "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-darwin -b backup"
+          "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)"
         else
           "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup";
       "nrs" = "sudo nixos-rebuild switch --flake path:$HOME/nix-config#$(hostname)";
