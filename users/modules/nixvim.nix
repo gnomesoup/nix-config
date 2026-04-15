@@ -479,6 +479,39 @@ in
                 hl = "WhichKeyIconPurple";
               };
             }
+            # Flash.nvim: jump navigation (j = jump)
+            {
+              __unkeyed-1 = "<leader>j";
+              icon = {
+                icon = "󰛦 ";
+                color = "orange";
+                hl = "WhichKeyIconOrange";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>jj";
+              icon = {
+                icon = "󰛦 ";
+                color = "orange";
+                hl = "WhichKeyIconOrange";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>jw";
+              icon = {
+                icon = "󰛦 ";
+                color = "orange";
+                hl = "WhichKeyIconOrange";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>js";
+              icon = {
+                icon = "󰛦 ";
+                color = "orange";
+                hl = "WhichKeyIconOrange";
+              };
+            }
           ];
         };
       };
@@ -486,6 +519,7 @@ in
     # neocodeium: AI completion powered by Windsurf/Codeium
     # https://github.com/monkoose/neocodeium
     extraPlugins = [
+      pkgs.vimPlugins.flash-nvim
       (pkgs.vimUtils.buildVimPlugin {
         pname = "neocodeium";
         version = "v1.16.3";
@@ -499,6 +533,14 @@ in
     ];
     extraConfigLua = autosaveLua + ''
       require("neocodeium").setup({})
+      require("flash").setup({
+        labels = "${keys.flashLabels}",
+        modes = {
+          search = { enabled = true },
+          treesitter = { labels = "${keys.flashLabels}" },
+        },
+      })
+
       -- CloseOtherBuffers: delete all loaded buffers except current one (non-destructive)
       function CloseOtherBuffers()
         local cur = vim.api.nvim_get_current_buf()
@@ -850,6 +892,33 @@ in
         action = "<cmd>vnew<CR>";
         options = {
           desc = "Scratch buffer (vertical)";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>jj";
+        action = "<cmd>lua require('flash').jump()<CR>";
+        options = {
+          desc = "Flash jump (char)";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>jw";
+        action = "<cmd>lua require('flash').treesitter()<CR>";
+        options = {
+          desc = "Flash treesitter (word)";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>js";
+        action = "<cmd>lua require('flash').toggle()<CR>";
+        options = {
+          desc = "Toggle flash search";
           silent = true;
         };
       }

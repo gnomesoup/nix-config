@@ -18,6 +18,7 @@ let
       tillForward = "t";
       tillBackward = "T";
       git = "g";
+      flashLabels = "asdfghjklqwertyuiopzxcvbnm";
     };
     "colemak-dh" = {
       left = "m";
@@ -36,6 +37,7 @@ let
       tillForward = "r";
       tillBackward = "R";
       git = "g";
+      flashLabels = "arstgmeioqwfpbjluyxcdvzkh";
     };
   };
 in
