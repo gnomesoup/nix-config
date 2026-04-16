@@ -221,6 +221,12 @@ in
       "wl-copy".enable = lib.mkForce false;
       xsel.enable = lib.mkForce false;
     };
+    opts = {
+      expandtab = true;
+      tabstop = 4;
+      shiftwidth = 4;
+      softtabstop = 4;
+    };
     colorschemes = {
       tokyonight.enable = lib.mkForce false;
       monokai-pro.enable = lib.mkForce false;
@@ -1192,6 +1198,8 @@ in
       set background=dark
       set splitbelow
       set splitright
+
+      autocmd FileType nix setlocal expandtab tabstop=2 shiftwidth=2 softtabstop=2
     '';
   };
 }
