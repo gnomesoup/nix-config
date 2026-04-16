@@ -228,7 +228,6 @@ in
       softtabstop = 4;
     };
     colorschemes = {
-      tokyonight.enable = lib.mkForce false;
       monokai-pro.enable = lib.mkForce false;
     };
     plugins = {
@@ -256,7 +255,7 @@ in
         settings = {
           strategy = "terminal";
           templates = [ "builtin" ];
-          task_list.direction = "bottom";
+          task_list.direction = "left";
         };
       };
       # which-key settings are defined below (merged into a single block)
@@ -672,10 +671,24 @@ in
     # neocodeium: AI completion powered by Windsurf/Codeium
     # https://github.com/monkoose/neocodeium
     extraPlugins = [
+      pkgs.vimPlugins.bamboo-nvim
       pkgs.vimPlugins.flash-nvim
+      pkgs.vimPlugins.gruvbox-material
       pkgs.vimPlugins.gruvbox-nvim
+      pkgs.vimPlugins.vim-moonfly-colors
       pkgs.vimPlugins.nvim-scrollbar
       pkgs.vimPlugins.sonokai
+      pkgs.vimPlugins.tokyonight-nvim
+      (pkgs.vimUtils.buildVimPlugin {
+        pname = "space-vim-dark";
+        version = "unstable-2026-04-16";
+        src = pkgs.fetchFromGitHub {
+          owner = "liuchengxu";
+          repo = "space-vim-dark";
+          rev = "0ab698bd2a3959e3bed7691ac55ba4d8abefd143";
+          sha256 = "0h1adjk9hnknhmgzw1vdfa1gslpx7an8p0ghd0qknnirlygcz9qr";
+        };
+      })
       (pkgs.vimUtils.buildVimPlugin {
         pname = "neocodeium";
         version = "v1.16.3";
@@ -688,10 +701,6 @@ in
       })
     ];
     extraConfigLua = autosaveLua + ''
-      vim.o.background = "dark"
-      require("gruvbox").setup({ contrast = "" })
-      vim.cmd.colorscheme("gruvbox")
-
       require("scrollbar").setup({
         handlers = {
           diagnostic = true,
@@ -1468,6 +1477,7 @@ in
     ];
     extraConfigVim = ''
       set background=dark
+      colorscheme space-vim-dark
       set splitbelow
       set splitright
 
