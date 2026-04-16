@@ -12,7 +12,7 @@ let
       "SauceCodePro Nerd Font Mono",
       "FiraCode Nerd Font Mono",
     }
-    config.font_size = 15.0
+    config.font_size = 16.0
     config.hide_tab_bar_if_only_one_tab = false
     config.use_fancy_tab_bar = false
     config.tab_bar_at_bottom = true
@@ -50,22 +50,22 @@ let
       },
       {
         key = '${keys.left}',
-        mods = 'LEADER',
+        mods = 'CTRL',
         action = act.ActivatePaneDirection "Left"
       },
       {
         key = '${keys.right}',
-        mods = 'LEADER',
+        mods = 'CTRL',
         action = act.ActivatePaneDirection "Right"
       },
       {
         key = '${keys.down}',
-        mods = 'LEADER',
+        mods = 'CTRL',
         action = act.ActivatePaneDirection "Down"
       },
       {
         key = '${keys.up}',
-        mods = 'LEADER',
+        mods = 'CTRL',
         action = act.ActivatePaneDirection "Up"
       },
     }
