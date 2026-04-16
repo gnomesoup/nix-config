@@ -298,6 +298,15 @@ in
           };
           spec = [
             {
+              __unkeyed-1 = "<leader>w";
+              group = "[W]indow";
+              icon = {
+                icon = "󰆾";
+                hl = "WhichKeyIconGreen";
+                color = "green";
+              };
+            }
+            {
               __unkeyed-1 = "<leader>w=";
               icon = {
                 icon = "󰆾";
@@ -339,6 +348,24 @@ in
                 icon = " ";
                 color = "green";
                 hl = "WhichKeyIconGreen";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>wd";
+              icon = {
+                icon = "󰅖 ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            # Move buffer left  (<leader>wm)
+            {
+              __unkeyed-1 = "<leader>b";
+              group = "[B]uffer";
+              icon = {
+                icon = "󰈔 ";
+                color = "red";
+                hl = "WhichKeyIconRed";
               };
             }
             # Move buffer left  (<leader>wm)
@@ -459,6 +486,15 @@ in
             }
             # NeoCodeium: AI completion (c = codeium) - prefix keymap added below
             {
+              __unkeyed-1 = "<leader>c";
+              group = "[C]ompletions";
+              icon = {
+                icon = "󰐕 ";
+                color = "purple";
+                hl = "WhichKeyIconPurple";
+              };
+            }
+            {
               __unkeyed-1 = "<leader>ct";
               icon = {
                 icon = "󰐕 ";
@@ -509,6 +545,7 @@ in
             # Flash.nvim: jump navigation (j = jump)
             {
               __unkeyed-1 = "<leader>j";
+              group = "[J]ump";
               icon = {
                 icon = "󰛦 ";
                 color = "orange";
@@ -525,6 +562,14 @@ in
             }
             {
               __unkeyed-1 = "<leader>jw";
+              icon = {
+                icon = "󰛦 ";
+                color = "orange";
+                hl = "WhichKeyIconOrange";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>jt";
               icon = {
                 icon = "󰛦 ";
                 color = "orange";
@@ -557,11 +602,16 @@ in
             }
             {
               __unkeyed-1 = "<leader>:";
+              group = "[:] Overseer";
               icon = {
                 icon = "󱁤 ";
                 color = "yellow";
                 hl = "WhichKeyIconYellow";
               };
+            }
+            {
+              __unkeyed-1 = "<leader>q";
+              group = "[Q]uit";
             }
             {
               __unkeyed-1 = "<leader>::";
@@ -1082,6 +1132,15 @@ in
       }
       {
         mode = "n";
+        key = "<leader>wd";
+        action = "<cmd>wincmd q<CR>";
+        options = {
+          desc = "Close current window";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
         key = "<leader>w${keys.left}";
         action = "<cmd>wincmd h<CR>";
         options = {
@@ -1164,9 +1223,28 @@ in
       {
         mode = "n";
         key = "<leader>jw";
+        action.__raw = ''
+          function()
+            require("flash").jump({
+              search = {
+                mode = function(str)
+                  return "\\<" .. str
+                end,
+              },
+            })
+          end
+        '';
+        options = {
+          desc = "Flash jump (word)";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>jt";
         action = "<cmd>lua require('flash').treesitter()<CR>";
         options = {
-          desc = "Flash treesitter (word)";
+          desc = "Flash treesitter";
           silent = true;
         };
       }
