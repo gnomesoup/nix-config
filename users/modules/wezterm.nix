@@ -9,6 +9,7 @@ let
 
     config.color_scheme = "Monokai Pro (Gogh)"
     config.font = wezterm.font_with_fallback {
+      "SauceCodePro Nerd Font Mono",
       "FiraCode Nerd Font Mono",
     }
     config.font_size = 15.0
