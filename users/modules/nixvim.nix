@@ -251,8 +251,20 @@ in
           };
         };
       };
+      overseer = {
+        enable = true;
+        settings = {
+          strategy = "terminal";
+          templates = [ "builtin" ];
+          task_list.direction = "bottom";
+        };
+      };
       # which-key settings are defined below (merged into a single block)
       rainbow-delimiters.enable = true;
+      conform-nvim.settings.formatters_by_ft.python = [
+        "isort"
+        "black"
+      ];
       telescope.settings.pickers.find_files.hidden = true;
       "which-key" = {
         settings = {
@@ -543,10 +555,70 @@ in
                 hl = "WhichKeyIconCyan";
               };
             }
+            {
+              __unkeyed-1 = "<leader>:";
+              icon = {
+                icon = "󱁤 ";
+                color = "yellow";
+                hl = "WhichKeyIconYellow";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>::";
+              icon = {
+                icon = "󰆍 ";
+                color = "yellow";
+                hl = "WhichKeyIconYellow";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>:.";
+              icon = {
+                icon = "󰑐 ";
+                color = "yellow";
+                hl = "WhichKeyIconYellow";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>:t";
+              icon = {
+                icon = "󰙅 ";
+                color = "yellow";
+                hl = "WhichKeyIconYellow";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>:o";
+              icon = {
+                icon = "󰈔 ";
+                color = "yellow";
+                hl = "WhichKeyIconYellow";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>:a";
+              icon = {
+                icon = "󰒓 ";
+                color = "yellow";
+                hl = "WhichKeyIconYellow";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>:!";
+              icon = {
+                icon = "󰞷 ";
+                color = "yellow";
+                hl = "WhichKeyIconYellow";
+              };
+            }
           ];
         };
       };
     };
+    extraPackages = [
+      pkgs.black
+      pkgs.isort
+    ];
     # neocodeium: AI completion powered by Windsurf/Codeium
     # https://github.com/monkoose/neocodeium
     extraPlugins = [
@@ -767,6 +839,24 @@ in
       }
       {
         mode = "n";
+        key = "<leader>:";
+        action = "<Nop>";
+        options = {
+          desc = "[:] Overseer";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>j";
+        action = "<Nop>";
+        options = {
+          desc = "[J]ump";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
         key = "<leader>${keys.git}";
         action = "<cmd>Neogit<CR>";
         options = {
@@ -843,6 +933,78 @@ in
         action = "<cmd>ToggleWhitespace<CR>";
         options = {
           desc = "Toggle [W]hitespace visibility";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>::";
+        action = "<cmd>OverseerRun<CR>";
+        options = {
+          desc = "Run [T]ask";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>:.";
+        action.__raw = ''
+          function()
+            local overseer = require("overseer")
+            local tasks = overseer.list_tasks({ include_ephemeral = false })
+
+            if vim.tbl_isempty(tasks) then
+              vim.notify("No previous Overseer task", vim.log.levels.WARN, { title = "Overseer" })
+              return
+            end
+
+            table.sort(tasks, function(a, b)
+              local a_time = a.time_start or a.id or 0
+              local b_time = b.time_start or b.id or 0
+              return a_time > b_time
+            end)
+
+            tasks[1]:restart(true)
+          end
+        '';
+        options = {
+          desc = "Rerun last task";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>:t";
+        action = "<cmd>OverseerToggle<CR>";
+        options = {
+          desc = "[T]oggle task list";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>:o";
+        action = "<cmd>OverseerOpen<CR>";
+        options = {
+          desc = "[O]pen task list";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>:a";
+        action = "<cmd>OverseerTaskAction<CR>";
+        options = {
+          desc = "Task [A]ctions";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>:!";
+        action = "<cmd>OverseerShell<CR>";
+        options = {
+          desc = "Run shell task";
           silent = true;
         };
       }
