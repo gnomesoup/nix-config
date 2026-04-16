@@ -221,6 +221,9 @@ in
       "wl-copy".enable = lib.mkForce false;
       xsel.enable = lib.mkForce false;
     };
+    globals = {
+      space_vim_dark_background = 234;
+    };
     opts = {
       expandtab = true;
       tabstop = 4;

@@ -2,8 +2,8 @@
 {
   fonts = {
     packages = with pkgs; [
-      source-code-pro
       font-awesome
+      nerd-fonts.sauce-code-pro
       nerd-fonts.fira-code
       nerd-fonts.droid-sans-mono
     ];
