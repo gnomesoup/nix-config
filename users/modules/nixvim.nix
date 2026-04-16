@@ -578,10 +578,42 @@ in
       })
 
       require("neocodeium").setup({})
+
+      function _G.InsertTabOrAccept()
+        local neocodeium = require("neocodeium")
+        local blink = require("blink-cmp")
+
+        if neocodeium.visible() then
+          neocodeium.accept()
+        elseif blink.is_visible() then
+          blink.accept()
+        elseif blink.snippet_active() then
+          blink.snippet_forward()
+        else
+          vim.api.nvim_feedkeys(vim.keycode("<Tab>"), "n", false)
+        end
+      end
+
+      function _G.InsertShiftTabOrCycle()
+        local neocodeium = require("neocodeium")
+        local blink = require("blink-cmp")
+
+        if blink.is_visible() then
+          blink.select_prev()
+        elseif blink.snippet_active() then
+          blink.snippet_backward()
+        else
+          neocodeium.cycle_or_complete()
+        end
+      end
+
       require("flash").setup({
         labels = "${keys.flashLabels}",
         modes = {
           search = { enabled = true },
+          char = {
+            keys = { "${keys.findForward}", "${keys.findBackward}", "${keys.tillForward}", "${keys.tillBackward}", ";", "," },
+          },
           treesitter = { labels = "${keys.flashLabels}" },
         },
       })
@@ -676,9 +708,9 @@ in
       {
         mode = "i";
         key = "<Tab>";
-        action = "<cmd>lua require('neocodeium').accept()<CR>";
+        action = "<cmd>lua _G.InsertTabOrAccept()<CR>";
         options = {
-          desc = "Accept neocodeium suggestion";
+          desc = "Accept completion or insert tab";
           silent = true;
           noremap = true;
         };
@@ -686,9 +718,9 @@ in
       {
         mode = "i";
         key = "<S-Tab>";
-        action = "<cmd>lua require('neocodeium').cycle_or_complete()<CR>";
+        action = "<cmd>lua _G.InsertShiftTabOrCycle()<CR>";
         options = {
-          desc = "Cycle neocodeium suggestion";
+          desc = "Cycle completion or AI suggestion";
           silent = true;
           noremap = true;
         };
