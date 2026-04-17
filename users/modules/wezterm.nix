@@ -7,7 +7,7 @@ let
 
     local config = wezterm.config_builder and wezterm.config_builder() or {}
 
-    config.color_scheme = "Monokai Pro (Gogh)"
+    config.color_scheme = "Spacemacs"
     config.font = wezterm.font_with_fallback {
       "SauceCodePro Nerd Font Mono",
       "FiraCode Nerd Font Mono",

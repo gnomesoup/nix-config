@@ -9,7 +9,7 @@
         [](color_orange)$os$hostname$username[](bg:color_yellow fg:color_orange)$directory[](fg:color_yellow bg:color_aqua)$git_branch$git_status[](fg:color_aqua bg:color_blue)$c$rust$golang$nodejs$php$java$kotlin$haskell$python[](fg:color_blue bg:color_bg3)$docker_context$conda[](fg:color_bg3 bg:color_bg1)$time[ ](fg:color_bg1)$line_break$character
       '';
 
-      palette = "goldfish";
+      palette = "spacemacs";
       palettes.gruvbox_dark = {
         color_fg0 = "#fbf1c7";
         color_bg1 = "#3c3836";
@@ -34,9 +34,25 @@
         color_red = "#cc241d";
         color_yellow = "#f38630";
       };
-
+      # scheme: "Spacemacs"
+      # author: "Nasser Alshammari (https://github.com/nashamri/spacemacs-theme)"
+      palettes.spacemacs = {
+        color_fg0 = "#a3a3a3";
+        color_fg1 = "#ffffff";
+        color_bg1 = "#282828";
+        color_bg3 = "#444155";
+        color_blue = "#ffa500";
+        color_aqua = "#2d9574";
+        color_green = "#67b11d";
+        color_orange = "#a31db1";
+        color_purple = "#b1951d";
+        color_red = "#f2241f";
+        color_yellow = "#4f97d7";
+      };
+      # scheme: "Spacemacs"
+      # author: "Nasser Alshammari (https://github.com/nashamri/spacemacs-theme)"
       os.disabled = false;
-      os.style = "bg:color_orange fg:color_bg1";
+      os.style = "bg:color_orange fg:color_fg1";
       os.symbols = {
         Windows = "";
         Macos = "";
@@ -46,13 +62,13 @@
       };
       hostname = {
         ssh_only = false;
-        style = "bg:color_orange fg:color_bg1";
+        style = "bg:color_orange fg:color_fg1";
         format = "[ $hostname ]($style)";
       };
       username = {
         show_always = true;
-        style_user = "bg:color_orange fg:color_bg1";
-        style_root = "bg:color_red fg:color_bg1";
+        style_user = "bg:color_orange fg:color_fg1";
+        style_root = "bg:color_red fg:color_fg1";
         format = "[ $user ]($style)";
         aliases = {
           mpfammatter = "";
