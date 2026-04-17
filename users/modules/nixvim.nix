@@ -226,6 +226,8 @@ in
     };
     opts = {
       expandtab = true;
+      relativenumber = true;
+      statuscolumn = "%s%=%{v:relnum ? v:relnum : v:lnum} ";
       tabstop = 4;
       shiftwidth = 4;
       softtabstop = 4;
