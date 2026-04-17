@@ -741,7 +741,74 @@ in
         end
       end
 
-      require("flash").setup({
+      local Flash = require("flash")
+      local FlashJump = require("flash.jump")
+      local FlashLabeler = require("flash.labeler")
+
+      local function flash_two_char_format(opts)
+        if opts.match.label2 then
+          return {
+            { opts.match.label1, "FlashMatch" },
+            { opts.match.label2, opts.hl_group },
+          }
+        end
+
+        return { { opts.match.label, opts.hl_group } }
+      end
+
+      local function flash_smart_labeler(matches, state)
+        local labels = state:labels()
+
+        if #matches <= #labels then
+          return FlashLabeler.new(state):labeler()(matches, state)
+        end
+
+        for i, match in ipairs(matches) do
+          match.label1 = labels[math.floor((i - 1) / #labels) + 1]
+          match.label2 = labels[(i - 1) % #labels + 1]
+          match.label = match.label1
+        end
+      end
+
+      local function flash_smart_action(match, state)
+        if not match.label2 then
+          FlashJump.jump(match, state)
+          FlashJump.on_jump(state)
+          return
+        end
+
+        state:hide()
+        Flash.jump({
+          search = { max_length = 0 },
+          highlight = { matches = false },
+          label = { format = flash_two_char_format },
+          matcher = function(win)
+            return vim.tbl_filter(function(m)
+              return m.label == match.label and m.win == win
+            end, state.results)
+          end,
+          labeler = function(filtered_matches)
+            for _, filtered in ipairs(filtered_matches) do
+              filtered.label = filtered.label2
+            end
+          end,
+        })
+      end
+
+      function _G.flash_smart_jump(opts)
+        opts = opts or {}
+        opts.label = vim.tbl_deep_extend("force", opts.label or {}, {
+          uppercase = false,
+          before = { 0, 0 },
+          after = false,
+          format = flash_two_char_format,
+        })
+        opts.labeler = flash_smart_labeler
+        opts.action = flash_smart_action
+        return Flash.jump(opts)
+      end
+
+      Flash.setup({
         labels = "${keys.flashLabels}",
         modes = {
           search = { enabled = true },
@@ -1226,9 +1293,13 @@ in
       {
         mode = "n";
         key = "<leader>jj";
-        action = "<cmd>lua require('flash').jump()<CR>";
+        action.__raw = ''
+          function()
+            _G.flash_smart_jump()
+          end
+        '';
         options = {
-          desc = "Flash jump (char)";
+          desc = "Flash jump";
           silent = true;
         };
       }
@@ -1237,7 +1308,7 @@ in
         key = "<leader>jw";
         action.__raw = ''
           function()
-            require("flash").jump({
+            _G.flash_smart_jump({
               search = {
                 mode = function(str)
                   return "\\<" .. str
