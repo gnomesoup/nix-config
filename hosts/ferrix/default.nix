@@ -179,7 +179,7 @@
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
   nixpkgs.config.permittedInsecurePackages = [
-    "openclaw-2026.4.2"
+    "openclaw-2026.4.12"
   ];
 
   # Enable nix-ld for running non-nix packages in a sandbox.
