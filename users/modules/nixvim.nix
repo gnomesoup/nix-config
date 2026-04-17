@@ -107,12 +107,30 @@ let
       )
     end, {})
 
+    vim.api.nvim_create_user_command("ToggleBufferAutoSave", function()
+      local bufnr = vim.api.nvim_get_current_buf()
+      vim.b[bufnr].autosave_disabled = not vim.b[bufnr].autosave_disabled
+
+      local buffer_state = vim.b[bufnr].autosave_disabled and "disabled" or "enabled"
+      local global_state = vim.g.autosave_enabled and "enabled" or "disabled"
+
+      vim.notify(
+        string.format("Autosave %s for this buffer (global autosave: %s)", buffer_state, global_state),
+        vim.log.levels.INFO,
+        { title = "nvim" }
+      )
+    end, {})
+
     vim.api.nvim_create_autocmd({ "FocusLost", "BufLeave", "InsertLeave" }, {
       group = autosave_group,
       callback = function(args)
         local bufnr = args.buf
 
         if not vim.g.autosave_enabled then
+          return
+        end
+
+        if vim.b[bufnr].autosave_disabled then
           return
         end
 
@@ -377,6 +395,14 @@ in
               __unkeyed-1 = "<leader>b${keys.left}";
               icon = {
                 icon = " ";
+                color = "red";
+                hl = "WhichKeyIconRed";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>ba";
+              icon = {
+                icon = "󰚌 ";
                 color = "red";
                 hl = "WhichKeyIconRed";
               };
@@ -1262,6 +1288,15 @@ in
         action = "<Nop>";
         options = {
           desc = "[B]uffer";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>ba";
+        action = "<cmd>ToggleBufferAutoSave<CR>";
+        options = {
+          desc = "Toggle autosave for this buffer";
           silent = true;
         };
       }

@@ -49,8 +49,6 @@
         color_red = "#f2241f";
         color_yellow = "#4f97d7";
       };
-      # scheme: "Spacemacs"
-      # author: "Nasser Alshammari (https://github.com/nashamri/spacemacs-theme)"
       os.disabled = false;
       os.style = "bg:color_orange fg:color_fg1";
       os.symbols = {
