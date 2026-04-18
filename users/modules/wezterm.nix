@@ -37,6 +37,35 @@ let
     config.ssh_domains = ssh_domains
     wezterm.log_info("SSH Domains generated:", #ssh_domains)
 
+    config.key_tables = {
+      resize_pane = {
+        {
+          key = '${keys.left}',
+          action = act.AdjustPaneSize { "Left", 3 }
+        },
+        {
+          key = '${keys.right}',
+          action = act.AdjustPaneSize { "Right", 3 }
+        },
+        {
+          key = '${keys.down}',
+          action = act.AdjustPaneSize { "Down", 3 }
+        },
+        {
+          key = '${keys.up}',
+          action = act.AdjustPaneSize { "Up", 3 }
+        },
+        {
+          key = 'Escape',
+          action = act.PopKeyTable
+        },
+        {
+          key = 'Enter',
+          action = act.PopKeyTable
+        },
+      },
+    }
+
     config.keys = {
       {
         mods = "LEADER",
@@ -47,6 +76,16 @@ let
         mods = "LEADER",
         key = "s",
         action = act.SplitVertical { domain = 'CurrentPaneDomain' }
+      },
+      {
+        key = 'r',
+        mods = 'LEADER',
+        action = act.ActivateKeyTable {
+          name = 'resize_pane',
+          one_shot = false,
+          timeout_milliseconds = 2500,
+          until_unknown = true,
+        }
       },
       {
         key = '${keys.left}',
@@ -67,26 +106,6 @@ let
         key = '${keys.up}',
         mods = 'CTRL',
         action = act.ActivatePaneDirection "Up"
-      },
-      {
-        key = '${keys.left}',
-        mods = 'LEADER',
-        action = act.AdjustPaneSize { "Left", 3 }
-      },
-      {
-        key = '${keys.right}',
-        mods = 'LEADER',
-        action = act.AdjustPaneSize { "Right", 3 }
-      },
-      {
-        key = '${keys.down}',
-        mods = 'LEADER',
-        action = act.AdjustPaneSize { "Down", 3 }
-      },
-      {
-        key = '${keys.up}',
-        mods = 'LEADER',
-        action = act.AdjustPaneSize { "Up", 3 }
       },
     }
 

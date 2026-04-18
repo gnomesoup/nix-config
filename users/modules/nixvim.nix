@@ -732,6 +732,25 @@ in
       })
     ];
     extraConfigLua = autosaveLua + ''
+      local function apply_space_vim_dark_overrides()
+        vim.api.nvim_set_hl(0, "LineNr", { fg = "#b888e2", bg = "#303030" })
+        vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#d1951d", bg = "#121212", bold = true })
+        vim.api.nvim_set_hl(0, "CursorLine", { bg = "#121212" })
+        vim.api.nvim_set_hl(0, "SignColumn", { bg = "#303030" })
+        vim.api.nvim_set_hl(0, "CursorLineSign", { bg = "#121212" })
+        vim.api.nvim_set_hl(0, "FoldColumn", { bg = "#303030" })
+        vim.api.nvim_set_hl(0, "CursorLineFold", { bg = "#121212" })
+      end
+
+      vim.api.nvim_create_autocmd("ColorScheme", {
+        pattern = "space-vim-dark",
+        callback = apply_space_vim_dark_overrides,
+      })
+
+      if vim.g.colors_name == "space-vim-dark" then
+        apply_space_vim_dark_overrides()
+      end
+
       require("scrollbar").setup({
         handlers = {
           diagnostic = true,
