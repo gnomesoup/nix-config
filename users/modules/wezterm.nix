@@ -68,6 +68,26 @@ let
         mods = 'CTRL',
         action = act.ActivatePaneDirection "Up"
       },
+      {
+        key = '${keys.left}',
+        mods = 'LEADER',
+        action = act.AdjustPaneSize { "Left", 3 }
+      },
+      {
+        key = '${keys.right}',
+        mods = 'LEADER',
+        action = act.AdjustPaneSize { "Right", 3 }
+      },
+      {
+        key = '${keys.down}',
+        mods = 'LEADER',
+        action = act.AdjustPaneSize { "Down", 3 }
+      },
+      {
+        key = '${keys.up}',
+        mods = 'LEADER',
+        action = act.AdjustPaneSize { "Up", 3 }
+      },
     }
 
     return config
