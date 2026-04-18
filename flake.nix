@@ -91,7 +91,10 @@
                 { pkgs, ... }:
                 {
                   imports = [ ./users/mpfammatter.nix ];
-                  home.packages = [ pkgs.openclaw ];
+                  home.packages = [
+                    pkgs.openclaw
+                    pkgs.logseq
+                  ];
                 };
               home-manager.backupFileExtension = "backup";
             }
