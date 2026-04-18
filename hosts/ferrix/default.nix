@@ -155,6 +155,12 @@
     openFirewall = true;
   };
 
+  services.sunshine = {
+    enable = true;
+    autoStart = true;
+    openFirewall = true;
+  };
+
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
 
