@@ -173,6 +173,7 @@
     isNormalUser = true;
     description = "Michael Pfammatter";
     extraGroups = [
+      "input"
       "networkmanager"
       "wheel"
     ];
