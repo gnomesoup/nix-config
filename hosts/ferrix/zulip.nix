@@ -145,6 +145,7 @@ in
       SETTING_NOREPLY_EMAIL_ADDRESS=${config.sops.placeholder."zulip/email_username"}
       SETTING_ADD_TOKENS_TO_NOREPLY_ADDRESS=False
       CONFIG_application_server__queue_workers_multiprocess=false
+      LOADBALANCER_IPS=100.78.62.127
       TRUST_GATEWAY_IP=True
     '';
     owner = "root";
