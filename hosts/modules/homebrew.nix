@@ -7,11 +7,10 @@
       "microsoft-teams"
       "chromium"
       "nextcloud"
+      "rustdesk"
       "vorta"
-      "brave-browser"
       "raspberry-pi-imager"
       "calibre"
-      "librewolf"
     ];
   };
 }

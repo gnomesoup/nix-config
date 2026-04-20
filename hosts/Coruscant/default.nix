@@ -4,6 +4,7 @@
   imports = [
     ../modules/appleDefaults.nix
     ../modules/fonts.nix
+    ../modules/homebrew.nix
   ];
 
   environment.systemPackages = [

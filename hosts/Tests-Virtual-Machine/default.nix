@@ -14,6 +14,7 @@
   imports = [
     ../modules/appleDefaults.nix
     ../modules/fonts.nix
+    ../modules/homebrew.nix
   ];
   services = {
     tailscale.enable = true;
