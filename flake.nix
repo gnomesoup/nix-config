@@ -91,7 +91,10 @@
                 { pkgs, ... }:
                 {
                   imports = [ ./users/mpfammatter-ui.nix ];
-                  home.packages = [ pkgs.openclaw ];
+                  home.packages = [
+                    pkgs.openclaw
+                    pkgs.rustdesk
+                  ];
                 };
               home-manager.backupFileExtension = "backup";
             }
