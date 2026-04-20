@@ -35,6 +35,7 @@
     curl
     wget
     openssh
+    wslu
   ];
 
   programs.zsh.enable = true;
