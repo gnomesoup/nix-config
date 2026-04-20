@@ -89,8 +89,21 @@
       fi
 
       if [[ -d /proc/sys/fs/binfmt_misc ]] && [[ -f /proc/sys/fs/binfmt_misc/WSLInterop || -n "$WSL_DISTRO_NAME" ]]; then
-        if command -v wslpath >/dev/null 2>&1 && command -v wslvar >/dev/null 2>&1; then
-          alias cdw="cd \"$(wslpath "$(wslvar USERPROFILE)")\""
+        if command -v wslpath >/dev/null 2>&1 && command -v powershell.exe >/dev/null 2>&1; then
+          cdw() {
+            emulate -L zsh
+            local win_path
+            win_path="$(powershell.exe -c "[Environment]::GetEnvironmentVariable('USERPROFILE','User')" 2>/dev/null)" || {
+              echo "cdw: failed to get Windows USERPROFILE" >&2
+              return 1
+            }
+            local wsl_path
+            wsl_path="$(wslpath "$win_path" 2>/dev/null)" || {
+              echo "cdw: failed to convert path '$win_path'" >&2
+              return 1
+            }
+            cd "$wsl_path"
+          }
         fi
       fi
     '';

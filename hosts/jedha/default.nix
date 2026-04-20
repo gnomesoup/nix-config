@@ -14,6 +14,7 @@
   wsl.enable = true;
   wsl.defaultUser = "mpfammatter";
   wsl.useWindowsDriver = true;
+  wsl.interop.register = true;
 
   networking.hostName = "jedha";
 
@@ -35,7 +36,6 @@
     curl
     wget
     openssh
-    wslu
   ];
 
   programs.zsh.enable = true;
