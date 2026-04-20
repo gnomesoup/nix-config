@@ -151,6 +151,15 @@
     #media-session.enable = true;
   };
 
+  xdg.portal = {
+    enable = true;
+    xdgOpenUsePortal = true;
+    extraPortals = [
+      pkgs.kdePackages.xdg-desktop-portal-kde
+      pkgs.xdg-desktop-portal-gtk
+    ];
+  };
+
   services.jellyfin = {
     enable = true;
     openFirewall = true;
