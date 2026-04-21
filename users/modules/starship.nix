@@ -37,17 +37,17 @@
       # scheme: "Spacemacs"
       # author: "Nasser Alshammari (https://github.com/nashamri/spacemacs-theme)"
       palettes.spacemacs = {
-        color_fg0 = "#a3a3a3";
+        color_fg0 = "#b2b2b2";
         color_fg1 = "#ffffff";
-        color_bg1 = "#282828";
-        color_bg3 = "#444155";
-        color_blue = "#ffa500";
-        color_aqua = "#2d9574";
+        color_bg1 = "#292b2e";
+        color_bg3 = "#212026";
+        color_blue = "#4f97d7";
+        color_aqua = "#2aa1ae";
         color_green = "#67b11d";
-        color_orange = "#a31db1";
-        color_purple = "#b1951d";
-        color_red = "#f2241f";
-        color_yellow = "#4f97d7";
+        color_orange = "#d1951d";
+        color_purple = "#bc6ec5";
+        color_red = "#e0211d";
+        color_yellow = "#d1951d";
       };
       os.disabled = false;
       os.style = "bg:color_orange fg:color_fg1";

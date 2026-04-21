@@ -280,7 +280,7 @@ let
       end
     end)
 
-    config.color_scheme = "Spacemacs"
+    config.color_scheme = "SpaceVimDark"
     config.font = wezterm.font_with_fallback {
       "SauceCodePro Nerd Font Mono",
       "FiraCode Nerd Font Mono",

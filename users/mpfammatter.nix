@@ -7,5 +7,6 @@
     ./modules/ssh.nix
     ./modules/zsh.nix
     ./modules/wezterm.nix
+    ./modules/wezterm-colors.nix
   ];
 }
