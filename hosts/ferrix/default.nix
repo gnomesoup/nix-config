@@ -208,6 +208,8 @@
     wget
     git
     python3
+    python3Packages.dbus-python
+    python3Packages.pygobject3
     borgbackup
     sops
     age
