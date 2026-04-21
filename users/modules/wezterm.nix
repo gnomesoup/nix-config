@@ -253,7 +253,7 @@ let
       local purple_bg = palette and palette.purple or '#bd93f9'
       local black_fg = palette and palette.fg0 or '#000000'
       local grey_fg = palette and palette.fg1 or '#abb2bf'
-      local grey_bg = palette and palette.bg1 or '#3e3e3e'
+      local grey_bg = palette and palette.bg1 or '#333'
       local black_bg = palette and palette.bg0 or '#000000'
       local terminal_bg = palette and palette.bg0 or '#000000'
 
