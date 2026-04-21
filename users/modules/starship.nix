@@ -6,7 +6,7 @@
 
       "$schema" = "https://starship.rs/config-schema.json";
       format = ''
-        [](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)$username[](fg:color_purple2 bg:color_bg3)$directory[](fg:color_bg3 bg:color_bg2)$git_branch$git_status[](fg:color_bg2 bg:color_blue)$c$rust$golang$nodejs$php$java$kotlin$haskell$python[](fg:color_blue bg:color_bg1)$docker_context$conda[](fg:color_bg1 bg:color_purple2)$time[ ](fg:color_purple2)$line_break$character
+        [](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)$username[](fg:color_purple2 bg:color_bg3)$directory[](fg:color_bg3 bg:color_bg1)$git_branch$git_status[](fg:color_bg1 bg:color_blue)$c$rust$golang$nodejs$php$java$kotlin$haskell$python[](fg:color_blue bg:color_bg1)$docker_context$conda[](fg:color_bg1 bg:color_purple2)$time[ ](fg:color_purple2)$line_break$character
       '';
       palette = "spacemacs";
       palettes.spacemacs = {
@@ -69,9 +69,6 @@
         style_user = "bg:color_purple2 fg:color_fg0";
         style_root = "bg:color_red fg:color_fg1";
         format = "[ $user ]($style)";
-        aliases = {
-          mpfammatter = "";
-        };
       };
       directory = {
         style = "bg:color_bg3 fg:color_purple";
@@ -81,12 +78,12 @@
       };
       git_branch = {
         symbol = "";
-        style = "bg:color_bg2";
-        format = "[[ $symbol $branch ](fg:color_green bg:color_bg2)]($style)";
+        style = "bg:color_bg1";
+        format = "[[ $symbol $branch ](fg:color_green bg:color_bg1)]($style)";
       };
       git_status = {
-        style = "bg:color_bg2";
-        format = "[[($all_status$ahead_behind )](fg:color_green bg:color_bg2)]($style)";
+        style = "bg:color_bg1";
+        format = "[[($all_status$ahead_behind )](fg:color_green bg:color_bg1)]($style)";
       };
 
       nodejs = {
