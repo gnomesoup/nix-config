@@ -877,15 +877,13 @@ in
               [";"] = ";";
               [","] = ",";
             };
-            format = function(match)
-              if match.label2 then
-                return {
-                  { match.label1, "FlashMatch" },
-                  { match.label2, "FlashLabel" },
-                }
-              end
-              return { { match.label, "FlashLabel" } }
-            end;
+            label = {
+              uppercase = false;
+              before = { 0, 0 };
+              after = false;
+              format = flash_two_char_format;
+            };
+            labeler = flash_smart_labeler;
           },
           treesitter = { labels = "${keys.flashLabels}" },
         },
