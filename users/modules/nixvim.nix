@@ -855,8 +855,26 @@ in
           format = flash_two_char_format,
         })
         opts.labeler = flash_smart_labeler
-        opts.action = flash_smart_action
-        return Flash.jump(opts)
+      opts.action = flash_smart_action
+      return Flash.jump(opts)
+      end
+
+      -- Ensure label-selection keystrokes are consumed so they don't
+      -- also trigger normal-mode mappings after Flash jumps.
+      do
+        local State = require("flash.state")
+        local Util = require("flash.util")
+        local orig_check_jump = State.check_jump
+        State.check_jump = function(self, pattern)
+          local ok = orig_check_jump(self, pattern)
+          if ok then
+            -- consume any pending input to avoid the pressed label
+            -- being handled by normal-mode mappings.
+            Util.exit()
+            return true
+          end
+          return false
+        end
       end
 
       Flash.setup({

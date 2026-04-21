@@ -6,9 +6,8 @@
 
       "$schema" = "https://starship.rs/config-schema.json";
       format = ''
-        [](color_yellow)$os$hostname$username[](bg:color_bg3 fg:color_yellow)$directory[](bg:color_bg2 fg:color_bg3)$git_branch$git_status[](fg:color_bg2 bg:color_blue)$c$rust$golang$nodejs$php$java$kotlin$haskell$python[](fg:color_blue bg:color_bg1)$docker_context$conda[](fg:color_bg1 bg:color_bg3)$time[ ](fg:color_bg3)$line_break$character
+        [](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)$username[](fg:color_purple2 bg:color_bg3)$directory[](fg:color_bg3 bg:color_bg2)$git_branch$git_status[](fg:color_bg2 bg:color_blue)$c$rust$golang$nodejs$php$java$kotlin$haskell$python[](fg:color_blue bg:color_bg1)$docker_context$conda[](fg:color_bg1 bg:color_purple2)$time[ ](fg:color_purple2)$line_break$character
       '';
-      ## []
       palette = "spacemacs";
       palettes.spacemacs = {
         color_fg0 = "#b2b2b2";
@@ -22,6 +21,7 @@
         color_green = "#52AD70";
         color_orange = "#d1951d";
         color_purple = "#B888E2";
+        color_purple2 = "#5D4D7A";
         color_red = "#e0211d";
         color_yellow = "#d1951d";
       };
@@ -66,7 +66,7 @@
       };
       username = {
         show_always = true;
-        style_user = "bg:color_yellow fg:color_fg2";
+        style_user = "bg:color_purple2 fg:color_fg0";
         style_root = "bg:color_red fg:color_fg1";
         format = "[ $user ]($style)";
         aliases = {
@@ -138,18 +138,18 @@
       docker_context = {
         symbol = "";
         style = "bg:color_bg3";
-        format = "[[ $symbol( $context) ](fg:#83a598 bg:color_bg3)]($style)";
+        format = "[[ $symbol( $context) ](fg:color_aqua bg:color_bg3)]($style)";
       };
       conda = {
         style = "bg:color_bg3";
-        format = "[[ $symbol( $environment) ](fg:#83a598 bg:color_bg3)]($style)";
+        format = "[[ $symbol( $environment) ](fg:color_aqua bg:color_bg3)]($style)";
       };
 
       time = {
         disabled = false;
         time_format = "%R";
-        style = "bg:color_bg3";
-        format = "[[  $time ](fg:color_purple bg:color_bg3)]($style)";
+        style = "bg:color_purple2";
+        format = "[[  $time ](fg:color_fg0 bg:color_purple2)]($style)";
       };
 
       line_break.disabled = false;
