@@ -855,26 +855,29 @@ in
           format = flash_two_char_format,
         })
         opts.labeler = flash_smart_labeler
-      opts.action = flash_smart_action
-      return Flash.jump(opts)
+        opts.action = flash_smart_action
+        return Flash.jump(opts)
       end
 
-      -- Ensure label-selection keystrokes are consumed so they don't
-      -- also trigger normal-mode mappings after Flash jumps.
+      -- Flash's built-in f/F char motions place labels directly on the
+      -- matched character. Since char mode jumps to the first match before
+      -- showing labels, that makes the current target look like the matched
+      -- character instead of a selectable label. Move those labels next to
+      -- the target so every visible option is an actual flash label.
       do
-        local State = require("flash.state")
-        local Util = require("flash.util")
-        local orig_check_jump = State.check_jump
-        State.check_jump = function(self, pattern)
-          local ok = orig_check_jump(self, pattern)
-          if ok then
-            -- consume any pending input to avoid the pressed label
-            -- being handled by normal-mode mappings.
-            Util.exit()
-            return true
-          end
-          return false
-        end
+        local FlashChar = require("flash.plugins.char")
+        FlashChar.motions.f = vim.tbl_deep_extend("force", FlashChar.motions.f or {}, {
+          label = {
+            after = true,
+            before = false,
+          },
+        })
+        FlashChar.motions.F = vim.tbl_deep_extend("force", FlashChar.motions.F or {}, {
+          label = {
+            after = false,
+            before = true,
+          },
+        })
       end
 
       Flash.setup({
@@ -882,11 +885,7 @@ in
         modes = {
           search = { enabled = true },
           char = {
-            labels = "${keys.flashLabels}";
             jump_labels = true;
-            highlight = {
-              leaders = true;
-            };
             keys = {
               f = "${keys.findForward}";
               F = "${keys.findBackward}";
@@ -897,11 +896,8 @@ in
             };
             label = {
               uppercase = false;
-              before = { 0, 0 };
-              after = false;
-              format = flash_two_char_format;
+              exclude = "${keys.left}${keys.down}${keys.up}${keys.right}${keys.insert}ardc:";
             };
-            labeler = flash_smart_labeler;
           },
           treesitter = { labels = "${keys.flashLabels}" },
         },
