@@ -68,6 +68,10 @@ let
         "N"
       ]
       [
+        keys.joinLines
+        "J"
+      ]
+      [
         keys.insert
         "i"
       ]
@@ -860,7 +864,28 @@ in
         modes = {
           search = { enabled = true },
           char = {
-            keys = { "${keys.findForward}", "${keys.findBackward}", "${keys.tillForward}", "${keys.tillBackward}", ";", "," },
+            labels = "${keys.flashLabels}";
+            jump_labels = true;
+            highlight = {
+              leaders = true;
+            };
+            keys = {
+              f = "${keys.findForward}";
+              F = "${keys.findBackward}";
+              t = "${keys.tillForward}";
+              T = "${keys.tillBackward}";
+              [";"] = ";";
+              [","] = ",";
+            };
+            format = function(match)
+              if match.label2 then
+                return {
+                  { match.label1, "FlashMatch" },
+                  { match.label2, "FlashLabel" },
+                }
+              end
+              return { { match.label, "FlashLabel" } }
+            end;
           },
           treesitter = { labels = "${keys.flashLabels}" },
         },

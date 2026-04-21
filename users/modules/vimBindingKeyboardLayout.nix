@@ -17,6 +17,7 @@ let
       findBackward = "F";
       tillForward = "t";
       tillBackward = "T";
+      joinLines = "J";
       git = "g";
       flashLabels = "asdfghjklqwertyuiopzxcvbnm";
     };
@@ -34,8 +35,9 @@ let
       setMark = "h";
       findForward = "t";
       findBackward = "T";
-      tillForward = "r";
-      tillBackward = "R";
+      tillForward = "j";
+      tillBackward = "J";
+      joinLines = "N";
       git = "g";
       flashLabels = "arstgmeioqwfpbjluyxcdvzkh";
     };
