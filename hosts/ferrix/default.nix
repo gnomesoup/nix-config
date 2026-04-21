@@ -206,8 +206,15 @@
     borgbackup
     sops
     age
+    grim
+    imagemagick
     nixpkgs-fmt
+    slurp
+    tesseract
     wezterm
+    wl-clipboard
+    wtype
+    ydotool
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
