@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 
 let
   spaceVimDarkToml = pkgs.writeText "SpaceVimDark.toml" ''
@@ -47,7 +47,7 @@ let
 in
 {
   home.file = {
-    "${pkgs.xdg.configHome}/wezterm/colors/SpaceVimDark.toml" = {
+    "${config.xdg.configHome}/wezterm/colors/SpaceVimDark.toml" = {
       source = spaceVimDarkToml;
       recursive = false;
     };
