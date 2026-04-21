@@ -37,6 +37,7 @@
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.kernelModules = [ "uinput" ];
 
   networking.hostName = "ferrix"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
@@ -47,6 +48,10 @@
 
   # Enable networking
   networking.networkmanager.enable = true;
+
+  services.udev.extraRules = ''
+    KERNEL=="uinput", MODE="0660", GROUP="input", OPTIONS+="static_node=uinput"
+  '';
 
   boot.supportedFilesystems = [ "cifs" ];
 
