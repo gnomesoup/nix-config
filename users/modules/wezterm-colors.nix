@@ -5,9 +5,6 @@ let
     [colors]
     foreground = "#b2b2b2"
     background = "#292b2e"
-    cursor_bg = "#b2b2b2"
-    cursor_fg = "#292b2e"
-    cursor_border = "#b2b2b2"
     selection_bg = "#444155"
     selection_fg = "#b2b2b2"
 

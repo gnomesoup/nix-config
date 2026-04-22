@@ -281,6 +281,11 @@ let
     end)
 
     config.color_scheme = "SpaceVimDark"
+    config.colors = {
+      cursor_bg = "#d1951d",
+      cursor_border = "#d1951d",
+      cursor_fg = "#292b2e",
+    }
     config.font = wezterm.font_with_fallback {
       "SauceCodePro Nerd Font Mono",
       "FiraCode Nerd Font Mono",

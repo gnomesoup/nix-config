@@ -1,6 +1,16 @@
 { pkgs, ... }:
 {
   imports = [ ./starship.nix ];
+
+  programs.zoxide = {
+    enable = true;
+    enableZshIntegration = true;
+    options = [
+      "--cmd"
+      "cd"
+    ];
+  };
+
   programs.zsh = {
     enable = true;
     enableCompletion = true;
@@ -137,6 +147,7 @@
       "less" = "less -R";
       "more" = "less -R";
       "ll" = "ls -lah --color=auto";
+      "z" = "cd";
       "gs" = "git status";
       "ga" = "git add .";
       "gc" = "git commit";
