@@ -75,6 +75,27 @@
         openclaw completion --shell zsh --write-state
       }
 
+      nix-shell() {
+        emulate -L zsh
+
+        local arg
+        for arg in "$@"; do
+          case "$arg" in
+            --run|--command|-r)
+              command nix-shell "$@"
+              return
+              ;;
+          esac
+        done
+
+        command nix-shell "$@" --run 'exec zsh -i'
+      }
+
+      nd() {
+        emulate -L zsh
+        nix develop "$@" --command zsh
+      }
+
       if command -v opencode >/dev/null 2>&1; then
         source <(opencode completion)
       fi

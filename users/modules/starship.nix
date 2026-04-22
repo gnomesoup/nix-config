@@ -6,7 +6,7 @@
 
       "$schema" = "https://starship.rs/config-schema.json";
       format = ''
-        [](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)$username[](fg:color_purple2 bg:color_bg3)$directory[](fg:color_bg3 bg:color_bg1)$git_branch$git_status[](fg:color_bg1 bg:color_blue)$c$rust$golang$nodejs$php$java$kotlin$haskell$python[](fg:color_blue bg:color_bg1)$docker_context$conda[](fg:color_bg1 bg:color_purple2)$time[ ](fg:color_purple2)$line_break$character
+        [](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)$username[](fg:color_purple2 bg:color_bg3)$directory[](fg:color_bg3 bg:color_bg1)$git_branch$git_status[](fg:color_bg1 bg:color_blue)$c$cpp$rust$golang$nodejs$php$java$kotlin$haskell$python[](fg:color_blue bg:color_bg1)$nix_shell$conda[](fg:color_bg1 bg:color_purple2)$time[ ](fg:color_purple2)$line_break$character
       '';
       palette = "spacemacs";
       palettes.spacemacs = {
@@ -96,6 +96,12 @@
         style = "bg:color_blue";
         format = "[[ $symbol( $version) ](fg:color_bg1 bg:color_blue)]($style)";
       };
+      cpp = {
+        symbol = "";
+        style = "bg:color_blue";
+        format = "[[ $symbol( $version) ](fg:color_bg1 bg:color_blue)]($style)";
+        disabled = false;
+      };
       rust = {
         symbol = "";
         style = "bg:color_blue";
@@ -132,14 +138,14 @@
         format = "[[ $symbol( $version) ](fg:color_bg1 bg:color_blue)]($style)";
       };
 
-      docker_context = {
-        symbol = "";
-        style = "bg:color_bg3";
-        format = "[[ $symbol( $context) ](fg:color_aqua bg:color_bg3)]($style)";
+      nix_shell = {
+        symbol = "";
+        style = "bg:color_bg1";
+        format = "[[ $symbol( $name) ](fg:color_blue bg:color_bg1)]($style)";
       };
       conda = {
-        style = "bg:color_bg3";
-        format = "[[ $symbol( $environment) ](fg:color_aqua bg:color_bg3)]($style)";
+        style = "bg:color_bg1";
+        format = "[[ $symbol( $environment) ](fg:color_blue bg:color_bg1)]($style)";
       };
 
       time = {
