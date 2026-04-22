@@ -310,19 +310,22 @@ let
 
     config.leader = { key = 'a', mods = 'CTRL', timeout_milliseconds = 1000 }
 
-    -- Use enumerate_ssh_hosts with explicit paths (default_ssh_domains has a bug with Include directive)
     local ssh_domains = {}
-    local hosts = wezterm.enumerate_ssh_hosts(
-      os.getenv("HOME") .. "/.ssh/config",
-      os.getenv("HOME") .. "/.ssh/config.d/remote.conf"
-    )
-    for host, cfg in pairs(hosts) do
-      table.insert(ssh_domains, {
-        name = host,
-        remote_address = cfg.hostname,
-        username = cfg.user,
-        assume_shell = 'Posix',
-      })
+    if not is_windows then
+      -- Use enumerate_ssh_hosts with explicit paths (default_ssh_domains has a bug with Include directive)
+      local home_dir = os.getenv("HOME") or wezterm.home_dir
+      local hosts = wezterm.enumerate_ssh_hosts(
+        home_dir .. "/.ssh/config",
+        home_dir .. "/.ssh/config.d/remote.conf"
+      )
+      for host, cfg in pairs(hosts) do
+        table.insert(ssh_domains, {
+          name = host,
+          remote_address = cfg.hostname,
+          username = cfg.user,
+          assume_shell = 'Posix',
+        })
+      end
     end
     config.ssh_domains = ssh_domains
     wezterm.log_info("SSH Domains generated:", #ssh_domains)
