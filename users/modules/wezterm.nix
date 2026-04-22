@@ -5,6 +5,7 @@ let
     local wezterm = require "wezterm"
     local act = wezterm.action
     local mux = wezterm.mux
+    local is_windows = wezterm.target_triple:find("windows") ~= nil
 
     local config = wezterm.config_builder and wezterm.config_builder() or {}
 
@@ -302,6 +303,10 @@ let
       }),
     }
     config.adjust_window_size_when_changing_font_size = false
+
+    if is_windows then
+      config.default_domain = "WSL:NixOS"
+    end
 
     config.leader = { key = 'a', mods = 'CTRL', timeout_milliseconds = 1000 }
 
