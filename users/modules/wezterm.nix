@@ -6,6 +6,7 @@ let
     local act = wezterm.action
     local mux = wezterm.mux
     local is_windows = wezterm.target_triple:find("windows") ~= nil
+    local local_mux_domain = "local_mux"
 
     local config = wezterm.config_builder and wezterm.config_builder() or {}
 
@@ -15,6 +16,16 @@ let
       end
 
       return text:gsub("^%s+", ""):gsub("%s+$", "")
+    end
+
+    local function url_decode(text)
+      if not text then
+        return nil
+      end
+
+      return text:gsub("%%(%x%x)", function(hex)
+        return string.char(tonumber(hex, 16))
+      end)
     end
 
     local function notify(window, message)
@@ -27,7 +38,7 @@ let
         and (url.host == nil or url.host == "" or url.host == "localhost" or url.host == wezterm.hostname())
     end
 
-    local function pane_path(pane)
+    local function pane_cwd_url(pane)
       local cwd = pane:get_current_working_dir()
       if not cwd then
         return nil, "Current pane has no working directory"
@@ -37,21 +48,92 @@ let
         cwd = wezterm.url.parse(cwd)
       end
 
-      if not is_local_file_url(cwd) then
-        return nil, "Project launcher only supports local panes"
-      end
-
-      return cwd.file_path, nil
+      return cwd, nil
     end
 
-    local function git_root_for_path(path)
-      local success, stdout = wezterm.run_child_process {
-        "git",
-        "-C",
-        path,
-        "rev-parse",
-        "--show-toplevel",
-      }
+    local function wsl_context(cwd, domain_name)
+      local distro = domain_name:match("^WSL:(.+)$")
+      if not distro then
+        return nil, nil
+      end
+
+      local path = url_decode(cwd.path or "")
+      local host = (cwd.host or ""):lower()
+
+      if host == "wsl.localhost" or host == "wsl$" then
+        local parsed_distro, linux_path = path:match("^/([^/]+)(/.*)$")
+        if not parsed_distro or not linux_path then
+          return nil, "Could not determine the WSL project path"
+        end
+
+        distro = parsed_distro
+        path = linux_path
+      end
+
+      if not path or path == "" then
+        return nil, "Could not determine the WSL project path"
+      end
+
+      return {
+        kind = "wsl",
+        cwd = path,
+        distro = distro,
+        domain_name = domain_name,
+      }, nil
+    end
+
+    local function pane_context(pane)
+      local cwd, cwd_error = pane_cwd_url(pane)
+      if not cwd then
+        return nil, cwd_error
+      end
+
+      local domain_name = pane:get_domain_name()
+      local wsl, wsl_error = wsl_context(cwd, domain_name)
+      if wsl then
+        return wsl, nil
+      end
+
+      if wsl_error then
+        return nil, wsl_error
+      end
+
+      if is_local_file_url(cwd) then
+        return {
+          kind = "local",
+          cwd = cwd.file_path,
+          domain_name = domain_name,
+        }, nil
+      end
+
+      return nil, "Project launcher only supports local or WSL panes"
+    end
+
+    local function git_root_for_context(context)
+      local command
+      if context.kind == "wsl" then
+        command = {
+          "wsl.exe",
+          "-d",
+          context.distro,
+          "--cd",
+          context.cwd,
+          "--",
+          "git",
+          "rev-parse",
+          "--show-toplevel",
+        }
+      else
+        command = {
+          "git",
+          "-C",
+          context.cwd,
+          "rev-parse",
+          "--show-toplevel",
+        }
+      end
+
+      local success, stdout = wezterm.run_child_process(command)
       if not success then
         return nil
       end
@@ -59,18 +141,27 @@ let
       return trim(stdout)
     end
 
-    local function project_info_for_pane(pane)
-      local path, path_error = pane_path(pane)
-      if not path then
-        return nil, path_error
+    local function git_root_for_pane(pane)
+      local context = pane_context(pane)
+      if not context then
+        return nil
       end
 
-      local git_root = git_root_for_path(path)
+      return git_root_for_context(context)
+    end
+
+    local function project_info_for_pane(pane)
+      local context, context_error = pane_context(pane)
+      if not context then
+        return nil, context_error
+      end
+
+      local git_root = git_root_for_context(context)
       if not git_root then
         return nil, "Current pane is not inside a git project"
       end
 
-      local project_name = git_root:match("([^/]+)$")
+      local project_name = git_root:match("([^/\\]+)$")
       if not project_name or project_name == "" then
         return nil, "Could not determine project name"
       end
@@ -78,6 +169,8 @@ let
       return {
         name = project_name,
         root = git_root,
+        kind = context.kind,
+        domain_name = context.domain_name,
       }, nil
     end
 
@@ -98,12 +191,9 @@ let
         if mux_window:get_workspace() == name then
           for _, tab in ipairs(mux_window:tabs()) do
             for _, pane in ipairs(tab:panes()) do
-              local path = pane_path(pane)
-              if path then
-                local git_root = git_root_for_path(path)
-                if git_root then
-                  roots[git_root] = true
-                end
+              local git_root = git_root_for_pane(pane)
+              if git_root then
+                roots[git_root] = true
               end
             end
           end
@@ -144,6 +234,10 @@ let
       return nil
     end
 
+    local function shell_command(command)
+      return { "zsh", "-lc", command }
+    end
+
     local function build_project_workspace(window, pane)
       local project, project_error = project_info_for_pane(pane)
       if not project then
@@ -182,7 +276,8 @@ let
           name = project.name,
           spawn = {
             cwd = project.root,
-            args = { "zsh", "-c", "nvim; exec zsh" },
+            domain = "CurrentPaneDomain",
+            args = shell_command("nvim; exec zsh -l"),
           },
         },
         pane
@@ -202,12 +297,13 @@ let
                 top_level = true,
                 size = 12,
                 cwd = project.root,
+                args = shell_command("exec zsh -l"),
               }
               editor_pane:split {
                 direction = "Right",
                 size = 0.25,
                 cwd = project.root,
-                args = { "zsh", "-c", "opencode -c; exec zsh" },
+                args = shell_command("opencode -c; exec zsh -l"),
               }
               editor_pane:activate()
               return
@@ -218,6 +314,25 @@ let
 
       notify(window, "Created workspace '" .. project.name .. "' but could not finish the layout")
     end
+
+    local function detach_remote_domain(window, pane)
+      local domain_name = pane:get_domain_name()
+      if domain_name == "local" or domain_name == local_mux_domain or domain_name:match("^WSL:") then
+        notify(window, "Detach is only intended for attached remote domains")
+        return
+      end
+
+      window:perform_action(act.DetachDomain "CurrentPaneDomain", pane)
+    end
+
+    wezterm.on("mux-startup", function()
+      if is_windows then
+        local domain = mux.get_domain("WSL:NixOS")
+        if domain then
+          mux.set_default_domain(domain)
+        end
+      end
+    end)
 
     wezterm.on("update-right-status", function(window, pane)
       local workspace_name = window:active_workspace()
@@ -306,26 +421,32 @@ let
 
     if is_windows then
       config.default_domain = "WSL:NixOS"
+      config.default_mux_server_domain = "WSL:NixOS"
+    else
+      config.unix_domains = {
+        {
+          name = local_mux_domain,
+        },
+      }
+      config.default_gui_startup_args = { "connect", local_mux_domain }
     end
 
     config.leader = { key = 'a', mods = 'CTRL', timeout_milliseconds = 1000 }
 
     local ssh_domains = {}
-    if not is_windows then
-      -- Use enumerate_ssh_hosts with explicit paths (default_ssh_domains has a bug with Include directive)
-      local home_dir = os.getenv("HOME") or wezterm.home_dir
-      local hosts = wezterm.enumerate_ssh_hosts(
-        home_dir .. "/.ssh/config",
-        home_dir .. "/.ssh/config.d/remote.conf"
-      )
-      for host, cfg in pairs(hosts) do
-        table.insert(ssh_domains, {
-          name = host,
-          remote_address = cfg.hostname,
-          username = cfg.user,
-          assume_shell = 'Posix',
-        })
-      end
+    -- Use enumerate_ssh_hosts with explicit paths (default_ssh_domains has a bug with Include directive)
+    local home_dir = os.getenv("HOME") or wezterm.home_dir
+    local hosts = wezterm.enumerate_ssh_hosts(
+      home_dir .. "/.ssh/config",
+      home_dir .. "/.ssh/config.d/remote.conf"
+    )
+    for host, cfg in pairs(hosts) do
+      table.insert(ssh_domains, {
+        name = host,
+        remote_address = cfg.hostname,
+        username = cfg.user,
+        assume_shell = 'Posix',
+      })
     end
     config.ssh_domains = ssh_domains
     wezterm.log_info("SSH Domains generated:", #ssh_domains)
@@ -412,6 +533,19 @@ let
           flags = 'FUZZY|WORKSPACES',
           title = 'Switch Workspace',
         }
+      },
+      {
+        key = 'd',
+        mods = 'LEADER',
+        action = act.ShowLauncherArgs {
+          flags = 'FUZZY|DOMAINS',
+          title = 'Attach Domain',
+        }
+      },
+      {
+        key = 'D',
+        mods = 'LEADER|SHIFT',
+        action = wezterm.action_callback(detach_remote_domain)
       },
     }
 
