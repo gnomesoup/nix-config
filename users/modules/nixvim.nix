@@ -744,6 +744,10 @@ in
         vim.api.nvim_set_hl(0, "CursorLineSign", { bg = "#121212" })
         vim.api.nvim_set_hl(0, "FoldColumn", { bg = "#303030" })
         vim.api.nvim_set_hl(0, "CursorLineFold", { bg = "#121212" })
+        vim.api.nvim_set_hl(0, "NeogitDiffAdd", { bg = "#143126" })
+        vim.api.nvim_set_hl(0, "NeogitDiffDelete", { bg = "#4a0b0a" })
+        vim.api.nvim_set_hl(0, "NeogitDiffAddHighlight", { bg = "#21513f" })
+        vim.api.nvim_set_hl(0, "NeogitDiffDeleteHighlight", { bg = "#680f0e" })
       end
 
       vim.api.nvim_create_autocmd("ColorScheme", {
