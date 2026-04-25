@@ -125,71 +125,6 @@ let
       return git_root
     end
 
-    local function tty_state_key(pane)
-      local tty_name = pane:get_tty_name()
-      if not tty_name or tty_name == "" then
-        return nil
-      end
-
-      local state_key = tty_name:gsub("^/dev/", "")
-      state_key = state_key:gsub("[/\\:]", "_")
-      return state_key
-    end
-
-    local function pane_state_for_context(pane, context)
-      local state_key = tty_state_key(pane)
-      if not state_key then
-        return nil
-      end
-
-      local state_path = "/tmp/wezterm-shell-state/" .. state_key
-      local command
-      if context.kind == "wsl" then
-        command = {
-          "wsl.exe",
-          "-d",
-          context.distro,
-          "-e",
-          "cat",
-          state_path,
-        }
-      else
-        command = {
-          "cat",
-          state_path,
-        }
-      end
-
-      local success, stdout = wezterm.run_child_process(command)
-      if not success or not stdout or stdout == "" then
-        return nil
-      end
-
-      local state = {}
-      for line in stdout:gmatch("[^\r\n]+") do
-        local key, value = line:match("^([%w_]+)=(.*)$")
-        if key then
-          state[key] = value
-        end
-      end
-
-      return state
-    end
-
-    local function git_root_from_state_file(pane, context)
-      local state = pane_state_for_context(pane, context)
-      if not state then
-        return nil
-      end
-
-      local git_root = trim(state.git_root)
-      if git_root == nil or git_root == "" then
-        return nil
-      end
-
-      return git_root
-    end
-
     local function git_root_for_context(context)
       local command
       if context.kind == "wsl" then
@@ -223,26 +158,46 @@ let
     end
 
     local function git_root_for_pane(pane)
+      local git_root = git_root_from_user_vars(pane)
+      if git_root then
+        return git_root
+      end
+
       local context = pane_context(pane)
       if not context then
         return nil
-      end
-
-      local git_root = git_root_from_user_vars(pane) or git_root_from_state_file(pane, context)
-      if git_root then
-        return git_root
       end
 
       return git_root_for_context(context)
     end
 
     local function project_info_for_pane(pane)
+      local git_root = git_root_from_user_vars(pane)
+      if git_root then
+        local project_name = git_root:match("([^/\\]+)$")
+        if not project_name or project_name == "" then
+          return nil, "Could not determine project name"
+        end
+
+        local context, context_error = pane_context(pane)
+        if not context then
+          return nil, context_error
+        end
+
+        return {
+          name = project_name,
+          root = git_root,
+          kind = context.kind,
+          domain_name = context.domain_name,
+        }, nil
+      end
+
       local context, context_error = pane_context(pane)
       if not context then
         return nil, context_error
       end
 
-      local git_root = git_root_from_user_vars(pane) or git_root_from_state_file(pane, context) or git_root_for_context(context)
+      local git_root = git_root_for_context(context)
       if not git_root then
         return nil, "Current pane is not inside a git project"
       end
@@ -367,7 +322,7 @@ let
       local spawn_window = {
         workspace = project.name,
       }
-      if project.kind == "wsl" then
+      if project.domain_name then
         spawn_window.domain = { DomainName = project.domain_name }
       end
 

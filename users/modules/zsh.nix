@@ -155,7 +155,7 @@
           printf '\033]1337;SetUserVar=%s=%s\007' "$name" "$encoded_value"
         }
 
-        __wezterm_prompt_state() {
+        __wezterm_prompt_cwd() {
           emulate -L zsh
 
           wezterm set-working-directory "$PWD"
@@ -167,20 +167,10 @@
             git_root=""
           fi
 
-          local tty_name="''${TTY:-$(tty 2>/dev/null)}"
-          if [[ -n "$tty_name" && "$tty_name" != "not a tty" ]]; then
-            local state_dir="/tmp/wezterm-shell-state"
-            local state_key="''${tty_name#/dev/}"
-            state_key="''${state_key//\//_}"
-
-            mkdir -p "$state_dir"
-            printf 'cwd=%s\ngit_root=%s\n' "$PWD" "$git_root" >| "$state_dir/$state_key"
-          fi
-
           __wezterm_set_user_var git_root "$git_root"
         }
 
-        add-zsh-hook precmd __wezterm_prompt_state
+        add-zsh-hook precmd __wezterm_prompt_cwd
       fi
     '';
     shellAliases = {

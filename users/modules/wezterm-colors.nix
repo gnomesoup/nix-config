@@ -19,7 +19,7 @@ let
       "#b2b2b2",
     ]
 
-    bright = [
+    brights = [
       "#4e4e4e",
       "#ff5555",
       "#86dc2f",
@@ -29,8 +29,6 @@ let
       "#5ee7df",
       "#e0e0e0",
     ]
-
-    indexed = []
 
     [colors.tab_bar]
     background = "#212026"
