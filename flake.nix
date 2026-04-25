@@ -40,6 +40,14 @@
       nixos-wsl, # kmonad,
     }:
     {
+      packages.x86_64-linux.pi-coding-agent =
+        let
+          pkgs = import nixpkgs {
+            system = "x86_64-linux";
+          };
+        in
+        pkgs.pi-coding-agent;
+
       homeConfigurations = {
         "mpfammatter-linux" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
