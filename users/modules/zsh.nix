@@ -137,6 +137,51 @@
           }
         fi
       fi
+
+      if [[ "$TERM_PROGRAM" == "WezTerm" ]] && command -v wezterm >/dev/null 2>&1; then
+        autoload -Uz add-zsh-hook
+
+        __wezterm_set_user_var() {
+          emulate -L zsh
+
+          if ! command -v base64 >/dev/null 2>&1; then
+            return
+          fi
+
+          local name="$1"
+          local value="$2"
+          local encoded_value
+          encoded_value="$(printf '%s' "$value" | base64 | tr -d '\n')"
+          printf '\033]1337;SetUserVar=%s=%s\007' "$name" "$encoded_value"
+        }
+
+        __wezterm_prompt_state() {
+          emulate -L zsh
+
+          wezterm set-working-directory "$PWD"
+
+          local git_root=""
+          if git_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+            :
+          else
+            git_root=""
+          fi
+
+          local tty_name="''${TTY:-$(tty 2>/dev/null)}"
+          if [[ -n "$tty_name" && "$tty_name" != "not a tty" ]]; then
+            local state_dir="/tmp/wezterm-shell-state"
+            local state_key="''${tty_name#/dev/}"
+            state_key="''${state_key//\//_}"
+
+            mkdir -p "$state_dir"
+            printf 'cwd=%s\ngit_root=%s\n' "$PWD" "$git_root" >| "$state_dir/$state_key"
+          fi
+
+          __wezterm_set_user_var git_root "$git_root"
+        }
+
+        add-zsh-hook precmd __wezterm_prompt_state
+      fi
     '';
     shellAliases = {
       "ls" = "ls --color=auto";

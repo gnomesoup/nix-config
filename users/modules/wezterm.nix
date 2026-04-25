@@ -74,6 +74,11 @@ let
         return nil, "Could not determine the WSL project path"
       end
 
+      local drive, rest = path:match("^([A-Za-z]):(.*)$")
+      if drive and rest then
+        path = "/mnt/" .. drive:lower() .. rest
+      end
+
       return {
         kind = "wsl",
         cwd = path,
@@ -109,6 +114,82 @@ let
       return nil, "Project launcher only supports local or WSL panes"
     end
 
+    local function git_root_from_user_vars(pane)
+      local user_vars = pane:get_user_vars() or {}
+      local git_root = trim(user_vars.git_root)
+
+      if git_root == nil or git_root == "" then
+        return nil
+      end
+
+      return git_root
+    end
+
+    local function tty_state_key(pane)
+      local tty_name = pane:get_tty_name()
+      if not tty_name or tty_name == "" then
+        return nil
+      end
+
+      local state_key = tty_name:gsub("^/dev/", "")
+      state_key = state_key:gsub("[/\\:]", "_")
+      return state_key
+    end
+
+    local function pane_state_for_context(pane, context)
+      local state_key = tty_state_key(pane)
+      if not state_key then
+        return nil
+      end
+
+      local state_path = "/tmp/wezterm-shell-state/" .. state_key
+      local command
+      if context.kind == "wsl" then
+        command = {
+          "wsl.exe",
+          "-d",
+          context.distro,
+          "-e",
+          "cat",
+          state_path,
+        }
+      else
+        command = {
+          "cat",
+          state_path,
+        }
+      end
+
+      local success, stdout = wezterm.run_child_process(command)
+      if not success or not stdout or stdout == "" then
+        return nil
+      end
+
+      local state = {}
+      for line in stdout:gmatch("[^\r\n]+") do
+        local key, value = line:match("^([%w_]+)=(.*)$")
+        if key then
+          state[key] = value
+        end
+      end
+
+      return state
+    end
+
+    local function git_root_from_state_file(pane, context)
+      local state = pane_state_for_context(pane, context)
+      if not state then
+        return nil
+      end
+
+      local git_root = trim(state.git_root)
+      if git_root == nil or git_root == "" then
+        return nil
+      end
+
+      return git_root
+    end
+
     local function git_root_for_context(context)
       local command
       if context.kind == "wsl" then
@@ -116,10 +197,10 @@ let
           "wsl.exe",
           "-d",
           context.distro,
-          "--cd",
-          context.cwd,
-          "--",
+          "-e",
           "git",
+          "-C",
+          context.cwd,
           "rev-parse",
           "--show-toplevel",
         }
@@ -147,6 +228,11 @@ let
         return nil
       end
 
+      local git_root = git_root_from_user_vars(pane) or git_root_from_state_file(pane, context)
+      if git_root then
+        return git_root
+      end
+
       return git_root_for_context(context)
     end
 
@@ -156,7 +242,7 @@ let
         return nil, context_error
       end
 
-      local git_root = git_root_for_context(context)
+      local git_root = git_root_from_user_vars(pane) or git_root_from_state_file(pane, context) or git_root_for_context(context)
       if not git_root then
         return nil, "Current pane is not inside a git project"
       end
@@ -234,8 +320,15 @@ let
       return nil
     end
 
-    local function shell_command(command)
-      return { "zsh", "-lc", command }
+    local function shell_line_in_dir(dir, command)
+      local quoted_dir = wezterm.shell_quote_arg(dir)
+      local wrapped_command = "cd " .. quoted_dir
+
+      if command and command ~= "" then
+        wrapped_command = wrapped_command .. " && " .. command
+      end
+
+      return wrapped_command .. "\n"
     end
 
     local function build_project_workspace(window, pane)
@@ -271,48 +364,57 @@ let
         return
       end
 
-      window:perform_action(
-        act.SwitchToWorkspace {
-          name = project.name,
-          spawn = {
-            cwd = project.root,
-            domain = "CurrentPaneDomain",
-            args = shell_command("nvim; exec zsh -l"),
-          },
-        },
-        pane
-      )
-
-      for _ = 1, 20 do
-        wezterm.sleep_ms(25)
-        local mux_window = find_workspace_window(project.name)
-        if mux_window then
-          local tab = mux_window:active_tab()
-          if tab then
-            local editor_pane = tab:active_pane()
-            if editor_pane and #tab:panes() == 1 then
-              tab:set_title(project.name)
-              editor_pane:split {
-                direction = "Bottom",
-                top_level = true,
-                size = 12,
-                cwd = project.root,
-                args = shell_command("exec zsh -l"),
-              }
-              editor_pane:split {
-                direction = "Right",
-                size = 0.25,
-                cwd = project.root,
-                args = shell_command("opencode -c; exec zsh -l"),
-              }
-              editor_pane:activate()
-              return
-            end
-          end
-        end
+      local spawn_window = {
+        workspace = project.name,
+      }
+      if project.kind == "wsl" then
+        spawn_window.domain = { DomainName = project.domain_name }
       end
 
-      notify(window, "Created workspace '" .. project.name .. "' but could not finish the layout")
+      local tab, editor_pane, mux_window = mux.spawn_window(spawn_window)
+      if not tab or not editor_pane or not mux_window then
+        notify(window, "Failed to create workspace '" .. project.name .. "'")
+        return
+      end
+
+      tab:set_title(project.name)
+
+      local bottom_pane
+      local bottom_ok, bottom_err = pcall(function()
+        bottom_pane = editor_pane:split {
+          direction = "Bottom",
+          top_level = true,
+          size = 12,
+        }
+      end)
+      if not bottom_ok then
+        notify(window, "Failed to create bottom pane: " .. tostring(bottom_err))
+        return
+      end
+
+      local side_pane
+      local right_ok, right_err = pcall(function()
+        side_pane = editor_pane:split {
+          direction = "Right",
+          size = 0.25,
+        }
+      end)
+      if not right_ok then
+        notify(window, "Failed to create side pane: " .. tostring(right_err))
+        return
+      end
+
+      wezterm.sleep_ms(50)
+      editor_pane:send_text(shell_line_in_dir(project.root, "nvim"))
+      if bottom_pane then
+        bottom_pane:send_text(shell_line_in_dir(project.root, nil))
+      end
+      if side_pane then
+        side_pane:send_text(shell_line_in_dir(project.root, "opencode -c"))
+      end
+
+      window:perform_action(act.SwitchToWorkspace { name = project.name }, pane)
+      editor_pane:activate()
     end
 
     local function detach_remote_domain(window, pane)
@@ -420,6 +522,13 @@ let
     config.adjust_window_size_when_changing_font_size = false
 
     if is_windows then
+      config.wsl_domains = {
+        {
+          name = "WSL:NixOS",
+          distribution = "NixOS",
+          default_cwd = "~",
+        }
+      }
       config.default_domain = "WSL:NixOS"
       config.default_mux_server_domain = "WSL:NixOS"
     else
