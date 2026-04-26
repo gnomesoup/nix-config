@@ -1,4 +1,7 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
+let
+  keys = config.vimBindingKeys;
+in
 {
   imports = [ ./starship.nix ];
 
@@ -25,6 +28,97 @@
         else
           ""
       }
+
+      bindkey -v
+      zmodload -i zsh/complist
+
+      bindkey -rM vicmd h
+      bindkey -rM vicmd j
+      bindkey -rM vicmd k
+      bindkey -rM vicmd l
+      bindkey -rM vicmd i
+      bindkey -rM vicmd I
+      bindkey -rM vicmd e
+      bindkey -rM vicmd E
+      bindkey -rM vicmd f
+      bindkey -rM vicmd F
+      bindkey -rM vicmd t
+      bindkey -rM vicmd T
+      bindkey -rM vicmd n
+      bindkey -rM vicmd N
+      bindkey -rM vicmd m
+      bindkey -rM vicmd J
+      bindkey -M vicmd '${keys.left}' vi-backward-char
+      bindkey -M vicmd '${keys.down}' vi-down-line-or-history
+      bindkey -M vicmd '${keys.up}' vi-up-line-or-history
+      bindkey -M vicmd '${keys.right}' vi-forward-char
+      bindkey -M vicmd '${keys.insert}' vi-insert
+      bindkey -M vicmd '${keys.insertLineStart}' vi-insert-bol
+      bindkey -M vicmd '${keys.wordEnd}' vi-forward-word-end
+      bindkey -M vicmd '${keys.WORDend}' vi-forward-blank-word-end
+      bindkey -M vicmd '${keys.findForward}' vi-find-next-char
+      bindkey -M vicmd '${keys.findBackward}' vi-find-prev-char
+      bindkey -M vicmd '${keys.tillForward}' vi-find-next-char-skip
+      bindkey -M vicmd '${keys.tillBackward}' vi-find-prev-char-skip
+      bindkey -M vicmd '${keys.searchNext}' vi-repeat-search
+      bindkey -M vicmd '${keys.searchPrev}' vi-rev-repeat-search
+      bindkey -M vicmd '${keys.setMark}' vi-set-mark
+      bindkey -M vicmd '${keys.joinLines}' vi-join
+
+      bindkey -rM visual h
+      bindkey -rM visual j
+      bindkey -rM visual k
+      bindkey -rM visual l
+      bindkey -rM visual e
+      bindkey -rM visual E
+      bindkey -rM visual f
+      bindkey -rM visual F
+      bindkey -rM visual t
+      bindkey -rM visual T
+      bindkey -M visual '${keys.left}' backward-char
+      bindkey -M visual '${keys.down}' down-line
+      bindkey -M visual '${keys.up}' up-line
+      bindkey -M visual '${keys.right}' forward-char
+      bindkey -M visual '${keys.wordEnd}' vi-forward-word-end
+      bindkey -M visual '${keys.WORDend}' vi-forward-blank-word-end
+      bindkey -M visual '${keys.findForward}' vi-find-next-char
+      bindkey -M visual '${keys.findBackward}' vi-find-prev-char
+      bindkey -M visual '${keys.tillForward}' vi-find-next-char-skip
+      bindkey -M visual '${keys.tillBackward}' vi-find-prev-char-skip
+
+      bindkey -rM viopp h
+      bindkey -rM viopp j
+      bindkey -rM viopp k
+      bindkey -rM viopp l
+      bindkey -rM viopp e
+      bindkey -rM viopp E
+      bindkey -rM viopp f
+      bindkey -rM viopp F
+      bindkey -rM viopp t
+      bindkey -rM viopp T
+      bindkey -rM viopp n
+      bindkey -rM viopp N
+      bindkey -M viopp '${keys.left}' backward-char
+      bindkey -M viopp '${keys.down}' down-line
+      bindkey -M viopp '${keys.up}' up-line
+      bindkey -M viopp '${keys.right}' forward-char
+      bindkey -M viopp '${keys.wordEnd}' vi-forward-word-end
+      bindkey -M viopp '${keys.WORDend}' vi-forward-blank-word-end
+      bindkey -M viopp '${keys.findForward}' vi-find-next-char
+      bindkey -M viopp '${keys.findBackward}' vi-find-prev-char
+      bindkey -M viopp '${keys.tillForward}' vi-find-next-char-skip
+      bindkey -M viopp '${keys.tillBackward}' vi-find-prev-char-skip
+      bindkey -M viopp '${keys.searchNext}' vi-repeat-search
+      bindkey -M viopp '${keys.searchPrev}' vi-rev-repeat-search
+
+      bindkey -rM menuselect h
+      bindkey -rM menuselect j
+      bindkey -rM menuselect k
+      bindkey -rM menuselect l
+      bindkey -M menuselect '${keys.left}' backward-char
+      bindkey -M menuselect '${keys.down}' down-line-or-history
+      bindkey -M menuselect '${keys.up}' up-line-or-history
+      bindkey -M menuselect '${keys.right}' forward-char
 
       hms-kbl() {
         emulate -L zsh
