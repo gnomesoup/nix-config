@@ -1,6 +1,7 @@
 { pkgs, ... }:
 {
   imports = [
+    ./modules/espanso.nix
     ./modules/vimBindingKeyboardLayout.nix
     ./modules/nixvim.nix
     ./modules/zsh.nix

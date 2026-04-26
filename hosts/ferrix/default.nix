@@ -165,6 +165,11 @@
     ];
   };
 
+  services.espanso = {
+    enable = true;
+    package = pkgs.espanso-wayland;
+  };
+
   services.jellyfin = {
     enable = true;
     openFirewall = true;

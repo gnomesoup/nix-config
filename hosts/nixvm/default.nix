@@ -79,6 +79,10 @@
   # sound.enable = true;
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
+  services.espanso = {
+    enable = true;
+    package = pkgs.espanso-wayland;
+  };
   services.pipewire = {
     enable = true;
     alsa.enable = true;

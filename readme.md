@@ -46,3 +46,41 @@ The `apply` alias is the recommended cross-platform entrypoint. `hms` still work
 On macOS, `apply`, `hms`, and `drs` all go through `darwin-rebuild`, so Neovim binaries, plugin packs, and generated config stay in sync.
 
 Use a full rebuild when changing host modules, services, users, boot settings, or other system-level options.
+
+## Espanso on Windows
+
+The Linux Home Manager profile exports a Windows-ready Espanso config to:
+
+```sh
+~/.local/share/espanso-windows
+```
+
+Apply the Linux Home Manager config to refresh that export:
+
+```sh
+nix run github:nix-community/home-manager -- switch --flake path:$PWD#mpfammatter-linux -b backup
+```
+
+That export includes the public match files and the rendered `private.yml`, so treat it as secret material.
+
+### Link Windows Espanso to the exported config
+
+This part is manual and only needs to be done once on Windows.
+
+1. Stop Espanso on Windows.
+2. Back up or remove `%AppData%\espanso`.
+3. Find your WSL distro name with:
+
+```powershell
+wsl -l
+```
+
+4. Create a directory symlink pointing Espanso at the WSL export:
+
+```bat
+mklink /D "%AppData%\espanso" "\\wsl.localhost\<DistroName>\home\mpfammatter\.local\share\espanso-windows"
+```
+
+Use a directory symlink (`/D`), not a junction (`/J`), because `\\wsl$\...` is a UNC path.
+
+Depending on your Windows settings, creating the symlink may require an elevated shell or Developer Mode.

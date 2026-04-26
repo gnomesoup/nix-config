@@ -6,6 +6,7 @@
 }:
 {
   imports = [
+    ./modules/espanso.nix
     ./modules/mpfammatter-base.nix
     ./modules/vimBindingKeyboardLayout.nix
     ./modules/nixvim.nix
