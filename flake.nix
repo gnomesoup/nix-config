@@ -39,20 +39,29 @@
       kickstart-nixvim,
       nixos-wsl, # kmonad,
     }:
+    let
+      # Keep local package additions in an overlay so every consumer of pkgs
+      # (standalone Home Manager, NixOS, and nix-darwin) resolves the same
+      # package set. We use this for pi-coding-agent because it is packaged in
+      # this repo and needs to be available consistently across hosts without
+      # duplicating package wiring in each configuration.
+      overlays.default = final: prev: {
+        pi-coding-agent = final.callPackage ./pkgs/pi-coding-agent.nix { };
+      };
+
+      mkPkgs = system: import nixpkgs {
+        inherit system;
+        overlays = [ overlays.default ];
+      };
+    in
     {
-      packages.x86_64-linux.pi-coding-agent =
-        let
-          pkgs = import nixpkgs {
-            system = "x86_64-linux";
-          };
-        in
-        pkgs.pi-coding-agent;
+      inherit overlays;
+
+      packages.x86_64-linux.pi-coding-agent = (mkPkgs "x86_64-linux").pi-coding-agent;
 
       homeConfigurations = {
         "mpfammatter-linux" = home-manager.lib.homeManagerConfiguration {
-          pkgs = import nixpkgs {
-            system = "x86_64-linux";
-          };
+          pkgs = mkPkgs "x86_64-linux";
           modules = [
             sops-nix.homeManagerModules.sops
             kickstart-nixvim.homeManagerModules.default
@@ -71,6 +80,7 @@
             sops-nix.nixosModules.sops
             home-manager.nixosModules.home-manager
             {
+              nixpkgs.overlays = [ overlays.default ];
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.sharedModules = [
@@ -89,6 +99,7 @@
             sops-nix.nixosModules.sops
             home-manager.nixosModules.home-manager
             {
+              nixpkgs.overlays = [ overlays.default ];
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.sharedModules = [
@@ -115,6 +126,7 @@
             sops-nix.nixosModules.sops
             home-manager.nixosModules.home-manager
             {
+              nixpkgs.overlays = [ overlays.default ];
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.sharedModules = [
@@ -136,6 +148,7 @@
             ./hosts/jedha
             home-manager.nixosModules.home-manager
             {
+              nixpkgs.overlays = [ overlays.default ];
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.sharedModules = [
@@ -159,6 +172,7 @@
             ./hosts/Tests-Virtual-Machine
             home-manager.darwinModules.home-manager
             {
+              nixpkgs.overlays = [ overlays.default ];
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.sharedModules = [
@@ -179,6 +193,7 @@
             ./hosts/Coruscant
             home-manager.darwinModules.home-manager
             {
+              nixpkgs.overlays = [ overlays.default ];
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.sharedModules = [
@@ -199,6 +214,7 @@
             ./hosts/exegol
             home-manager.darwinModules.home-manager
             {
+              nixpkgs.overlays = [ overlays.default ];
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.sharedModules = [

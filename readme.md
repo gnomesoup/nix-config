@@ -16,6 +16,19 @@ nix run darwin-rebuild -- switch --flake .#
 
 ## Home Manager
 
+## Local overlay
+
+This repo defines a small local nixpkgs overlay in `flake.nix`.
+
+Why we did this:
+
+- `pi-coding-agent` is packaged locally under `pkgs/pi-coding-agent.nix` and is not being pulled directly from upstream nixpkgs.
+- The overlay makes that package available through `pkgs` everywhere we use it: standalone Home Manager on Linux, NixOS hosts, and nix-darwin hosts.
+- This keeps package resolution consistent across hosts and avoids repeating `callPackage ./pkgs/pi-coding-agent.nix { }` in multiple module trees.
+- It also exposes the package as a normal package in the flake outputs, which makes ad hoc builds and debugging easier.
+
+In short: the overlay is the shared, declarative place where repo-local packages are added to the package set for every system.
+
 Linux and macOS use different apply paths in this repo:
 
 - Linux uses standalone Home Manager outputs for user-level changes.
