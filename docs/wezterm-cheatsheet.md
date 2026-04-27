@@ -58,11 +58,12 @@ arstgmeioqwfpbjluyxcdvzkh
 | Keys | Description |
 | --- | --- |
 | `Ctrl-a p` | Create or switch to a project workspace for the current git repository |
-| `Ctrl-a w` | Open the fuzzy workspace switcher |
+| `Ctrl-a w` | Open active workspaces and persisted recent projects |
 | `Ctrl-a d` | Open the fuzzy domain attach launcher |
 | `Ctrl-a Shift-d` | Detach the current remote domain |
 
 The project workspace action supports local and WSL panes. It names the workspace after the current git repository and opens a project layout with `nvim`, a bottom shell pane, and an `opencode -c` side pane.
+Projects opened with `Ctrl-a p` or from the `Ctrl-a w` recent-project list are persisted in `~/.local/state/wezterm/recent-projects.json` so they survive WezTerm restarts.
 
 ## Tab Bar
 

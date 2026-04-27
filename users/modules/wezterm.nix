@@ -286,15 +286,108 @@ let
       return wrapped_command .. "\n"
     end
 
-    local function build_project_workspace(window, pane)
-      local project, project_error = project_info_for_pane(pane)
-      if not project then
-        notify(window, project_error)
+    local recent_projects_dir = (os.getenv("XDG_STATE_HOME") or (wezterm.home_dir .. "/.local/state")) .. "/wezterm"
+    local recent_projects_file = recent_projects_dir .. "/recent-projects.json"
+    local max_recent_projects = 20
+
+    local function ensure_recent_projects_dir()
+      if is_windows then
+        wezterm.run_child_process {
+          "powershell.exe",
+          "-NoProfile",
+          "-Command",
+          "New-Item -ItemType Directory -Force -Path $args[0] | Out-Null",
+          recent_projects_dir,
+        }
+      else
+        wezterm.run_child_process { "mkdir", "-p", recent_projects_dir }
+      end
+    end
+
+    local function normalize_recent_project(project)
+      if type(project) ~= "table" or type(project.name) ~= "string" or type(project.root) ~= "string" then
+        return nil
+      end
+
+      return {
+        name = project.name,
+        root = project.root,
+        kind = project.kind,
+        domain_name = project.domain_name,
+      }
+    end
+
+    local function read_recent_projects()
+      local file = io.open(recent_projects_file, "r")
+      if not file then
+        return {}
+      end
+
+      local contents = file:read("*a")
+      file:close()
+
+      local ok, decoded = pcall(wezterm.json_parse, contents)
+      if not ok or type(decoded) ~= "table" then
+        return {}
+      end
+
+      local projects = {}
+      for _, project in ipairs(decoded) do
+        local normalized = normalize_recent_project(project)
+        if normalized then
+          table.insert(projects, normalized)
+        end
+      end
+
+      return projects
+    end
+
+    local function write_recent_projects(projects)
+      local ok, encoded = pcall(wezterm.json_encode, projects)
+      if not ok then
         return
       end
 
+      ensure_recent_projects_dir()
+
+      local file = io.open(recent_projects_file, "w")
+      if not file then
+        return
+      end
+
+      file:write(encoded)
+      file:close()
+    end
+
+    local function remember_project(project)
+      local normalized = normalize_recent_project(project)
+      if not normalized then
+        return
+      end
+
+      local projects = read_recent_projects()
+      local deduped = { normalized }
+
+      for _, recent_project in ipairs(projects) do
+        local same_root = recent_project.root == normalized.root
+        local same_domain = recent_project.domain_name == normalized.domain_name
+        if not (same_root and same_domain) then
+          table.insert(deduped, recent_project)
+        end
+
+        if #deduped >= max_recent_projects then
+          break
+        end
+      end
+
+      write_recent_projects(deduped)
+    end
+
+    local function open_project_workspace(window, pane, project)
       local existing_workspace = workspace_exists(project.name)
       local existing_root, root_error = single_workspace_root(project.name)
+
+      remember_project(project)
 
       if existing_root == project.root then
         window:perform_action(act.SwitchToWorkspace { name = project.name }, pane)
@@ -370,6 +463,68 @@ let
 
       window:perform_action(act.SwitchToWorkspace { name = project.name }, pane)
       editor_pane:activate()
+    end
+
+    local function build_project_workspace(window, pane)
+      local project, project_error = project_info_for_pane(pane)
+      if not project then
+        notify(window, project_error)
+        return
+      end
+
+      open_project_workspace(window, pane, project)
+    end
+
+    local function show_workspace_or_project_launcher(window, pane)
+      local choices = {}
+      local workspace_names = mux.get_workspace_names()
+      table.sort(workspace_names)
+
+      for _, workspace_name in ipairs(workspace_names) do
+        table.insert(choices, {
+          id = "workspace:" .. workspace_name,
+          label = "workspace  " .. workspace_name,
+        })
+      end
+
+      local recent_projects = read_recent_projects()
+      for index, project in ipairs(recent_projects) do
+        table.insert(choices, {
+          id = "recent:" .. index,
+          label = "project    " .. project.name .. " — " .. project.root,
+        })
+      end
+
+      if #choices == 0 then
+        notify(window, "No workspaces or recent projects")
+        return
+      end
+
+      window:perform_action(
+        act.InputSelector {
+          title = "Switch Workspace or Open Recent Project",
+          fuzzy = true,
+          choices = choices,
+          action = wezterm.action_callback(function(selector_window, selector_pane, id, label)
+            if not id then
+              return
+            end
+
+            local workspace_name = id:match("^workspace:(.*)$")
+            if workspace_name then
+              selector_window:perform_action(act.SwitchToWorkspace { name = workspace_name }, selector_pane)
+              return
+            end
+
+            local recent_index = tonumber(id:match("^recent:(%d+)$"))
+            local recent_project = recent_index and read_recent_projects()[recent_index]
+            if recent_project then
+              open_project_workspace(selector_window, selector_pane, recent_project)
+            end
+          end),
+        },
+        pane
+      )
     end
 
     local function detach_remote_domain(window, pane)
@@ -587,9 +742,14 @@ let
         action = act.ActivatePaneDirection "Up"
       },
       {
-        key = 's',
+        key = 'phys:Space',
         mods = 'CTRL|SHIFT',
         action = act.PaneSelect { mode = 'Activate' }
+      },
+      {
+        key = 's',
+        mods = 'CTRL|SHIFT',
+        action = act.QuickSelect
       },
       {
         key = 'p',
@@ -599,10 +759,7 @@ let
       {
         key = 'w',
         mods = 'LEADER',
-        action = act.ShowLauncherArgs {
-          flags = 'FUZZY|WORKSPACES',
-          title = 'Switch Workspace',
-        }
+        action = wezterm.action_callback(show_workspace_or_project_launcher)
       },
       {
         key = 'd',
