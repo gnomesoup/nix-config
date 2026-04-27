@@ -27,6 +27,7 @@
   # Necessary for using flakes on this system.
   nix.enable = false;
   nix.settings.experimental-features = "nix-command flakes";
+  nix.settings.download-buffer-size = 524288000;
 
   # nix.settings.extra-nix-path = "nixpkgs=flake:nixpkgs";
 
