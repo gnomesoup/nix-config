@@ -6,78 +6,34 @@
 }:
 let
   inherit (pkgs.stdenv) isDarwin isLinux;
-  toYAML = lib.generators.toYAML { };
-
-  publicConfig = {
-    default = { };
-  };
-
-  publicMatches = {
-    global_vars = {
-      global_vars = [
-        {
-          name = "iso_date";
-          params.format = "%F";
-          type = "date";
-        }
-        {
-          name = "local_time";
-          params.format = "%T";
-          type = "date";
-        }
-        {
-          name = "iso_datetime";
-          params.format = "%FT%T";
-          type = "date";
-        }
-      ];
-    };
-
-    base = {
-      matches = [
-        {
-          replace = "{{iso_date}}";
-          trigger = ":date";
-        }
-        {
-          replace = "{{local_time}}";
-          trigger = ":time";
-        }
-        {
-          replace = "{{iso_datetime}}";
-          trigger = ":now";
-        }
-        {
-          replace = "Espanso is working.";
-          trigger = ":esp";
-        }
-        {
-          replace = "°";
-          trigger = ":deg";
-        }
-      ];
-    };
-  };
-
-  privateMatches = {
-    matches = [
-      {
-        replace = config.sops.placeholder."mpfammatter/espanso/emmm";
-        trigger = ":emmm";
-      }
-      {
-        replace = config.sops.placeholder."mpfammatter/espanso/emks";
-        trigger = ":emks";
-      }
-    ];
-  };
 in
 {
   sops = {
     age.keyFile = lib.mkDefault "${config.home.homeDirectory}/.config/sops/age/keys.txt";
     secrets."mpfammatter/espanso/emmm".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
     secrets."mpfammatter/espanso/emks".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
-    templates."espanso-match-private.yml".content = toYAML privateMatches;
+    secrets."mpfammatter/espanso/adks".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
+    secrets."mpfammatter/espanso/zipks".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
+    secrets."mpfammatter/espanso/phks".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
+    secrets."mpfammatter/espanso/adta".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
+    secrets."mpfammatter/espanso/phmm".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
+    templates."espanso-match-private.yml".content = ''
+      matches:
+        - trigger: ":emmm"
+          replace: "${config.sops.placeholder."mpfammatter/espanso/emmm"}"
+        - trigger: ":emks"
+          replace: "${config.sops.placeholder."mpfammatter/espanso/emks"}"
+        - trigger: ":adks"
+          replace: "${config.sops.placeholder."mpfammatter/espanso/adks"}"
+        - trigger: ":zipks"
+          replace: "${config.sops.placeholder."mpfammatter/espanso/zipks"}"
+        - trigger: ":phks"
+          replace: "${config.sops.placeholder."mpfammatter/espanso/phks"}"
+        - trigger: ":adta"
+          replace: "${config.sops.placeholder."mpfammatter/espanso/adta"}"
+        - trigger: ":phmm"
+          replace: "${config.sops.placeholder."mpfammatter/espanso/phmm"}"
+    '';
   };
 
   home.activation.ensureSopsLogDirEspanso = lib.mkIf isDarwin (
@@ -96,23 +52,45 @@ in
         export_dir=${lib.escapeShellArg "${config.home.homeDirectory}/.local/share/espanso-windows"}
         source_dir=${lib.escapeShellArg "${config.xdg.configHome}/espanso"}
 
-        $DRY_RUN_CMD ${pkgs.coreutils}/bin/mkdir -p "$export_dir/config" "$export_dir/match"
-        $DRY_RUN_CMD ${pkgs.coreutils}/bin/cp -fL "$source_dir/config/default.yml" "$export_dir/config/default.yml"
-        $DRY_RUN_CMD ${pkgs.coreutils}/bin/cp -fL "$source_dir/match/base.yml" "$export_dir/match/base.yml"
-        $DRY_RUN_CMD ${pkgs.coreutils}/bin/cp -fL "$source_dir/match/global_vars.yml" "$export_dir/match/global_vars.yml"
-        $DRY_RUN_CMD ${pkgs.coreutils}/bin/cp -fL "$source_dir/match/private.yml" "$export_dir/match/private.yml"
-        $DRY_RUN_CMD ${pkgs.coreutils}/bin/chmod 644 \
-          "$export_dir/config/default.yml" \
-          "$export_dir/match/base.yml" \
-          "$export_dir/match/global_vars.yml" \
-          "$export_dir/match/private.yml"
+        $DRY_RUN_CMD ${pkgs.coreutils}/bin/install -Dm644 -T \
+          "$source_dir/config/default.yml" "$export_dir/config/default.yml"
+        $DRY_RUN_CMD ${pkgs.coreutils}/bin/install -Dm644 -T \
+          "$source_dir/match/base.yml" "$export_dir/match/base.yml"
+        $DRY_RUN_CMD ${pkgs.coreutils}/bin/install -Dm644 -T \
+          "$source_dir/match/global_vars.yml" "$export_dir/match/global_vars.yml"
+        $DRY_RUN_CMD ${pkgs.coreutils}/bin/install -Dm600 -T \
+          "$source_dir/match/private.yml" "$export_dir/match/private.yml"
       ''
   );
 
   xdg.configFile = {
-    "espanso/config/default.yml".text = toYAML publicConfig.default;
-    "espanso/match/base.yml".text = toYAML publicMatches.base;
-    "espanso/match/global_vars.yml".text = toYAML publicMatches.global_vars;
+    "espanso/config/default.yml".text = "{}\n";
+    "espanso/match/base.yml".text = ''
+      matches:
+        - trigger: ":date"
+          replace: "{{iso_date}}"
+        - trigger: ":time"
+          replace: "{{local_time}}"
+        - trigger: ":now"
+          replace: "{{iso_datetime}}"
+        - trigger: ":deg"
+          replace: "°"
+    '';
+    "espanso/match/global_vars.yml".text = ''
+      global_vars:
+        - name: iso_date
+          type: date
+          params:
+            format: "%F"
+        - name: local_time
+          type: date
+          params:
+            format: "%T"
+        - name: iso_datetime
+          type: date
+          params:
+            format: "%FT%T"
+    '';
     "espanso/match/private.yml".source =
       config.lib.file.mkOutOfStoreSymlink
         config.sops.templates."espanso-match-private.yml".path;
