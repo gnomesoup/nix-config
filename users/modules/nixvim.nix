@@ -212,6 +212,10 @@ let
     -- Git-based project sessions
     vim.api.nvim_create_autocmd("VimLeavePre", {
       callback = function()
+        if vim.fn.argc() > 0 then
+          return
+        end
+
         local git_root = vim.fn.finddir('.git', vim.loop.cwd())
         if #git_root > 0 then
           local session_path = vim.fn.fnamemodify(git_root, ':p:h') .. "/.nvimsession"
@@ -222,6 +226,10 @@ let
 
     vim.api.nvim_create_autocmd("VimEnter", {
       callback = function()
+        if vim.fn.argc() > 0 then
+          return
+        end
+
         local git_root = vim.fn.finddir('.git', vim.loop.cwd())
         if #git_root > 0 then
           local session_path = vim.fn.fnamemodify(git_root, ':p:h') .. "/.nvimsession"
