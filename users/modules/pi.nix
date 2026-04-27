@@ -7,15 +7,18 @@
 let
   jsonFormat = pkgs.formats.json { };
   piNpmPrefix = "${config.home.homeDirectory}/.pi/agent/npm-global";
+  piNpm = pkgs.writeShellApplication {
+    name = "pi-npm";
+    runtimeInputs = [ pkgs.nodejs ];
+    text = ''
+      exec ${pkgs.nodejs}/bin/npm --prefix ${lib.escapeShellArg piNpmPrefix} "$@"
+    '';
+  };
   piSettings = {
     defaultModel = "gpt-5.5";
     defaultProvider = "openai-codex";
     defaultThinkingLevel = "high";
-    npmCommand = [
-      "${pkgs.nodejs}/bin/npm"
-      "--prefix"
-      piNpmPrefix
-    ];
+    npmCommand = [ "${piNpm}/bin/pi-npm" ];
     packages = [ "npm:@alpino13/pi-ask" ];
   };
   piSettingsFile = jsonFormat.generate "pi-settings.json" piSettings;
