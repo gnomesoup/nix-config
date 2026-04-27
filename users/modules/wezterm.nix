@@ -496,6 +496,7 @@ let
     end
 
     config.leader = { key = 'a', mods = 'CTRL', timeout_milliseconds = 1000 }
+    config.quick_select_alphabet = '${keys.flashLabels}'
 
     local ssh_domains = {}
     -- Use enumerate_ssh_hosts with explicit paths (default_ssh_domains has a bug with Include directive)
@@ -584,6 +585,11 @@ let
         key = '${keys.up}',
         mods = 'CTRL',
         action = act.ActivatePaneDirection "Up"
+      },
+      {
+        key = 's',
+        mods = 'CTRL|SHIFT',
+        action = act.PaneSelect { mode = 'Activate' }
       },
       {
         key = 'p',
