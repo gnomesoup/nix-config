@@ -51,6 +51,10 @@ let
           replace = "Espanso is working.";
           trigger = ":esp";
         }
+        {
+          replace = "°";
+          trigger = ":deg";
+        }
       ];
     };
   };
@@ -58,12 +62,12 @@ let
   privateMatches = {
     matches = [
       {
-        replace = config.sops.placeholder."mpfammatter/espanso/mem";
-        trigger = ":mem";
+        replace = config.sops.placeholder."mpfammatter/espanso/emmm";
+        trigger = ":emmm";
       }
       {
-        replace = config.sops.placeholder."mpfammatter/espanso/ksem";
-        trigger = ":ksem";
+        replace = config.sops.placeholder."mpfammatter/espanso/emks";
+        trigger = ":emks";
       }
     ];
   };
@@ -71,8 +75,8 @@ in
 {
   sops = {
     age.keyFile = lib.mkDefault "${config.home.homeDirectory}/.config/sops/age/keys.txt";
-    secrets."mpfammatter/espanso/mem".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
-    secrets."mpfammatter/espanso/ksem".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
+    secrets."mpfammatter/espanso/emmm".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
+    secrets."mpfammatter/espanso/emks".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
     templates."espanso-match-private.yml".content = toYAML privateMatches;
   };
 
