@@ -43,8 +43,8 @@ Resize mode also exits after 2500 ms of inactivity or when you press an unmapped
 
 | Keys | Description |
 | --- | --- |
-| `Ctrl-Shift-Space` | Activate pane select |
-| `Ctrl-Shift-s` | Activate quick select |
+| `Ctrl-Shift-s` | Activate pane select |
+| `Ctrl-a s` | Activate quick select |
 
 Quick Select uses the active `vimBindingKeyboardLayout`'s `flashLabels` alphabet from `users/modules/vimBindingKeyboardLayout.nix`.
 For the default `colemak-dh` layout, that alphabet is:

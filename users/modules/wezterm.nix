@@ -742,13 +742,13 @@ let
         action = act.ActivatePaneDirection "Up"
       },
       {
-        key = 'phys:Space',
+        key = 's',
         mods = 'CTRL|SHIFT',
         action = act.PaneSelect { mode = 'Activate' }
       },
       {
         key = 's',
-        mods = 'CTRL|SHIFT',
+        mods = 'LEADER',
         action = act.QuickSelect
       },
       {
