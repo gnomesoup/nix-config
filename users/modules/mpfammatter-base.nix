@@ -12,7 +12,6 @@
       pkgs.immich-cli
       pkgs.nixfmt
       pkgs.opencode
-      pkgs.pi-coding-agent
     ];
   };
 

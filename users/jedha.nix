@@ -7,10 +7,11 @@
 {
   imports = [
     ./modules/mpfammatter-base.nix
-    ./modules/vimBindingKeyboardLayout.nix
     ./modules/nixvim.nix
-    ./modules/wezterm.nix
+    ./modules/pi.nix
+    ./modules/vimBindingKeyboardLayout.nix
     ./modules/wezterm-colors.nix
+    ./modules/wezterm.nix
     ./modules/zsh.nix
   ];
 

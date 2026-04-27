@@ -8,12 +8,13 @@
   imports = [
     ./modules/espanso.nix
     ./modules/mpfammatter-base.nix
-    ./modules/vimBindingKeyboardLayout.nix
     ./modules/nixvim.nix
+    ./modules/pi.nix
     ./modules/ssh.nix
-    ./modules/zsh.nix
-    ./modules/wezterm.nix
+    ./modules/vimBindingKeyboardLayout.nix
     ./modules/wezterm-colors.nix
+    ./modules/wezterm.nix
+    ./modules/zsh.nix
   ];
 
   home.activation.exportWeztermForWindows = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
