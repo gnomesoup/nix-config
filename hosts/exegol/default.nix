@@ -43,6 +43,15 @@
     hostPlatform = "aarch64-darwin";
     config.allowUnfree = true;
     config.allowBroken = true;
+    # direnv's Darwin test suite currently hangs in zsh on this host, which
+    # blocks darwin-rebuild while the package is built locally.
+    overlays = [
+      (_: prev: {
+        direnv = prev.direnv.overrideAttrs (_: {
+          doCheck = false;
+        });
+      })
+    ];
   };
 
   programs = {
