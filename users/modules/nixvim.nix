@@ -316,6 +316,17 @@ in
       };
       # which-key settings are defined below (merged into a single block)
       rainbow-delimiters.enable = true;
+      render-markdown = {
+        enable = true;
+        settings = {
+          file_types = [ "markdown" ];
+          render_modes = [
+            "n"
+            "c"
+            "t"
+          ];
+        };
+      };
       conform-nvim.settings.formatters_by_ft.python = [
         "isort"
         "black"
@@ -645,6 +656,31 @@ in
                 icon = "󰛦 ";
                 color = "orange";
                 hl = "WhichKeyIconOrange";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>m";
+              group = "[M]arkdown";
+              icon = {
+                icon = "󰍔 ";
+                color = "cyan";
+                hl = "WhichKeyIconCyan";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>mp";
+              icon = {
+                icon = "󰈔 ";
+                color = "cyan";
+                hl = "WhichKeyIconCyan";
+              };
+            }
+            {
+              __unkeyed-1 = "<leader>mt";
+              icon = {
+                icon = "󰔡 ";
+                color = "cyan";
+                hl = "WhichKeyIconCyan";
               };
             }
             {
@@ -1252,6 +1288,24 @@ in
         action = "<cmd>OverseerShell<CR>";
         options = {
           desc = "Run shell task";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>mp";
+        action = "<cmd>RenderMarkdown preview<CR>";
+        options = {
+          desc = "Markdown [P]review";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>mt";
+        action = "<cmd>RenderMarkdown buf_toggle<CR>";
+        options = {
+          desc = "[T]oggle markdown rendering";
           silent = true;
         };
       }
