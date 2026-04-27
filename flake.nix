@@ -49,6 +49,15 @@
         pi-coding-agent = final.callPackage ./pkgs/pi-coding-agent.nix { };
       };
 
+      supportedSystems = [
+        "aarch64-darwin"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "x86_64-linux"
+      ];
+
+      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+
       mkPkgs = system: import nixpkgs {
         inherit system;
         overlays = [ overlays.default ];
@@ -56,6 +65,8 @@
     in
     {
       inherit overlays;
+
+      formatter = forAllSystems (system: (mkPkgs system).nixfmt);
 
       packages.x86_64-linux.pi-coding-agent = (mkPkgs "x86_64-linux").pi-coding-agent;
 

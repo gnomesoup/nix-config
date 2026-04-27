@@ -17,6 +17,15 @@ let
 
   mkOperatorPendingMap = key: action: mkMap "o" key action;
 
+  mkSearchSelectMap = mode: key: action: desc: {
+    inherit mode key action;
+    options = {
+      inherit desc;
+      silent = true;
+      noremap = true;
+    };
+  };
+
   motionMaps = [
     [
       keys.left
@@ -93,6 +102,18 @@ let
   operatorPendingMaps = builtins.map (
     pair: mkOperatorPendingMap (builtins.elemAt pair 0) (builtins.elemAt pair 1)
   ) textObjectMaps;
+
+  searchSelectMaps =
+    builtins.concatMap
+      (mode: [
+        (mkSearchSelectMap mode "g${keys.searchNext}" "gn" "Search forward select")
+        (mkSearchSelectMap mode "g${keys.searchPrev}" "gN" "Search backwards select")
+      ])
+      [
+        "n"
+        "v"
+        "o"
+      ];
 
   autosaveLua = ''
     local autosave_group = vim.api.nvim_create_augroup("nixvim_autosave", { clear = true })
@@ -1001,6 +1022,7 @@ in
     ++ normalMaps
     ++ visualMaps
     ++ operatorPendingMaps
+    ++ searchSelectMaps
     ++ [
       {
         mode = "i";
