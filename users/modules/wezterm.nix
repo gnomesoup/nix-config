@@ -477,22 +477,39 @@ let
 
     local function show_workspace_or_project_launcher(window, pane)
       local choices = {}
+      local active_workspaces = {}
+      local shown_workspaces = {}
       local workspace_names = mux.get_workspace_names()
-      table.sort(workspace_names)
 
       for _, workspace_name in ipairs(workspace_names) do
-        table.insert(choices, {
-          id = "workspace:" .. workspace_name,
-          label = "workspace  " .. workspace_name,
-        })
+        active_workspaces[workspace_name] = true
       end
 
       local recent_projects = read_recent_projects()
       for index, project in ipairs(recent_projects) do
+        local active_suffix = ""
+        if active_workspaces[project.name] then
+          local existing_root = single_workspace_root(project.name)
+          if existing_root == project.root then
+            active_suffix = "  [active]"
+            shown_workspaces[project.name] = true
+          end
+        end
+
         table.insert(choices, {
           id = "recent:" .. index,
-          label = "project    " .. project.name .. " — " .. project.root,
+          label = "project    " .. project.name .. active_suffix .. " — " .. project.root,
         })
+      end
+
+      table.sort(workspace_names)
+      for _, workspace_name in ipairs(workspace_names) do
+        if not shown_workspaces[workspace_name] then
+          table.insert(choices, {
+            id = "workspace:" .. workspace_name,
+            label = "workspace  " .. workspace_name,
+          })
+        end
       end
 
       if #choices == 0 then
@@ -502,7 +519,7 @@ let
 
       window:perform_action(
         act.InputSelector {
-          title = "Switch Workspace or Open Recent Project",
+          title = "Switch Project or Workspace",
           fuzzy = true,
           choices = choices,
           action = wezterm.action_callback(function(selector_window, selector_pane, id, label)
@@ -510,16 +527,16 @@ let
               return
             end
 
-            local workspace_name = id:match("^workspace:(.*)$")
-            if workspace_name then
-              selector_window:perform_action(act.SwitchToWorkspace { name = workspace_name }, selector_pane)
-              return
-            end
-
             local recent_index = tonumber(id:match("^recent:(%d+)$"))
             local recent_project = recent_index and read_recent_projects()[recent_index]
             if recent_project then
               open_project_workspace(selector_window, selector_pane, recent_project)
+              return
+            end
+
+            local workspace_name = id:match("^workspace:(.*)$")
+            if workspace_name then
+              selector_window:perform_action(act.SwitchToWorkspace { name = workspace_name }, selector_pane)
             end
           end),
         },
