@@ -458,7 +458,7 @@ let
         bottom_pane:send_text(shell_line_in_dir(project.root, nil))
       end
       if side_pane then
-        side_pane:send_text(shell_line_in_dir(project.root, "pi -r"))
+        side_pane:send_text(shell_line_in_dir(project.root, "pi"))
       end
 
       window:perform_action(act.SwitchToWorkspace { name = project.name }, pane)
