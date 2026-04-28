@@ -55,6 +55,8 @@ in
         $DRY_RUN_CMD ${pkgs.coreutils}/bin/install -Dm644 -T \
           "$source_dir/config/default.yml" "$export_dir/config/default.yml"
         $DRY_RUN_CMD ${pkgs.coreutils}/bin/install -Dm644 -T \
+          "$source_dir/config/remote-desktop-connection.yml" "$export_dir/config/remote-desktop-connection.yml"
+        $DRY_RUN_CMD ${pkgs.coreutils}/bin/install -Dm644 -T \
           "$source_dir/match/base.yml" "$export_dir/match/base.yml"
         $DRY_RUN_CMD ${pkgs.coreutils}/bin/install -Dm644 -T \
           "$source_dir/match/global_vars.yml" "$export_dir/match/global_vars.yml"
@@ -65,6 +67,18 @@ in
 
   xdg.configFile = {
     "espanso/config/default.yml".text = "{}\n";
+    "espanso/config/windows-app.yml" = lib.mkIf isDarwin {
+      text = ''
+        filter_class: "com\\.microsoft\\.rdc\\.macos"
+        enable: false
+      '';
+    };
+    "espanso/config/remote-desktop-connection.yml" = lib.mkIf isLinux {
+      text = ''
+        filter_exec: "(?i).*(mstsc|msrdc)\\.exe$"
+        enable: false
+      '';
+    };
     "espanso/match/base.yml".text = ''
       matches:
         - trigger: ":date"
