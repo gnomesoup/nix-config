@@ -331,6 +331,7 @@ in
         "isort"
         "black"
       ];
+      lsp.servers.pyright.enable = true;
       telescope.settings.pickers.find_files.hidden = true;
       "which-key" = {
         settings = {
