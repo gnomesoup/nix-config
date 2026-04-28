@@ -157,6 +157,7 @@
           system = "x86_64-linux";
           modules = [
             ./hosts/jedha
+            sops-nix.nixosModules.sops
             home-manager.nixosModules.home-manager
             {
               nixpkgs.overlays = [ overlays.default ];
