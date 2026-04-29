@@ -296,7 +296,7 @@ let
           "powershell.exe",
           "-NoProfile",
           "-Command",
-          "New-Item -ItemType Directory -Force -Path $args[0] | Out-Null",
+          "& { param($path) New-Item -ItemType Directory -Force -Path $path | Out-Null }",
           recent_projects_dir,
         }
       else

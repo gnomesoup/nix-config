@@ -60,6 +60,38 @@ On macOS, `apply`, `hms`, and `drs` all go through `darwin-rebuild`, so Neovim b
 
 Use a full rebuild when changing host modules, services, users, boot settings, or other system-level options.
 
+## WezTerm
+
+WezTerm is managed by Home Manager in `users/modules/wezterm.nix`. See [the WezTerm cheatsheet](docs/wezterm-cheatsheet.md) for leader bindings and workspace behavior.
+
+### WezTerm on Windows
+
+The Linux Home Manager profile exports a Windows-ready WezTerm config to:
+
+```sh
+~/.local/share/wezterm-windows
+```
+
+Apply the Linux Home Manager config to refresh that export:
+
+```sh
+nix run github:nix-community/home-manager -- switch --flake path:$PWD#mpfammatter-linux -b backup
+```
+
+This copies `wezterm.lua` and the color scheme files into the export directory.
+
+Windows WezTerm will prefer `%USERPROFILE%\.wezterm.lua` if that file exists. If Windows is still using an old standalone config, replace it with a link to the WSL export from PowerShell:
+
+```powershell
+if (Test-Path "$env:USERPROFILE\.wezterm.lua") {
+  Rename-Item "$env:USERPROFILE\.wezterm.lua" ".wezterm.lua.old"
+}
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.config" | Out-Null
+cmd /c mklink /D "%USERPROFILE%\.config\wezterm" "\\wsl.localhost\NixOS\home\mpfammatter\.local\share\wezterm-windows"
+```
+
+Adjust `NixOS` if the WSL distro name differs. After linking, restart Windows WezTerm or reload its config.
+
 ## Espanso on Windows
 
 The Linux Home Manager profile exports a Windows-ready Espanso config to:
