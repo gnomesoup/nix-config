@@ -688,34 +688,100 @@ let
     config.ssh_domains = ssh_domains
     wezterm.log_info("SSH Domains generated:", #ssh_domains)
 
-    config.key_tables = {
-      resize_pane = {
-        {
-          key = '${keys.left}',
-          action = act.AdjustPaneSize { "Left", 3 }
-        },
-        {
-          key = '${keys.right}',
-          action = act.AdjustPaneSize { "Right", 3 }
-        },
-        {
-          key = '${keys.down}',
-          action = act.AdjustPaneSize { "Down", 3 }
-        },
-        {
-          key = '${keys.up}',
-          action = act.AdjustPaneSize { "Up", 3 }
-        },
-        {
-          key = 'Escape',
-          action = act.PopKeyTable
-        },
-        {
-          key = 'Enter',
-          action = act.PopKeyTable
-        },
+    local function key_id(key, mods)
+      return key .. ":" .. (mods or "NONE")
+    end
+
+    local function remove_bindings(bindings, removals)
+      local filtered = {}
+      for _, binding in ipairs(bindings) do
+        if not removals[key_id(binding.key, binding.mods)] then
+          table.insert(filtered, binding)
+        end
+      end
+
+      return filtered
+    end
+
+    local function add_binding(bindings, key, mods, action)
+      table.insert(bindings, { key = key, mods = mods, action = action })
+    end
+
+    local key_tables = wezterm.gui.default_key_tables()
+
+    key_tables.copy_mode = remove_bindings(key_tables.copy_mode or {}, {
+      [key_id('h', 'NONE')] = true,
+      [key_id('h', 'ALT')] = true,
+      [key_id('j', 'NONE')] = true,
+      [key_id('k', 'NONE')] = true,
+      [key_id('l', 'NONE')] = true,
+      [key_id('e', 'NONE')] = true,
+      [key_id('f', 'NONE')] = true,
+      [key_id('F', 'NONE')] = true,
+      [key_id('F', 'SHIFT')] = true,
+      [key_id('t', 'NONE')] = true,
+      [key_id('T', 'NONE')] = true,
+      [key_id('T', 'SHIFT')] = true,
+      [key_id('${keys.left}', 'NONE')] = true,
+      [key_id('${keys.left}', 'ALT')] = true,
+      [key_id('${keys.down}', 'NONE')] = true,
+      [key_id('${keys.up}', 'NONE')] = true,
+      [key_id('${keys.right}', 'NONE')] = true,
+      [key_id('${keys.wordEnd}', 'NONE')] = true,
+      [key_id('${keys.findForward}', 'NONE')] = true,
+      [key_id('${keys.findBackward}', 'NONE')] = true,
+      [key_id('${keys.findBackward}', 'SHIFT')] = true,
+      [key_id('${keys.tillForward}', 'NONE')] = true,
+      [key_id('${keys.tillBackward}', 'NONE')] = true,
+      [key_id('${keys.tillBackward}', 'SHIFT')] = true,
+    })
+    add_binding(key_tables.copy_mode, '${keys.left}', 'NONE', act.CopyMode 'MoveLeft')
+    add_binding(key_tables.copy_mode, '${keys.left}', 'ALT', act.CopyMode 'MoveBackwardWord')
+    add_binding(key_tables.copy_mode, '${keys.down}', 'NONE', act.CopyMode 'MoveDown')
+    add_binding(key_tables.copy_mode, '${keys.up}', 'NONE', act.CopyMode 'MoveUp')
+    add_binding(key_tables.copy_mode, '${keys.right}', 'NONE', act.CopyMode 'MoveRight')
+    add_binding(key_tables.copy_mode, '${keys.wordEnd}', 'NONE', act.CopyMode 'MoveForwardWordEnd')
+    add_binding(key_tables.copy_mode, '${keys.findForward}', 'NONE', act.CopyMode { JumpForward = { prev_char = false } })
+    add_binding(key_tables.copy_mode, '${keys.findBackward}', 'NONE', act.CopyMode { JumpBackward = { prev_char = false } })
+    add_binding(key_tables.copy_mode, '${keys.findBackward}', 'SHIFT', act.CopyMode { JumpBackward = { prev_char = false } })
+    add_binding(key_tables.copy_mode, '${keys.tillForward}', 'NONE', act.CopyMode { JumpForward = { prev_char = true } })
+    add_binding(key_tables.copy_mode, '${keys.tillBackward}', 'NONE', act.CopyMode { JumpBackward = { prev_char = true } })
+    add_binding(key_tables.copy_mode, '${keys.tillBackward}', 'SHIFT', act.CopyMode { JumpBackward = { prev_char = true } })
+
+    key_tables.search_mode = remove_bindings(key_tables.search_mode or {}, {
+      [key_id('${keys.searchNext}', 'NONE')] = true,
+      [key_id('${keys.searchPrev}', 'NONE')] = true,
+    })
+    add_binding(key_tables.search_mode, '${keys.searchNext}', 'NONE', act.CopyMode 'NextMatch')
+    add_binding(key_tables.search_mode, '${keys.searchPrev}', 'NONE', act.CopyMode 'PriorMatch')
+
+    key_tables.resize_pane = {
+      {
+        key = '${keys.left}',
+        action = act.AdjustPaneSize { "Left", 3 }
+      },
+      {
+        key = '${keys.right}',
+        action = act.AdjustPaneSize { "Right", 3 }
+      },
+      {
+        key = '${keys.down}',
+        action = act.AdjustPaneSize { "Down", 3 }
+      },
+      {
+        key = '${keys.up}',
+        action = act.AdjustPaneSize { "Up", 3 }
+      },
+      {
+        key = 'Escape',
+        action = act.PopKeyTable
+      },
+      {
+        key = 'Enter',
+        action = act.PopKeyTable
       },
     }
+    config.key_tables = key_tables
 
     config.keys = {
       {
