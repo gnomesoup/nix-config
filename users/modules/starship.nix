@@ -135,7 +135,7 @@
       python = {
         symbol = "";
         style = "bg:color_blue";
-        format = "[[ $symbol( $version) ](fg:color_bg1 bg:color_blue)]($style)";
+        format = "[[ $symbol( $version)( venv:$virtualenv) ](fg:color_bg1 bg:color_blue)]($style)";
       };
 
       nix_shell = {
