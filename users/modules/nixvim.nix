@@ -331,7 +331,27 @@ in
         "isort"
         "black"
       ];
-      lsp.servers.pyright.enable = true;
+      lsp.servers.pyright = {
+        enable = true;
+        extraOptions.before_init.__raw = ''
+          function(_, config)
+            local root_dir = config.root_dir or vim.fn.getcwd()
+            local venv_python = root_dir .. "/.venv/bin/python"
+
+            if vim.fn.has("win32") == 1 then
+              venv_python = root_dir .. "\\.venv\\Scripts\\python.exe"
+            end
+
+            if vim.fn.executable(venv_python) ~= 1 then
+              return
+            end
+
+            config.settings = config.settings or {}
+            config.settings.python = config.settings.python or {}
+            config.settings.python.pythonPath = venv_python
+          end
+        '';
+      };
       telescope.settings.pickers.find_files.hidden = true;
       "which-key" = {
         settings = {
