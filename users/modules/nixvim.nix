@@ -297,6 +297,66 @@ in
         };
       };
       diffview.enable = true;
+      dap = {
+        enable = true;
+        signs = {
+          dapBreakpoint.text = "●";
+          dapBreakpointCondition.text = "◆";
+          dapBreakpointRejected.text = "○";
+          dapLogPoint.text = "◆";
+          dapStopped.text = "→";
+        };
+      };
+      dap-python = {
+        enable = true;
+        settings = {
+          console = "integratedTerminal";
+          includeConfigs = true;
+        };
+        resolvePython = ''
+          function()
+            local root_dir = vim.fs.root(0, {
+              "pyproject.toml",
+              "setup.py",
+              "setup.cfg",
+              "requirements.txt",
+              ".git",
+            }) or vim.fn.getcwd()
+            local venv_python = root_dir .. "/.venv/bin/python"
+
+            if vim.fn.has("win32") == 1 then
+              venv_python = root_dir .. "\\.venv\\Scripts\\python.exe"
+            end
+
+            if vim.fn.executable(venv_python) == 1 then
+              return venv_python
+            end
+
+            return vim.fn.exepath("python3") ~= "" and vim.fn.exepath("python3") or vim.fn.exepath("python")
+          end
+        '';
+      };
+      dap-ui = {
+        enable = true;
+        settings = {
+          controls = {
+            enabled = true;
+            element = "repl";
+          };
+          icons = {
+            expanded = "▾";
+            collapsed = "▸";
+            current_frame = "*";
+          };
+        };
+      };
+      dap-virtual-text = {
+        enable = true;
+        settings = {
+          commented = true;
+          virt_text_pos = "eol";
+        };
+      };
       neogit = {
         enable = true;
         settings = {
@@ -854,6 +914,13 @@ in
 
       require("neocodeium").setup({})
 
+      local dap = require("dap")
+      local dapui = require("dapui")
+
+      dap.listeners.after.event_initialized["dapui_config"] = dapui.open
+      dap.listeners.before.event_terminated["dapui_config"] = dapui.close
+      dap.listeners.before.event_exited["dapui_config"] = dapui.close
+
       function _G.InsertTabOrAccept()
         local neocodeium = require("neocodeium")
         local blink = require("blink-cmp")
@@ -1158,6 +1225,145 @@ in
           desc = "[J]ump";
           silent = true;
         };
+      }
+      {
+        mode = "n";
+        key = "<leader>d";
+        action = "<Nop>";
+        options = {
+          desc = "[D]ebug";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<F5>";
+        action.__raw = ''
+          function()
+            require("dap").continue()
+          end
+        '';
+        options.desc = "Debug: Start/Continue";
+      }
+      {
+        mode = "n";
+        key = "<F10>";
+        action.__raw = ''
+          function()
+            require("dap").step_over()
+          end
+        '';
+        options.desc = "Debug: Step Over";
+      }
+      {
+        mode = "n";
+        key = "<F11>";
+        action.__raw = ''
+          function()
+            require("dap").step_into()
+          end
+        '';
+        options.desc = "Debug: Step Into";
+      }
+      {
+        mode = "n";
+        key = "<F12>";
+        action.__raw = ''
+          function()
+            require("dap").step_out()
+          end
+        '';
+        options.desc = "Debug: Step Out";
+      }
+      {
+        mode = "n";
+        key = "<leader>dc";
+        action.__raw = ''
+          function()
+            require("dap").continue()
+          end
+        '';
+        options.desc = "Debug: Start/Continue";
+      }
+      {
+        mode = "n";
+        key = "<leader>db";
+        action.__raw = ''
+          function()
+            require("dap").toggle_breakpoint()
+          end
+        '';
+        options.desc = "Debug: Toggle Breakpoint";
+      }
+      {
+        mode = "n";
+        key = "<leader>dB";
+        action.__raw = ''
+          function()
+            require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: "))
+          end
+        '';
+        options.desc = "Debug: Conditional Breakpoint";
+      }
+      {
+        mode = "n";
+        key = "<leader>dl";
+        action.__raw = ''
+          function()
+            require("dap").run_last()
+          end
+        '';
+        options.desc = "Debug: Run Last";
+      }
+      {
+        mode = "n";
+        key = "<leader>dr";
+        action.__raw = ''
+          function()
+            require("dap").repl.toggle()
+          end
+        '';
+        options.desc = "Debug: Toggle REPL";
+      }
+      {
+        mode = "n";
+        key = "<leader>dt";
+        action.__raw = ''
+          function()
+            require("dap").terminate()
+          end
+        '';
+        options.desc = "Debug: Terminate";
+      }
+      {
+        mode = "n";
+        key = "<leader>du";
+        action.__raw = ''
+          function()
+            require("dapui").toggle()
+          end
+        '';
+        options.desc = "Debug: Toggle UI";
+      }
+      {
+        mode = "n";
+        key = "<leader>dp";
+        action.__raw = ''
+          function()
+            require("dap-python").test_method()
+          end
+        '';
+        options.desc = "Debug: Python Test Method";
+      }
+      {
+        mode = "n";
+        key = "<leader>dP";
+        action.__raw = ''
+          function()
+            require("dap-python").test_class()
+          end
+        '';
+        options.desc = "Debug: Python Test Class";
       }
       {
         mode = "n";
