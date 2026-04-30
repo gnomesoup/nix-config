@@ -24,6 +24,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    pi-mono = {
+      url = "github:badlogic/pi-mono";
+      flake = false;
+    };
+
     # kmonad = {
     #   url = "git+https://github.com/kmonad/kmonad?submodules=1&dir=nix";
     #   inputs.nixpkgs.follows = "nixpkgs";
@@ -37,16 +42,24 @@
       home-manager,
       sops-nix,
       kickstart-nixvim,
-      nixos-wsl, # kmonad,
+      nixos-wsl,
+      pi-mono,
+      # kmonad,
     }:
     let
+      piCodingAgentVersion =
+        (builtins.fromJSON (builtins.readFile "${pi-mono}/packages/coding-agent/package.json")).version;
+
       # Keep local package additions in an overlay so every consumer of pkgs
       # (standalone Home Manager, NixOS, and nix-darwin) resolves the same
       # package set. We use this for pi-coding-agent because it is packaged in
       # this repo and needs to be available consistently across hosts without
       # duplicating package wiring in each configuration.
       overlays.default = final: prev: {
-        pi-coding-agent = final.callPackage ./pkgs/pi-coding-agent.nix { };
+        pi-coding-agent = final.callPackage ./pkgs/pi-coding-agent.nix {
+          src = pi-mono;
+          version = piCodingAgentVersion;
+        };
       };
 
       supportedSystems = [
@@ -58,10 +71,12 @@
 
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
-      mkPkgs = system: import nixpkgs {
-        inherit system;
-        overlays = [ overlays.default ];
-      };
+      mkPkgs =
+        system:
+        import nixpkgs {
+          inherit system;
+          overlays = [ overlays.default ];
+        };
     in
     {
       inherit overlays;

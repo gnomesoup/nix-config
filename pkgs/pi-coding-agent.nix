@@ -1,25 +1,72 @@
 {
   lib,
   buildNpmPackage,
-  fetchFromGitHub,
+  fetchurl,
+  importNpmLock,
   nix-update-script,
   versionCheckHook,
+  src,
+  version,
   writableTmpDirAsHomeHook,
   ripgrep,
   makeBinaryWrapper,
 }:
+let
+  rootPackage = builtins.fromJSON (builtins.readFile "${src}/package.json");
+  packageLock = builtins.fromJSON (builtins.readFile "${src}/package-lock.json");
+  xlsxPackage = packageLock.packages."node_modules/xlsx" or null;
+  webUiPackage = packageLock.packages."packages/web-ui" or null;
+  patchXlsx =
+    xlsxPackage != null
+    && webUiPackage != null
+    && (webUiPackage.dependencies or { }) ? xlsx
+    && webUiPackage.dependencies.xlsx == xlsxPackage.resolved;
+  xlsxTarball =
+    if patchXlsx then
+      fetchurl {
+        url = xlsxPackage.resolved;
+        hash = xlsxPackage.integrity;
+      }
+    else
+      null;
+  patchedPackageLock =
+    if patchXlsx then
+      packageLock
+      // {
+        packages = packageLock.packages // {
+          "packages/web-ui" = webUiPackage // {
+            dependencies = webUiPackage.dependencies // {
+              xlsx = xlsxPackage.version;
+            };
+          };
+        };
+      }
+    else
+      packageLock;
+in
 buildNpmPackage (finalAttrs: {
   pname = "pi-coding-agent";
-  version = "0.70.2";
+  inherit src version;
 
-  src = fetchFromGitHub {
-    owner = "badlogic";
-    repo = "pi-mono";
-    tag = "v${finalAttrs.version}";
-    hash = "sha256-qqmJloTp3mWuZBGgpwoyoFyXx6QD8xhJEwCZb7xFabM=";
+  npmDeps = importNpmLock {
+    npmRoot = finalAttrs.src;
+    package = rootPackage;
+    packageLock = patchedPackageLock;
+    pname = rootPackage.name or "pi-monorepo";
+    version = rootPackage.version or "0.0.0";
+    packageSourceOverrides = lib.optionalAttrs patchXlsx {
+      "node_modules/xlsx" = xlsxTarball;
+    };
   };
+  npmConfigHook = importNpmLock.npmConfigHook;
 
-  npmDepsHash = "sha256-ImDvTC0Nm+IGYJuqjwUUfnOtA65uJvjlpP4h2Xt/2vE=";
+  # importNpmLock only patches the root package files. The monorepo's web-ui
+  # workspace currently declares xlsx as a direct URL dependency, so patch that
+  # workspace package too even though this derivation only builds coding-agent.
+  postPatch = lib.optionalString patchXlsx ''
+    substituteInPlace packages/web-ui/package.json \
+      --replace-fail '${xlsxPackage.resolved}' '${xlsxPackage.version}'
+  '';
 
   npmWorkspace = "packages/coding-agent";
 

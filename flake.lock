@@ -193,6 +193,22 @@
         "type": "github"
       }
     },
+    "pi-mono": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1777545182,
+        "narHash": "sha256-aY5Sf/pfec+ceOEE203Owm0WNwT7sTYLTK1eEm7E1Jk=",
+        "owner": "badlogic",
+        "repo": "pi-mono",
+        "rev": "ebdf3cf451ecd0e6bd54ea73acf98ab3907ba9a9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "badlogic",
+        "repo": "pi-mono",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "home-manager": "home-manager",
@@ -200,6 +216,7 @@
         "nix-darwin": "nix-darwin",
         "nixos-wsl": "nixos-wsl",
         "nixpkgs": "nixpkgs",
+        "pi-mono": "pi-mono",
         "sops-nix": "sops-nix"
       }
     },
