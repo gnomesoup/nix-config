@@ -66,7 +66,9 @@ in
   );
 
   xdg.configFile = {
-    "espanso/config/default.yml".text = "{}\n";
+    "espanso/config/default.yml".text = ''
+      search_shortcut: off
+    '';
     "espanso/config/windows-app.yml" = lib.mkIf isDarwin {
       text = ''
         filter_class: "com\\.microsoft\\.rdc\\.macos"
