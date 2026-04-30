@@ -830,7 +830,7 @@ let
         action = act.PaneSelect { mode = 'Activate' }
       },
       {
-        key = 's',
+        key = 'q',
         mods = 'LEADER',
         action = act.QuickSelect
       },
