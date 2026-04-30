@@ -9,6 +9,7 @@ in
       KeyRepeat = 2;
       InitialKeyRepeat = 12;
       ApplePressAndHoldEnabled = false;
+      AppleICUForce24HourTime = true;
     };
     defaults.dock.persistent-apps = [
       "/Applications/Firefox.app"
