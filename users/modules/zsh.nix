@@ -200,6 +200,30 @@ in
         nix develop "$@" --command zsh
       }
 
+      __activate_git_root_venv() {
+        emulate -L zsh
+
+        local git_root
+        if ! git_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+          print -u2 "venv: not inside a git repository"
+          return 1
+        fi
+
+        local venv_dir="$git_root/.venv"
+        if [[ ! -d "$venv_dir" ]]; then
+          print -u2 "venv: no .venv directory in git root: $git_root"
+          return 1
+        fi
+
+        local activate_script="$venv_dir/bin/activate"
+        if [[ ! -f "$activate_script" ]]; then
+          print -u2 "venv: missing activate script: $activate_script"
+          return 1
+        fi
+
+        source "$activate_script"
+      }
+
       if command -v opencode >/dev/null 2>&1; then
         source <(opencode completion)
       fi
@@ -304,6 +328,7 @@ in
         else
           "nix-collect-garbage --delete-older-than 7d; sudo nix-collect-garbage --delete-older-than 30d; sudo nix store optimise";
       "iud" = "immich upload --delete ~/Downloads";
+      "venv" = "__activate_git_root_venv";
       "doco" = "docker compose";
       "docooc" = "docker compose run --rm openclaw-cli";
       "wz" = "wezterm";
