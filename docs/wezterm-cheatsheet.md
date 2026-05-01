@@ -69,13 +69,16 @@ arstgmeioqwfpbjluyxcdvzkh
 
 | Keys | Description |
 | --- | --- |
-| `Ctrl-a p` | Create or switch to a project workspace for the current git repository |
-| `Ctrl-a w` | Open persisted recent projects first, then active workspaces |
+| `Ctrl-a p` | Open persisted recent projects first, then active workspaces |
+| `Ctrl-a Shift-p` | Manage saved projects: open, rename, or delete |
+| `Ctrl-a w` | Create or switch to a project workspace for the current git repository |
 | `Ctrl-a d` | Open the fuzzy domain attach launcher |
 | `Ctrl-a Shift-d` | Detach the current remote domain |
 
 The project workspace action supports local and WSL panes. It names the workspace after the current git repository and opens a project layout with `nvim`, a bottom shell pane, and an `opencode -c` side pane.
-Projects opened with `Ctrl-a p` or from the `Ctrl-a w` recent-project list are persisted in `~/.local/state/wezterm/recent-projects.json` so they survive WezTerm restarts. The fuzzy launcher lists those projects in most-recently-used order and only falls back to alphabetized non-project workspaces afterward.
+Projects opened with `Ctrl-a w` or from the `Ctrl-a p` recent-project list are persisted in `~/.local/state/wezterm/recent-projects.json` so they survive WezTerm restarts. The fuzzy launcher lists those projects in most-recently-used order and only falls back to alphabetized non-project workspaces afterward. Its candidate labels start with the project/workspace name, followed by the shortened path and domain; only the name is colored so highlighted rows stay readable, and the selector is kept to 12 rows so fuzzy matching feels closer to a Spacemacs project switcher.
+
+Use `Ctrl-a Shift-p` to manage saved projects. Rename changes the persisted project alias and attempts to rename a matching active workspace; delete only removes the saved project entry and leaves any active workspace running.
 
 ## Tab Bar
 

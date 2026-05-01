@@ -18,6 +18,27 @@ let
       return text:gsub("^%s+", ""):gsub("%s+$", "")
     end
 
+    local function escape_pattern(text)
+      return text:gsub("([^%w])", "%%%1")
+    end
+
+    local function display_path(path)
+      if not path then
+        return ""
+      end
+
+      local home = os.getenv("HOME") or wezterm.home_dir
+      if home and home ~= "" then
+        if path == home then
+          return "~"
+        end
+
+        path = path:gsub("^" .. escape_pattern(home) .. "/", "~/")
+      end
+
+      return path
+    end
+
     local function url_decode(text)
       if not text then
         return nil
@@ -171,39 +192,38 @@ let
       return git_root_for_context(context)
     end
 
-    local function project_info_for_pane(pane)
-      local git_root = git_root_from_user_vars(pane)
-      if git_root then
-        local project_name = git_root:match("([^/\\]+)$")
-        if not project_name or project_name == "" then
-          return nil, "Could not determine project name"
-        end
+    local read_recent_projects
 
-        local context, context_error = pane_context(pane)
-        if not context then
-          return nil, context_error
-        end
-
-        return {
-          name = project_name,
-          root = git_root,
-          kind = context.kind,
-          domain_name = context.domain_name,
-        }, nil
+    local function project_name_for_root(git_root, domain_name)
+      local project_name = git_root:match("([^/\\]+)$")
+      if not project_name or project_name == "" then
+        return nil
       end
 
+      if read_recent_projects then
+        for _, recent_project in ipairs(read_recent_projects()) do
+          if recent_project.root == git_root and recent_project.domain_name == domain_name then
+            return recent_project.name
+          end
+        end
+      end
+
+      return project_name
+    end
+
+    local function project_info_for_pane(pane)
       local context, context_error = pane_context(pane)
       if not context then
         return nil, context_error
       end
 
-      local git_root = git_root_for_context(context)
+      local git_root = git_root_from_user_vars(pane) or git_root_for_context(context)
       if not git_root then
         return nil, "Current pane is not inside a git project"
       end
 
-      local project_name = git_root:match("([^/\\]+)$")
-      if not project_name or project_name == "" then
+      local project_name = project_name_for_root(git_root, context.domain_name)
+      if not project_name then
         return nil, "Could not determine project name"
       end
 
@@ -265,14 +285,38 @@ let
       return nil, nil
     end
 
-    local function find_workspace_window(name)
-      for _, mux_window in ipairs(mux.all_windows()) do
-        if mux_window:get_workspace() == name then
-          return mux_window
+    local function workspace_name_for_root(root)
+      for _, workspace_name in ipairs(mux.get_workspace_names()) do
+        local existing_root = single_workspace_root(workspace_name)
+        if existing_root == root then
+          return workspace_name
         end
       end
 
       return nil
+    end
+
+    local function rename_workspace(old_name, new_name)
+      if old_name == new_name then
+        return true, nil
+      end
+
+      if workspace_exists(new_name) then
+        return false, "target exists"
+      end
+
+      if type(mux.rename_workspace) ~= "function" then
+        return false, "not supported by this WezTerm build"
+      end
+
+      local ok, err = pcall(function()
+        mux.rename_workspace(old_name, new_name)
+      end)
+      if not ok then
+        return false, tostring(err)
+      end
+
+      return true, nil
     end
 
     local function shell_line_in_dir(dir, command)
@@ -309,15 +353,27 @@ let
         return nil
       end
 
+      local name = trim(project.name)
+      if not name or name == "" then
+        return nil
+      end
+
       return {
-        name = project.name,
+        name = name,
         root = project.root,
         kind = project.kind,
         domain_name = project.domain_name,
       }
     end
 
-    local function read_recent_projects()
+    local function same_recent_project(left, right)
+      return left
+        and right
+        and left.root == right.root
+        and left.domain_name == right.domain_name
+    end
+
+    function read_recent_projects()
       local file = io.open(recent_projects_file, "r")
       if not file then
         return {}
@@ -369,9 +425,7 @@ let
       local deduped = { normalized }
 
       for _, recent_project in ipairs(projects) do
-        local same_root = recent_project.root == normalized.root
-        local same_domain = recent_project.domain_name == normalized.domain_name
-        if not (same_root and same_domain) then
+        if not same_recent_project(recent_project, normalized) then
           table.insert(deduped, recent_project)
         end
 
@@ -383,11 +437,82 @@ let
       write_recent_projects(deduped)
     end
 
+    local function rename_recent_project(project, new_name)
+      local normalized = normalize_recent_project(project)
+      local name = trim(new_name)
+      if not normalized or not name or name == "" then
+        return false
+      end
+
+      local projects = read_recent_projects()
+      local updated = false
+      for _, recent_project in ipairs(projects) do
+        if same_recent_project(recent_project, normalized) then
+          recent_project.name = name
+          updated = true
+          break
+        end
+      end
+
+      if not updated then
+        normalized.name = name
+        table.insert(projects, 1, normalized)
+      end
+
+      write_recent_projects(projects)
+      return true
+    end
+
+    local function delete_recent_project(project)
+      local normalized = normalize_recent_project(project)
+      if not normalized then
+        return false
+      end
+
+      local projects = read_recent_projects()
+      local filtered = {}
+      local removed = false
+
+      for _, recent_project in ipairs(projects) do
+        if same_recent_project(recent_project, normalized) then
+          removed = true
+        else
+          table.insert(filtered, recent_project)
+        end
+      end
+
+      if removed then
+        write_recent_projects(filtered)
+      end
+
+      return removed
+    end
+
     local function open_project_workspace(window, pane, project)
       local existing_workspace = workspace_exists(project.name)
       local existing_root, root_error = single_workspace_root(project.name)
 
       remember_project(project)
+
+      local project_workspace = workspace_name_for_root(project.root)
+      if project_workspace and project_workspace ~= project.name then
+        if existing_workspace then
+          notify(window, "Workspace '" .. project.name .. "' already exists for another project")
+          return
+        end
+
+        local renamed, rename_error = rename_workspace(project_workspace, project.name)
+        if renamed then
+          window:perform_action(act.SwitchToWorkspace { name = project.name }, pane)
+        else
+          notify(
+            window,
+            "Using workspace '" .. project_workspace .. "'; rename failed: " .. (rename_error or "unknown error")
+          )
+          window:perform_action(act.SwitchToWorkspace { name = project_workspace }, pane)
+        end
+        return
+      end
 
       if existing_root == project.root then
         window:perform_action(act.SwitchToWorkspace { name = project.name }, pane)
@@ -475,6 +600,57 @@ let
       open_project_workspace(window, pane, project)
     end
 
+    local selector_colors = {
+      name = "#50fa7b",
+    }
+
+    local function selector_label(parts)
+      local formatted = {}
+
+      for _, part in ipairs(parts) do
+        if part.color then
+          table.insert(formatted, { Foreground = { Color = part.color } })
+        end
+        if part.bold then
+          table.insert(formatted, { Attribute = { Intensity = "Bold" } })
+        end
+        table.insert(formatted, { Text = part.text })
+        if part.bold or part.color then
+          table.insert(formatted, "ResetAttributes")
+        end
+      end
+
+      return wezterm.format(formatted)
+    end
+
+    local function project_choice_label(project, is_active)
+      local parts = {
+        { text = "󰉋 " },
+        { text = project.name, color = selector_colors.name, bold = true },
+      }
+
+      if is_active then
+        table.insert(parts, { text = "  ●" })
+      end
+
+      table.insert(parts, { text = "  " .. display_path(project.root) })
+
+      if project.domain_name then
+        table.insert(parts, { text = "  @" .. project.domain_name })
+      end
+
+      table.insert(parts, { text = "  project" })
+      return selector_label(parts)
+    end
+
+    local function workspace_choice_label(workspace_name)
+      return selector_label {
+        { text = "󱂬 " },
+        { text = workspace_name, color = selector_colors.name, bold = true },
+        { text = "  workspace" },
+      }
+    end
+
     local function show_workspace_or_project_launcher(window, pane)
       local choices = {}
       local active_workspaces = {}
@@ -487,18 +663,18 @@ let
 
       local recent_projects = read_recent_projects()
       for index, project in ipairs(recent_projects) do
-        local active_suffix = ""
+        local is_active = false
         if active_workspaces[project.name] then
           local existing_root = single_workspace_root(project.name)
           if existing_root == project.root then
-            active_suffix = "  [active]"
+            is_active = true
             shown_workspaces[project.name] = true
           end
         end
 
         table.insert(choices, {
           id = "recent:" .. index,
-          label = "project    " .. project.name .. active_suffix .. " — " .. project.root,
+          label = project_choice_label(project, is_active),
         })
       end
 
@@ -507,7 +683,7 @@ let
         if not shown_workspaces[workspace_name] then
           table.insert(choices, {
             id = "workspace:" .. workspace_name,
-            label = "workspace  " .. workspace_name,
+            label = workspace_choice_label(workspace_name),
           })
         end
       end
@@ -519,7 +695,9 @@ let
 
       window:perform_action(
         act.InputSelector {
-          title = "Switch Project or Workspace",
+          title = "Projects / Workspaces",
+          description = "Type a project name or path. Saved projects are listed before plain workspaces.",
+          fuzzy_description = "Fuzzy search by project name, path, domain, or workspace name.",
           fuzzy = true,
           choices = choices,
           action = wezterm.action_callback(function(selector_window, selector_pane, id, label)
@@ -537,6 +715,107 @@ let
             local workspace_name = id:match("^workspace:(.*)$")
             if workspace_name then
               selector_window:perform_action(act.SwitchToWorkspace { name = workspace_name }, selector_pane)
+            end
+          end),
+        },
+        pane
+      )
+    end
+
+    local function prompt_rename_saved_project(window, pane, project)
+      window:perform_action(
+        act.PromptInputLine {
+          description = "Rename saved project '" .. project.name .. "' (current path: " .. display_path(project.root) .. ")",
+          action = wezterm.action_callback(function(prompt_window, prompt_pane, line)
+            local new_name = trim(line)
+            if not new_name or new_name == "" then
+              return
+            end
+
+            local old_name = project.name
+            if not rename_recent_project(project, new_name) then
+              notify(prompt_window, "Could not rename saved project")
+              return
+            end
+
+            local active_workspace = workspace_name_for_root(project.root)
+            if active_workspace and active_workspace ~= new_name then
+              local renamed, rename_error = rename_workspace(active_workspace, new_name)
+              if not renamed then
+                notify(
+                  prompt_window,
+                  "Saved rename; active workspace rename failed: " .. (rename_error or "unknown error")
+                )
+                return
+              end
+            end
+
+            notify(prompt_window, "Renamed saved project '" .. old_name .. "' to '" .. new_name .. "'")
+          end),
+        },
+        pane
+      )
+    end
+
+    local function show_saved_project_actions(window, pane, project)
+      window:perform_action(
+        act.InputSelector {
+          title = "Manage " .. project.name,
+          description = display_path(project.root),
+          choices = {
+            { id = "open", label = "open    " .. project_choice_label(project, false) },
+            { id = "rename", label = "rename  " .. project_choice_label(project, false) },
+            { id = "delete", label = "delete  " .. project_choice_label(project, false) },
+          },
+          action = wezterm.action_callback(function(action_window, action_pane, id, label)
+            if id == "open" then
+              open_project_workspace(action_window, action_pane, project)
+            elseif id == "rename" then
+              prompt_rename_saved_project(action_window, action_pane, project)
+            elseif id == "delete" then
+              if delete_recent_project(project) then
+                notify(action_window, "Deleted saved project '" .. project.name .. "'")
+              else
+                notify(action_window, "Saved project was already gone")
+              end
+            end
+          end),
+        },
+        pane
+      )
+    end
+
+    local function show_saved_project_manager(window, pane)
+      local recent_projects = read_recent_projects()
+      if #recent_projects == 0 then
+        notify(window, "No saved projects")
+        return
+      end
+
+      local choices = {}
+      for index, project in ipairs(recent_projects) do
+        table.insert(choices, {
+          id = "project:" .. index,
+          label = project_choice_label(project, false),
+        })
+      end
+
+      window:perform_action(
+        act.InputSelector {
+          title = "Manage Saved Projects",
+          description = "Select a saved project to open, rename, or delete.",
+          fuzzy_description = "Fuzzy search by project name, path, or domain.",
+          fuzzy = true,
+          choices = choices,
+          action = wezterm.action_callback(function(manager_window, manager_pane, id, label)
+            if not id then
+              return
+            end
+
+            local project_index = tonumber(id:match("^project:(%d+)$"))
+            local project = project_index and read_recent_projects()[project_index]
+            if project then
+              show_saved_project_actions(manager_window, manager_pane, project)
             end
           end),
         },
@@ -626,10 +905,16 @@ let
     end)
 
     config.color_scheme = "SpaceVimDark"
+    config.command_palette_bg_color = "#292b2e"
+    config.command_palette_fg_color = "#bbc2cf"
+    config.command_palette_font_size = 16.0
+    config.command_palette_rows = 12
     config.colors = {
       cursor_bg = "#d1951d",
       cursor_border = "#d1951d",
       cursor_fg = "#292b2e",
+      selection_bg = "#34363b",
+      selection_fg = "#bbc2cf",
     }
     config.font = wezterm.font_with_fallback {
       "SauceCodePro Nerd Font Mono",
@@ -837,12 +1122,17 @@ let
       {
         key = 'p',
         mods = 'LEADER',
-        action = wezterm.action_callback(build_project_workspace)
+        action = wezterm.action_callback(show_workspace_or_project_launcher)
+      },
+      {
+        key = 'P',
+        mods = 'LEADER|SHIFT',
+        action = wezterm.action_callback(show_saved_project_manager)
       },
       {
         key = 'w',
         mods = 'LEADER',
-        action = wezterm.action_callback(show_workspace_or_project_launcher)
+        action = wezterm.action_callback(build_project_workspace)
       },
       {
         key = 'd',
