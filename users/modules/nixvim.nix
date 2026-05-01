@@ -95,13 +95,20 @@ let
     ]
   );
 
+  textObjectPrefixMaps = [
+    [
+      keys.inside
+      "i"
+    ]
+  ];
+
   visualMaps = builtins.map (pair: mkVisualMap (builtins.elemAt pair 0) (builtins.elemAt pair 1)) (
-    motionMaps ++ textObjectMaps
+    motionMaps ++ textObjectMaps ++ textObjectPrefixMaps
   );
 
   operatorPendingMaps = builtins.map (
     pair: mkOperatorPendingMap (builtins.elemAt pair 0) (builtins.elemAt pair 1)
-  ) textObjectMaps;
+  ) (textObjectMaps ++ textObjectPrefixMaps);
 
   searchSelectMaps =
     builtins.concatMap
