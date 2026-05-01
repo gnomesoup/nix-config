@@ -601,7 +601,9 @@ let
     end
 
     local selector_colors = {
-      name = "#50fa7b",
+      active_project = "#50fa7b",
+      inactive_project = "#a389d8",
+      workspace = "#50fa7b",
     }
 
     local function selector_label(parts)
@@ -624,9 +626,10 @@ let
     end
 
     local function project_choice_label(project, is_active)
+      local name_color = is_active and selector_colors.active_project or selector_colors.inactive_project
       local parts = {
         { text = "󰉋 " },
-        { text = project.name, color = selector_colors.name, bold = true },
+        { text = project.name, color = name_color, bold = true },
       }
 
       if is_active then
@@ -646,7 +649,7 @@ let
     local function workspace_choice_label(workspace_name)
       return selector_label {
         { text = "󱂬 " },
-        { text = workspace_name, color = selector_colors.name, bold = true },
+        { text = workspace_name, color = selector_colors.workspace, bold = true },
         { text = "  workspace" },
       }
     end
