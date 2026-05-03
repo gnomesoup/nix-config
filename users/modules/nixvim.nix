@@ -484,9 +484,6 @@ in
         enable = true;
         settings = {
           integrations.diffview = true;
-          mappings.status = {
-            "${keys.right}" = "Toggle";
-          };
         };
       };
       overseer = {
