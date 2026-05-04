@@ -1,6 +1,13 @@
 { pkgs, config, ... }:
 let
   keys = config.vimBindingKeys;
+  optimiseNixStore = ''
+    if grep -qiE '(microsoft|wsl)' /proc/sys/kernel/osrelease /proc/version 2>/dev/null; then
+      echo 'Skipping nix store optimisation on WSL'
+    else
+      sudo nix store optimise
+    fi
+  '';
 in
 {
   imports = [ ./starship.nix ];
@@ -302,7 +309,7 @@ in
         if pkgs.stdenv.isDarwin then
           "nix-collect-garbage --delete-older-than 7d; sudo nix store optimise"
         else
-          "nix-collect-garbage --delete-older-than 7d; sudo nix-collect-garbage --delete-older-than 30d; sudo nix store optimise";
+          "nix-collect-garbage --delete-older-than 7d; sudo nix-collect-garbage --delete-older-than 30d; ${optimiseNixStore}";
       "iud" = "immich upload --delete ~/Downloads";
       "doco" = "docker compose";
       "docooc" = "docker compose run --rm openclaw-cli";
