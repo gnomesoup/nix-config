@@ -10,6 +10,7 @@ let
       searchPrev = "N";
       insert = "i";
       insertLineStart = "I";
+      inside = "i";
       wordEnd = "e";
       WORDend = "E";
       setMark = "m";
@@ -30,6 +31,7 @@ let
       searchPrev = "K";
       insert = "l";
       insertLineStart = "L";
+      inside = "l";
       wordEnd = "f";
       WORDend = "F";
       setMark = "h";

@@ -95,13 +95,22 @@ let
     ]
   );
 
+  remappedInsideTextObject = keys.inside != "i";
+
+  textObjectPrefixMaps = lib.optionals remappedInsideTextObject [
+    [
+      keys.inside
+      "i"
+    ]
+  ];
+
   visualMaps = builtins.map (pair: mkVisualMap (builtins.elemAt pair 0) (builtins.elemAt pair 1)) (
-    motionMaps ++ textObjectMaps
+    motionMaps ++ textObjectMaps ++ textObjectPrefixMaps
   );
 
   operatorPendingMaps = builtins.map (
     pair: mkOperatorPendingMap (builtins.elemAt pair 0) (builtins.elemAt pair 1)
-  ) textObjectMaps;
+  ) (textObjectMaps ++ textObjectPrefixMaps);
 
   searchSelectMaps =
     builtins.concatMap
@@ -114,6 +123,120 @@ let
         "v"
         "o"
       ];
+
+  insideTextObjectDescriptions = [
+    [
+      "\""
+      "inner \" string"
+    ]
+    [
+      "'"
+      "inner ' string"
+    ]
+    [
+      "("
+      "inner [(])"
+    ]
+    [
+      ")"
+      "inner [(])"
+    ]
+    [
+      "<"
+      "inner <>"
+    ]
+    [
+      ">"
+      "inner <>"
+    ]
+    [
+      "B"
+      "inner [{}]"
+    ]
+    [
+      "W"
+      "inner WORD"
+    ]
+    [
+      "["
+      "inner []"
+    ]
+    [
+      "]"
+      "inner []"
+    ]
+    [
+      "`"
+      "inner ` string"
+    ]
+    [
+      "b"
+      "inner [(])"
+    ]
+    [
+      "p"
+      "inner paragraph"
+    ]
+    [
+      "s"
+      "inner sentence"
+    ]
+    [
+      "t"
+      "inner tag block"
+    ]
+    [
+      "w"
+      "inner word"
+    ]
+    [
+      "{"
+      "inner [{}]"
+    ]
+    [
+      "}"
+      "inner [{}]"
+    ]
+  ];
+
+  whichKeyTextObjectModes = [
+    "o"
+    "x"
+  ];
+
+  whichKeyInsideTextObjectSpecs = lib.optionals remappedInsideTextObject (
+    [
+      {
+        __unkeyed-1 = "i";
+        mode = whichKeyTextObjectModes;
+        hidden = true;
+      }
+      {
+        __unkeyed-1 = keys.inside;
+        mode = whichKeyTextObjectModes;
+        group = "inside";
+      }
+    ]
+    ++ builtins.concatMap (
+      pair:
+      let
+        suffix = builtins.elemAt pair 0;
+        desc = builtins.elemAt pair 1;
+      in
+      [
+        {
+          __unkeyed-1 = "i${suffix}";
+          mode = whichKeyTextObjectModes;
+          hidden = true;
+        }
+        {
+          __unkeyed-1 = "${keys.inside}${suffix}";
+          mode = whichKeyTextObjectModes;
+          inherit desc;
+        }
+      ]
+    ) insideTextObjectDescriptions
+  );
 
   autosaveLua = ''
     local autosave_group = vim.api.nvim_create_augroup("nixvim_autosave", { clear = true })
@@ -361,9 +484,6 @@ in
         enable = true;
         settings = {
           integrations.diffview = true;
-          mappings.status = {
-            "${keys.right}" = "Toggle";
-          };
         };
       };
       overseer = {
@@ -841,7 +961,8 @@ in
                 hl = "WhichKeyIconYellow";
               };
             }
-          ];
+          ]
+          ++ whichKeyInsideTextObjectSpecs;
         };
       };
     };
