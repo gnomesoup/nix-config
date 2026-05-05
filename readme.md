@@ -86,8 +86,12 @@ Windows WezTerm will prefer `%USERPROFILE%\.wezterm.lua` if that file exists. If
 if (Test-Path "$env:USERPROFILE\.wezterm.lua") {
   Rename-Item "$env:USERPROFILE\.wezterm.lua" ".wezterm.lua.old"
 }
+$weztermConfigPath = "$env:USERPROFILE\.config\wezterm"
+if (Test-Path $weztermConfigPath) {
+  Rename-Item $weztermConfigPath "wezterm.old"
+}
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.config" | Out-Null
-cmd /c mklink /D "%USERPROFILE%\.config\wezterm" "\\wsl.localhost\NixOS\home\mpfammatter\.local\share\wezterm-windows"
+New-Item -ItemType SymbolicLink -Path $weztermConfigPath -Target "\\wsl.localhost\NixOS\home\mpfammatter\.local\share\wezterm-windows" | Out-Null
 ```
 
 Adjust `NixOS` if the WSL distro name differs. After linking, restart Windows WezTerm or reload its config.
@@ -122,11 +126,11 @@ wsl -l
 
 4. Create a directory symlink pointing Espanso at the WSL export:
 
-```bat
-mklink /D "%AppData%\espanso" "\\wsl.localhost\<DistroName>\home\mpfammatter\.local\share\espanso-windows"
+```powershell
+New-Item -ItemType SymbolicLink -Path "$env:APPDATA\espanso" -Target "\\wsl.localhost\<DistroName>\home\mpfammatter\.local\share\espanso-windows" | Out-Null
 ```
 
-Use a directory symlink (`/D`), not a junction (`/J`), because `\\wsl$\...` is a UNC path.
+Use a directory symlink, not a junction, because `\\wsl$\...` is a UNC path.
 
 Depending on your Windows settings, creating the symlink may require an elevated shell or Developer Mode.
 
@@ -146,11 +150,14 @@ Apply the `jedha` NixOS config to refresh that export:
 sudo nixos-rebuild switch --flake .#jedha
 ```
 
-Link the Windows PowerToys Keyboard Manager directory to the WSL export from `cmd` after quitting PowerToys:
+Link the Windows PowerToys Keyboard Manager directory to the WSL export from PowerShell after quitting PowerToys:
 
-```bat
-ren "%LOCALAPPDATA%\Microsoft\PowerToys\Keyboard Manager" "Keyboard Manager.old"
-mklink /D "%LOCALAPPDATA%\Microsoft\PowerToys\Keyboard Manager" "\\wsl.localhost\NixOS\home\mpfammatter\.local\share\powertoys-windows\Keyboard Manager"
+```powershell
+$keyboardManagerPath = "$env:LOCALAPPDATA\Microsoft\PowerToys\Keyboard Manager"
+if (Test-Path $keyboardManagerPath) {
+  Rename-Item $keyboardManagerPath "Keyboard Manager.old"
+}
+New-Item -ItemType SymbolicLink -Path $keyboardManagerPath -Target "\\wsl.localhost\NixOS\home\mpfammatter\.local\share\powertoys-windows\Keyboard Manager" | Out-Null
 ```
 
-Use a directory symlink (`/D`), not a junction (`/J`), because the target is a UNC path. Avoid linking the whole PowerToys settings directory; it contains mutable runtime state and version-specific files.
+Use a directory symlink, not a junction, because the target is a UNC path. Avoid linking the whole PowerToys settings directory; it contains mutable runtime state and version-specific files.
