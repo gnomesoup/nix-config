@@ -9,6 +9,7 @@
     ./modules/mpfammatter-base.nix
     ./modules/nixvim.nix
     ./modules/pi.nix
+    ./modules/powertoys.nix
     ./modules/vimBindingKeyboardLayout.nix
     ./modules/wezterm-colors.nix
     ./modules/wezterm.nix

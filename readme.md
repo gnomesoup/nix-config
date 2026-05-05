@@ -129,3 +129,28 @@ mklink /D "%AppData%\espanso" "\\wsl.localhost\<DistroName>\home\mpfammatter\.lo
 Use a directory symlink (`/D`), not a junction (`/J`), because `\\wsl$\...` is a UNC path.
 
 Depending on your Windows settings, creating the symlink may require an elevated shell or Developer Mode.
+
+## PowerToys on Windows (jedha)
+
+The `jedha` Home Manager profile exports managed PowerToys files to:
+
+```sh
+~/.local/share/powertoys-windows
+```
+
+Currently this manages the PowerToys Keyboard Manager profile that remaps `Win+A/C/P/V/X` to `Ctrl+A/C/P/V/X`.
+
+Apply the `jedha` NixOS config to refresh that export:
+
+```sh
+sudo nixos-rebuild switch --flake .#jedha
+```
+
+Link the Windows PowerToys Keyboard Manager directory to the WSL export from `cmd` after quitting PowerToys:
+
+```bat
+ren "%LOCALAPPDATA%\Microsoft\PowerToys\Keyboard Manager" "Keyboard Manager.old"
+mklink /D "%LOCALAPPDATA%\Microsoft\PowerToys\Keyboard Manager" "\\wsl.localhost\NixOS\home\mpfammatter\.local\share\powertoys-windows\Keyboard Manager"
+```
+
+Use a directory symlink (`/D`), not a junction (`/J`), because the target is a UNC path. Avoid linking the whole PowerToys settings directory; it contains mutable runtime state and version-specific files.
