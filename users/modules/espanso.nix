@@ -17,6 +17,7 @@ in
     secrets."mpfammatter/espanso/phks".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
     secrets."mpfammatter/espanso/adta".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
     secrets."mpfammatter/espanso/phmm".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
+    secrets."mpfammatter/espanso/ksp".sopsFile = ../../secrets/mpfammatter-espanso.yaml;
     templates."espanso-match-private.yml".content = ''
       matches:
         - trigger: ":emmm"
@@ -33,6 +34,8 @@ in
           replace: "${config.sops.placeholder."mpfammatter/espanso/adta"}"
         - trigger: ":phmm"
           replace: "${config.sops.placeholder."mpfammatter/espanso/phmm"}"
+        - trigger: ":ksp"
+          replace: "${config.sops.placeholder."mpfammatter/espanso/ksp"}"
     '';
   };
 
