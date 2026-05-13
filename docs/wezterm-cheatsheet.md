@@ -65,20 +65,21 @@ For the default `colemak-dh` layout, that alphabet is:
 arstgmeioqwfpbjluyxcdvzkh
 ```
 
-## Workspaces and Domains
+## Projects, Tabs, and Domains
 
 | Keys | Description |
 | --- | --- |
-| `Ctrl-a p` | Open persisted recent projects first, then active workspaces |
+| `Ctrl-a p` | Create/open persisted recent projects first, then active tabs |
 | `Ctrl-a Shift-p` | Manage saved projects: open, rename, or delete |
-| `Ctrl-a w` | Create or switch to a project workspace for the current git repository |
 | `Ctrl-a d` | Open the fuzzy domain attach launcher |
 | `Ctrl-a Shift-d` | Detach the current remote domain |
 
-The project workspace action supports local and WSL panes. It names the workspace after the current git repository and opens a project layout with `nvim`, a bottom shell pane, and an `opencode -c` side pane.
-Projects opened with `Ctrl-a w` or from the `Ctrl-a p` recent-project list are persisted in `~/.local/state/wezterm/recent-projects.json` so they survive WezTerm restarts. The fuzzy launcher lists those projects in most-recently-used order and only falls back to alphabetized non-project workspaces afterward. Its candidate labels start with the project/workspace name, followed by the shortened path and domain; only the name is colored so highlighted rows stay readable, with active projects in green and inactive projects in purple. The selector is kept to 12 rows so fuzzy matching feels closer to a Spacemacs project switcher.
+The project tab action supports local and WSL panes. If the current pane is inside an unsaved git repository, `Ctrl-a p` includes a `New project tab` entry. It names the tab after the current git repository and opens a project layout with `nvim`, a bottom shell pane, and a `pi` side pane.
+Projects opened from the `Ctrl-a p` recent-project list are persisted in `~/.local/state/wezterm/recent-projects.json` so they survive WezTerm restarts. The fuzzy launcher lists those projects in most-recently-used order and only falls back to non-project tabs afterward. Its candidate labels start with the project/tab name, followed by the shortened path and domain; only the name is colored so highlighted rows stay readable, with active projects in green and inactive projects in purple. The selector is kept to 12 rows so fuzzy matching feels closer to a Spacemacs project switcher.
 
-Use `Ctrl-a Shift-p` to manage saved projects. Rename changes the persisted project alias and attempts to rename a matching active workspace; delete only removes the saved project entry and leaves any active workspace running.
+Use `Ctrl-a Shift-p` to manage saved projects. Rename changes the persisted project alias and attempts to rename a matching active tab; delete only removes the saved project entry and leaves any active tab running.
+
+On macOS, normal app launches use the default local domain instead of auto-connecting to `local_mux`. The `local_mux` domain is still available from `Ctrl-a d` or `wezterm connect local_mux` when you explicitly want mux-backed persistent sessions.
 
 ## Tab Bar
 

@@ -6,6 +6,7 @@ let
     local act = wezterm.action
     local mux = wezterm.mux
     local is_windows = wezterm.target_triple:find("windows") ~= nil
+    local is_macos = wezterm.target_triple:find("apple%-darwin") ~= nil
     local local_mux_domain = "local_mux"
 
     local config = wezterm.config_builder and wezterm.config_builder() or {}
@@ -235,37 +236,30 @@ let
       }, nil
     end
 
-    local function workspace_exists(name)
-      for _, workspace_name in ipairs(mux.get_workspace_names()) do
-        if workspace_name == name then
-          return true
-        end
+    local function current_window_tabs(window)
+      local mux_window = window:mux_window()
+      if not mux_window then
+        return {}
       end
 
-      return false
+      return mux_window:tabs()
     end
 
-    local function workspace_roots(name)
+    local function tab_roots(tab)
       local roots = {}
 
-      for _, mux_window in ipairs(mux.all_windows()) do
-        if mux_window:get_workspace() == name then
-          for _, tab in ipairs(mux_window:tabs()) do
-            for _, pane in ipairs(tab:panes()) do
-              local git_root = git_root_for_pane(pane)
-              if git_root then
-                roots[git_root] = true
-              end
-            end
-          end
+      for _, pane in ipairs(tab:panes()) do
+        local git_root = git_root_for_pane(pane)
+        if git_root then
+          roots[git_root] = true
         end
       end
 
       return roots
     end
 
-    local function single_workspace_root(name)
-      local roots = workspace_roots(name)
+    local function single_tab_root(tab)
+      local roots = tab_roots(tab)
       local count = 0
       local root = nil
 
@@ -285,38 +279,23 @@ let
       return nil, nil
     end
 
-    local function workspace_name_for_root(root)
-      for _, workspace_name in ipairs(mux.get_workspace_names()) do
-        local existing_root = single_workspace_root(workspace_name)
+    local function project_tab_for_root(window, root)
+      for _, tab in ipairs(current_window_tabs(window)) do
+        local existing_root = single_tab_root(tab)
         if existing_root == root then
-          return workspace_name
+          return tab
         end
       end
 
       return nil
     end
 
-    local function rename_workspace(old_name, new_name)
-      if old_name == new_name then
-        return true, nil
-      end
-
-      if workspace_exists(new_name) then
-        return false, "target exists"
-      end
-
-      if type(mux.rename_workspace) ~= "function" then
-        return false, "not supported by this WezTerm build"
-      end
-
+    local function activate_tab(tab)
       local ok, err = pcall(function()
-        mux.rename_workspace(old_name, new_name)
+        tab:activate()
       end)
-      if not ok then
-        return false, tostring(err)
-      end
 
-      return true, nil
+      return ok, err
     end
 
     local function shell_line_in_dir(dir, command)
@@ -371,6 +350,16 @@ let
         and right
         and left.root == right.root
         and left.domain_name == right.domain_name
+    end
+
+    local function project_is_saved(project, recent_projects)
+      for _, recent_project in ipairs(recent_projects) do
+        if project.root == recent_project.root then
+          return true
+        end
+      end
+
+      return false
     end
 
     function read_recent_projects()
@@ -488,65 +477,50 @@ let
       return removed
     end
 
-    local function open_project_workspace(window, pane, project)
-      local existing_workspace = workspace_exists(project.name)
-      local existing_root, root_error = single_workspace_root(project.name)
+    local function project_spawn_domain(project, pane)
+      local domain_name = project.domain_name
+      if not domain_name or domain_name == "" or domain_name == "TermWizTerminalDomain" then
+        return nil
+      end
 
+      -- Older saved projects may point at local_mux from when macOS auto-connected
+      -- there. Keep local_mux opt-in by only reusing it when already attached.
+      if is_macos and domain_name == local_mux_domain and pane:get_domain_name() ~= local_mux_domain then
+        return nil
+      end
+
+      return { DomainName = domain_name }
+    end
+
+    local function open_project_tab(window, pane, project)
       remember_project(project)
 
-      local project_workspace = workspace_name_for_root(project.root)
-      if project_workspace and project_workspace ~= project.name then
-        if existing_workspace then
-          notify(window, "Workspace '" .. project.name .. "' already exists for another project")
-          return
-        end
-
-        local renamed, rename_error = rename_workspace(project_workspace, project.name)
-        if renamed then
-          window:perform_action(act.SwitchToWorkspace { name = project.name }, pane)
-        else
-          notify(
-            window,
-            "Using workspace '" .. project_workspace .. "'; rename failed: " .. (rename_error or "unknown error")
-          )
-          window:perform_action(act.SwitchToWorkspace { name = project_workspace }, pane)
+      local existing_tab = project_tab_for_root(window, project.root)
+      if existing_tab then
+        local activated, activate_error = activate_tab(existing_tab)
+        if not activated then
+          notify(window, "Failed to activate project tab: " .. tostring(activate_error))
         end
         return
       end
 
-      if existing_root == project.root then
-        window:perform_action(act.SwitchToWorkspace { name = project.name }, pane)
+      local mux_window = window:mux_window()
+      if not mux_window then
+        notify(window, "Could not determine the current window")
         return
       end
 
-      if existing_workspace then
-        if root_error == "ambiguous" then
-          notify(window, "Workspace '" .. project.name .. "' already exists with multiple roots")
-          return
-        end
-
-        if existing_root then
-          notify(
-            window,
-            "Workspace '" .. project.name .. "' already exists for " .. existing_root
-          )
-          return
-        end
-
-        notify(window, "Workspace '" .. project.name .. "' already exists and cannot be verified")
-        return
-      end
-
-      local spawn_window = {
-        workspace = project.name,
+      local spawn_tab = {
+        cwd = project.root,
       }
-      if project.domain_name then
-        spawn_window.domain = { DomainName = project.domain_name }
+      local spawn_domain = project_spawn_domain(project, pane)
+      if spawn_domain then
+        spawn_tab.domain = spawn_domain
       end
 
-      local tab, editor_pane, mux_window = mux.spawn_window(spawn_window)
-      if not tab or not editor_pane or not mux_window then
-        notify(window, "Failed to create workspace '" .. project.name .. "'")
+      local tab, editor_pane = mux_window:spawn_tab(spawn_tab)
+      if not tab or not editor_pane then
+        notify(window, "Failed to create project tab '" .. project.name .. "'")
         return
       end
 
@@ -586,24 +560,14 @@ let
         side_pane:send_text(shell_line_in_dir(project.root, "pi"))
       end
 
-      window:perform_action(act.SwitchToWorkspace { name = project.name }, pane)
+      activate_tab(tab)
       editor_pane:activate()
-    end
-
-    local function build_project_workspace(window, pane)
-      local project, project_error = project_info_for_pane(pane)
-      if not project then
-        notify(window, project_error)
-        return
-      end
-
-      open_project_workspace(window, pane, project)
     end
 
     local selector_colors = {
       active_project = "#50fa7b",
       inactive_project = "#a389d8",
-      workspace = "#50fa7b",
+      tab = "#50fa7b",
     }
 
     local function selector_label(parts)
@@ -646,33 +610,62 @@ let
       return selector_label(parts)
     end
 
-    local function workspace_choice_label(workspace_name)
-      return selector_label {
-        { text = "󱂬 " },
-        { text = workspace_name, color = selector_colors.workspace, bold = true },
-        { text = "  workspace" },
-      }
-    end
-
-    local function show_workspace_or_project_launcher(window, pane)
-      local choices = {}
-      local active_workspaces = {}
-      local shown_workspaces = {}
-      local workspace_names = mux.get_workspace_names()
-
-      for _, workspace_name in ipairs(workspace_names) do
-        active_workspaces[workspace_name] = true
+    local function tab_choice_label(tab, index)
+      local title = trim(tab:get_title())
+      if not title or title == "" then
+        title = "Tab " .. index
       end
 
+      local parts = {
+        { text = "󰓩 " },
+        { text = title, color = selector_colors.tab, bold = true },
+      }
+
+      local root = single_tab_root(tab)
+      if root then
+        table.insert(parts, { text = "  " .. display_path(root) })
+      end
+
+      table.insert(parts, { text = "  tab" })
+      return selector_label(parts)
+    end
+
+    local function new_project_choice_label(project)
+      local parts = {
+        { text = "+ " },
+        { text = "New project tab", color = selector_colors.active_project, bold = true },
+        { text = "  " .. project.name },
+        { text = "  " .. display_path(project.root) },
+      }
+
+      if project.domain_name then
+        table.insert(parts, { text = "  @" .. project.domain_name })
+      end
+
+      return selector_label(parts)
+    end
+
+    local function show_project_or_tab_launcher(window, pane)
+      local choices = {}
+      local shown_project_roots = {}
       local recent_projects = read_recent_projects()
+      local current_project = project_info_for_pane(pane)
+
+      if
+        current_project
+        and not project_is_saved(current_project, recent_projects)
+        and not project_tab_for_root(window, current_project.root)
+      then
+        table.insert(choices, {
+          id = "new-current-project",
+          label = new_project_choice_label(current_project),
+        })
+      end
+
       for index, project in ipairs(recent_projects) do
-        local is_active = false
-        if active_workspaces[project.name] then
-          local existing_root = single_workspace_root(project.name)
-          if existing_root == project.root then
-            is_active = true
-            shown_workspaces[project.name] = true
-          end
+        local is_active = project_tab_for_root(window, project.root) ~= nil
+        if is_active then
+          shown_project_roots[project.root] = true
         end
 
         table.insert(choices, {
@@ -681,26 +674,26 @@ let
         })
       end
 
-      table.sort(workspace_names)
-      for _, workspace_name in ipairs(workspace_names) do
-        if not shown_workspaces[workspace_name] then
+      for index, tab in ipairs(current_window_tabs(window)) do
+        local root = single_tab_root(tab)
+        if not root or not shown_project_roots[root] then
           table.insert(choices, {
-            id = "workspace:" .. workspace_name,
-            label = workspace_choice_label(workspace_name),
+            id = "tab:" .. index,
+            label = tab_choice_label(tab, index),
           })
         end
       end
 
       if #choices == 0 then
-        notify(window, "No workspaces or recent projects")
+        notify(window, "No tabs or recent projects")
         return
       end
 
       window:perform_action(
         act.InputSelector {
-          title = "Projects / Workspaces",
-          description = "Type a project name or path. Saved projects are listed before plain workspaces.",
-          fuzzy_description = "Fuzzy search by project name, path, domain, or workspace name.",
+          title = "Projects / Tabs",
+          description = "Type a project name or path. Saved projects are listed before open tabs.",
+          fuzzy_description = "Fuzzy search by project name, path, domain, or tab title.",
           fuzzy = true,
           choices = choices,
           action = wezterm.action_callback(function(selector_window, selector_pane, id, label)
@@ -708,16 +701,22 @@ let
               return
             end
 
-            local recent_index = tonumber(id:match("^recent:(%d+)$"))
-            local recent_project = recent_index and read_recent_projects()[recent_index]
-            if recent_project then
-              open_project_workspace(selector_window, selector_pane, recent_project)
+            if id == "new-current-project" and current_project then
+              open_project_tab(selector_window, selector_pane, current_project)
               return
             end
 
-            local workspace_name = id:match("^workspace:(.*)$")
-            if workspace_name then
-              selector_window:perform_action(act.SwitchToWorkspace { name = workspace_name }, selector_pane)
+            local recent_index = tonumber(id:match("^recent:(%d+)$"))
+            local recent_project = recent_index and read_recent_projects()[recent_index]
+            if recent_project then
+              open_project_tab(selector_window, selector_pane, recent_project)
+              return
+            end
+
+            local tab_index = tonumber(id:match("^tab:(%d+)$"))
+            local selected_tab = tab_index and current_window_tabs(selector_window)[tab_index]
+            if selected_tab then
+              activate_tab(selected_tab)
             end
           end),
         },
@@ -741,13 +740,15 @@ let
               return
             end
 
-            local active_workspace = workspace_name_for_root(project.root)
-            if active_workspace and active_workspace ~= new_name then
-              local renamed, rename_error = rename_workspace(active_workspace, new_name)
+            local active_tab = project_tab_for_root(prompt_window, project.root)
+            if active_tab then
+              local renamed, rename_error = pcall(function()
+                active_tab:set_title(new_name)
+              end)
               if not renamed then
                 notify(
                   prompt_window,
-                  "Saved rename; active workspace rename failed: " .. (rename_error or "unknown error")
+                  "Saved rename; active tab rename failed: " .. tostring(rename_error)
                 )
                 return
               end
@@ -772,7 +773,7 @@ let
           },
           action = wezterm.action_callback(function(action_window, action_pane, id, label)
             if id == "open" then
-              open_project_workspace(action_window, action_pane, project)
+              open_project_tab(action_window, action_pane, project)
             elseif id == "rename" then
               prompt_rename_saved_project(action_window, action_pane, project)
             elseif id == "delete" then
@@ -952,7 +953,9 @@ let
           name = local_mux_domain,
         },
       }
-      config.default_gui_startup_args = { "connect", local_mux_domain }
+      if not is_macos then
+        config.default_gui_startup_args = { "connect", local_mux_domain }
+      end
     end
 
     config.leader = { key = 'a', mods = 'CTRL', timeout_milliseconds = 1000 }
@@ -1125,17 +1128,12 @@ let
       {
         key = 'p',
         mods = 'LEADER',
-        action = wezterm.action_callback(show_workspace_or_project_launcher)
+        action = wezterm.action_callback(show_project_or_tab_launcher)
       },
       {
         key = 'P',
         mods = 'LEADER|SHIFT',
         action = wezterm.action_callback(show_saved_project_manager)
-      },
-      {
-        key = 'w',
-        mods = 'LEADER',
-        action = wezterm.action_callback(build_project_workspace)
       },
       {
         key = 'd',
