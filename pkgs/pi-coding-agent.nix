@@ -13,7 +13,13 @@
 }:
 let
   rootPackage = builtins.fromJSON (builtins.readFile "${src}/package.json");
-  packageLock = builtins.fromJSON (builtins.readFile "${src}/package-lock.json");
+  sourcePackageLock = builtins.fromJSON (builtins.readFile "${src}/package-lock.json");
+  vendoredPackageLock = builtins.fromJSON (builtins.readFile ./pi-coding-agent-package-lock.json);
+  # The upstream lockfile for pi-coding-agent 0.74.0 omits registry
+  # resolved/integrity fields, which nixpkgs' importNpmLock requires.
+  # Regenerate with:
+  #   rm package-lock.json && npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+  packageLock = if version == "0.74.0" then vendoredPackageLock else sourcePackageLock;
   xlsxPackage = packageLock.packages."node_modules/xlsx" or null;
   webUiPackage = packageLock.packages."packages/web-ui" or null;
   patchXlsx =
@@ -69,6 +75,7 @@ buildNpmPackage (finalAttrs: {
   '';
 
   npmWorkspace = "packages/coding-agent";
+  dontNpmPrune = true;
 
   # Skip native module rebuild for unneeded workspaces (e.g. canvas from web-ui)
   npmRebuildFlags = [ "--ignore-scripts" ];
@@ -99,9 +106,9 @@ buildNpmPackage (finalAttrs: {
     local nm="$out/lib/node_modules/pi-monorepo/node_modules"
 
     # Replace workspace deps needed at runtime with real copies
-    for ws in @mariozechner/pi-ai:packages/ai \
-              @mariozechner/pi-agent-core:packages/agent \
-              @mariozechner/pi-tui:packages/tui; do
+    for ws in @earendil-works/pi-ai:packages/ai \
+              @earendil-works/pi-agent-core:packages/agent \
+              @earendil-works/pi-tui:packages/tui; do
       IFS=: read -r pkg src <<< "$ws"
       rm "$nm/$pkg"
       cp -r "$src" "$nm/$pkg"
@@ -129,7 +136,7 @@ buildNpmPackage (finalAttrs: {
   meta = {
     description = "Coding agent CLI with read, bash, edit, write tools and session management";
     homepage = "https://shittycodingagent.ai/";
-    downloadPage = "https://www.npmjs.com/package/@mariozechner/pi-coding-agent";
+    downloadPage = "https://www.npmjs.com/package/@earendil-works/pi-coding-agent";
     changelog = "https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ munksgaard ];
