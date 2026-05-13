@@ -399,6 +399,7 @@ in
       space_vim_dark_background = 234;
     };
     opts = {
+      colorcolumn = "88";
       expandtab = true;
       relativenumber = true;
       statuscolumn = "%s%=%{v:relnum ? v:relnum : v:lnum} ";
