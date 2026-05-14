@@ -885,7 +885,10 @@ let
       local black_bg = palette and palette.bg0 or '#000000'
       local terminal_bg = palette and palette.bg0 or '#000000'
 
-      local title = tab.active_pane.title
+      local title = tab.tab_title
+      if not title or title == "" then
+        title = tab.active_pane.title
+      end
 
       if tab.is_active then
         return {
