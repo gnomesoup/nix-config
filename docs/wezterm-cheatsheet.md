@@ -71,7 +71,7 @@ arstgmeioqwfpbjluyxcdvzkh
 | --- | --- |
 | `Ctrl-a p` | Create/open persisted recent projects first, then active tabs |
 | `Ctrl-a Shift-p` | Manage saved projects: open, rename, or delete |
-| `Ctrl-a d` | Open the fuzzy domain attach launcher |
+| `Ctrl-a d` | Open a fuzzy domain launcher; selected domains open in a new tab named after the host |
 | `Ctrl-a Shift-d` | Detach the current remote domain |
 
 The project tab action supports local and WSL panes. If the current pane is inside an unsaved git repository, `Ctrl-a p` includes a `New project tab` entry. It names the tab after the current git repository and opens a project layout with `nvim`, a bottom shell pane, and a `pi` side pane.

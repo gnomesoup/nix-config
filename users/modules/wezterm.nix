@@ -837,6 +837,38 @@ let
       window:perform_action(act.DetachDomain "CurrentPaneDomain", pane)
     end
 
+    local function stable_title_for_domain(domain_name)
+      if not domain_name or domain_name == "" or domain_name == "local" or domain_name == "TermWizTerminalDomain" then
+        return nil
+      end
+
+      local wsl_distro = domain_name:match("^WSL:(.+)$")
+      if wsl_distro and wsl_distro ~= "" then
+        return wsl_distro
+      end
+
+      return domain_name
+    end
+
+    local function title_for_tab(tab)
+      local title = tab.tab_title
+      if title and title ~= "" then
+        return title
+      end
+
+      local active_pane = tab.active_pane
+      local domain_title = active_pane and stable_title_for_domain(active_pane.domain_name)
+      if domain_title then
+        return domain_title
+      end
+
+      if active_pane and active_pane.title and active_pane.title ~= "" then
+        return active_pane.title
+      end
+
+      return "Tab " .. (tab.tab_index + 1)
+    end
+
     wezterm.on("mux-startup", function()
       if is_windows then
         local domain = mux.get_domain("WSL:NixOS")
@@ -885,10 +917,7 @@ let
       local black_bg = palette and palette.bg0 or '#000000'
       local terminal_bg = palette and palette.bg0 or '#000000'
 
-      local title = tab.tab_title
-      if not title or title == "" then
-        title = tab.active_pane.title
-      end
+      local title = title_for_tab(tab)
 
       if tab.is_active then
         return {
@@ -981,6 +1010,124 @@ let
     end
     config.ssh_domains = ssh_domains
     wezterm.log_info("SSH Domains generated:", #ssh_domains)
+
+    local function domain_choice_label(choice)
+      local parts = {
+        { text = "󰒋 " },
+        { text = choice.title, color = selector_colors.active_project, bold = true },
+        { text = "  " .. choice.kind },
+      }
+
+      if choice.detail and choice.detail ~= "" then
+        table.insert(parts, { text = "  " .. choice.detail })
+      end
+
+      return selector_label(parts)
+    end
+
+    local function open_domain_tab(window, pane, choice)
+      local mux_window = window:mux_window()
+      if not mux_window then
+        notify(window, "Could not determine the current window")
+        return
+      end
+
+      local ok, tab, domain_pane = pcall(function()
+        return mux_window:spawn_tab {
+          domain = { DomainName = choice.name },
+        }
+      end)
+      if not ok or not tab then
+        notify(window, "Failed to open domain '" .. choice.name .. "': " .. tostring(tab))
+        return
+      end
+
+      pcall(function()
+        tab:set_title(choice.title)
+      end)
+      activate_tab(tab)
+      if domain_pane then
+        domain_pane:activate()
+      end
+    end
+
+    local function show_domain_launcher(window, pane)
+      local choices = {}
+      local domain_by_name = {}
+      local seen_domains = {}
+
+      local function add_domain_choice(choice)
+        if seen_domains[choice.name] then
+          return
+        end
+
+        seen_domains[choice.name] = true
+        domain_by_name[choice.name] = choice
+        table.insert(choices, {
+          id = choice.name,
+          label = domain_choice_label(choice),
+        })
+      end
+
+      if is_windows then
+        add_domain_choice {
+          name = "WSL:NixOS",
+          title = "NixOS",
+          kind = "WSL",
+          detail = "WSL:NixOS",
+        }
+      else
+        add_domain_choice {
+          name = local_mux_domain,
+          title = local_mux_domain,
+          kind = "mux",
+          detail = "persistent local sessions",
+        }
+      end
+
+      table.sort(ssh_domains, function(left, right)
+        return left.name < right.name
+      end)
+      for _, domain in ipairs(ssh_domains) do
+        local detail = domain.remote_address or ""
+        if domain.username and domain.username ~= "" then
+          detail = domain.username .. "@" .. detail
+        end
+
+        add_domain_choice {
+          name = domain.name,
+          title = domain.name,
+          kind = "ssh",
+          detail = detail,
+        }
+      end
+
+      if #choices == 0 then
+        notify(window, "No domains configured")
+        return
+      end
+
+      window:perform_action(
+        act.InputSelector {
+          title = "Open Domain Tab",
+          description = "Open a new tab in the selected domain.",
+          fuzzy_description = "Fuzzy search by host, domain, or address.",
+          fuzzy = true,
+          choices = choices,
+          action = wezterm.action_callback(function(selector_window, selector_pane, id, label)
+            if not id then
+              return
+            end
+
+            local choice = domain_by_name[id]
+            if choice then
+              open_domain_tab(selector_window, selector_pane, choice)
+            end
+          end),
+        },
+        pane
+      )
+    end
 
     local function key_id(key, mods)
       return key .. ":" .. (mods or "NONE")
@@ -1141,10 +1288,7 @@ let
       {
         key = 'd',
         mods = 'LEADER',
-        action = act.ShowLauncherArgs {
-          flags = 'FUZZY|DOMAINS',
-          title = 'Attach Domain',
-        }
+        action = wezterm.action_callback(show_domain_launcher)
       },
       {
         key = 'D',
