@@ -911,6 +911,14 @@ in
               };
             }
             {
+              __unkeyed-1 = "<leader>'";
+              icon = {
+                icon = " ";
+                color = "green";
+                hl = "WhichKeyIconGreen";
+              };
+            }
+            {
               __unkeyed-1 = "<leader>q";
               group = "[Q]uit";
             }
@@ -1018,14 +1026,37 @@ in
         vim.api.nvim_set_hl(0, "NeogitDiffDeleteHighlight", { bg = "#680f0e" })
       end
 
+      local function apply_terminal_highlights()
+        vim.api.nvim_set_hl(0, "TerminalNormal", { bg = "#000000" })
+      end
+
+      local function apply_terminal_window_options()
+        vim.wo.number = false
+        vim.wo.relativenumber = false
+        vim.wo.statuscolumn = ""
+        vim.wo.colorcolumn = ""
+        vim.wo.winhighlight = "Normal:TerminalNormal,NormalNC:TerminalNormal,EndOfBuffer:TerminalNormal,SignColumn:TerminalNormal"
+      end
+
       vim.api.nvim_create_autocmd("ColorScheme", {
         pattern = "space-vim-dark",
         callback = apply_space_vim_dark_overrides,
       })
 
+      vim.api.nvim_create_autocmd("ColorScheme", {
+        callback = apply_terminal_highlights,
+      })
+
+      vim.api.nvim_create_autocmd({ "TermOpen", "TermEnter", "BufWinEnter", "WinEnter" }, {
+        pattern = "term://*",
+        callback = apply_terminal_window_options,
+      })
+
       if vim.g.colors_name == "space-vim-dark" then
         apply_space_vim_dark_overrides()
       end
+
+      apply_terminal_highlights()
 
       require("scrollbar").setup({
         handlers = {
@@ -1637,6 +1668,15 @@ in
         action = "<cmd>OverseerShell<CR>";
         options = {
           desc = "Run shell task";
+          silent = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>'";
+        action = "<cmd>split | terminal<CR>";
+        options = {
+          desc = "Open terminal in horizontal split";
           silent = true;
         };
       }
