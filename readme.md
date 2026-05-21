@@ -127,7 +127,7 @@ wsl -l
 4. Create a directory symlink pointing Espanso at the WSL export:
 
 ```powershell
-New-Item -ItemType SymbolicLink -Path "$env:APPDATA\espanso" -Target "\\wsl.localhost\<DistroName>\home\mpfammatter\.local\share\espanso-windows" | Out-Null
+New-Item -ItemType SymbolicLink -Path "$env:APPDATA\espanso" -Target "\\wsl.localhost\NixOS\home\mpfammatter\.local\share\espanso-windows" | Out-Null
 ```
 
 Use a directory symlink, not a junction, because `\\wsl$\...` is a UNC path.
