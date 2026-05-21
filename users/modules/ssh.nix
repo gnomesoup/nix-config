@@ -65,18 +65,18 @@ in
     enable = true;
     enableDefaultConfig = false;
     includes = [ "~/.ssh/config.d/remote.conf" ];
-    matchBlocks."*" = {
-      addKeysToAgent = "yes";
-      compression = false;
-      controlMaster = "no";
-      controlPath = "~/.ssh/master-%r@%n:%p";
-      controlPersist = "no";
-      forwardAgent = false;
-      hashKnownHosts = false;
-      identityFile = [ "~/.ssh/id_ed25519" ];
-      serverAliveCountMax = 3;
-      serverAliveInterval = 0;
-      userKnownHostsFile = "~/.ssh/known_hosts";
+    settings."*" = {
+      AddKeysToAgent = "yes";
+      Compression = false;
+      ControlMaster = "no";
+      ControlPath = "~/.ssh/master-%r@%n:%p";
+      ControlPersist = "no";
+      ForwardAgent = false;
+      HashKnownHosts = false;
+      IdentityFile = [ "~/.ssh/id_ed25519" ];
+      ServerAliveCountMax = 3;
+      ServerAliveInterval = 0;
+      UserKnownHostsFile = "~/.ssh/known_hosts";
     };
     extraConfig = lib.concatStringsSep "\n" (
       lib.optionals isDarwin [
