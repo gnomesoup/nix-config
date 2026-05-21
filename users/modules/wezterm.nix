@@ -8,8 +8,27 @@ let
     local is_windows = wezterm.target_triple:find("windows") ~= nil
     local is_macos = wezterm.target_triple:find("apple%-darwin") ~= nil
     local local_mux_domain = "local_mux"
+    local zoom_indicator_color = "#50fa7b"
+    local window_border_colors = {
+      active = "#bc6ec5",
+      inactive = "#292b2e",
+      zoomed = zoom_indicator_color,
+    }
 
     local config = wezterm.config_builder and wezterm.config_builder() or {}
+
+    local function window_frame_for_border(color)
+      return {
+        border_left_width = "0.12cell",
+        border_right_width = "0.12cell",
+        border_bottom_height = "0.06cell",
+        border_top_height = "0.06cell",
+        border_left_color = color,
+        border_right_color = color,
+        border_bottom_color = color,
+        border_top_color = color,
+      }
+    end
 
     local function trim(text)
       if not text then
@@ -878,6 +897,54 @@ let
       end
     end)
 
+    local function active_pane_is_zoomed(window)
+      local active_tab = window:active_tab()
+      if not active_tab then
+        return false
+      end
+
+      for _, pane_info in ipairs(active_tab:panes_with_info()) do
+        if pane_info.is_active then
+          return pane_info.is_zoomed
+        end
+      end
+
+      return false
+    end
+
+    local function apply_window_border(window)
+      local border_color = window_border_colors.inactive
+      if window:is_focused() then
+        border_color = active_pane_is_zoomed(window) and window_border_colors.zoomed or window_border_colors.active
+      end
+
+      local overrides = window:get_config_overrides() or {}
+      if overrides.window_frame and overrides.window_frame.border_left_color == border_color then
+        return
+      end
+
+      overrides.window_frame = window_frame_for_border(border_color)
+      window:set_config_overrides(overrides)
+    end
+
+    local function split_pane_in_current_directory(window, pane, direction)
+      local split = {
+        direction = direction,
+        domain = 'CurrentPaneDomain',
+      }
+      local cwd = pane:get_current_working_dir()
+
+      if cwd then
+        split.cwd = cwd
+      end
+
+      window:perform_action(act.SplitPane(split), pane)
+    end
+
+    wezterm.on("update-status", function(window, pane)
+      apply_window_border(window)
+    end)
+
     wezterm.on("update-right-status", function(window, pane)
       local workspace_name = window:active_workspace()
       local domain_name = pane:get_domain_name()
@@ -889,6 +956,16 @@ let
       local purple_fg = palette and palette.purple or '#a389d8'
       local orange_bg = palette and palette.orange or '#ff9900'
       local black_fg = palette and palette.fg0 or '#000000'
+      local green_bg = palette and palette.green or zoom_indicator_color
+
+      local zoom = ""
+      if active_pane_is_zoomed(window) then
+        zoom = wezterm.format({
+          { Background = { Color = green_bg } },
+          { Foreground = { Color = black_fg } },
+          { Text = " ZOOM " },
+        })
+      end
 
       local ws = wezterm.format({
         { Background = { Color = grey_bg } },
@@ -902,7 +979,7 @@ let
         { Text = " " .. domain_name .. " " },
       })
 
-      window:set_right_status(ws .. dom)
+      window:set_right_status(zoom .. ws .. dom)
     end)
 
     wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
@@ -958,6 +1035,7 @@ let
     }
     config.font_size = 16.0
     config.hide_tab_bar_if_only_one_tab = false
+    config.window_frame = window_frame_for_border(window_border_colors.active)
     config.use_fancy_tab_bar = false
     config.tab_bar_at_bottom = true
     config.tab_bar_style = {
@@ -1228,12 +1306,16 @@ let
       {
         mods = "LEADER",
         key = "v",
-        action = act.SplitHorizontal { domain = 'CurrentPaneDomain' }
+        action = wezterm.action_callback(function(window, pane)
+          split_pane_in_current_directory(window, pane, 'Right')
+        end)
       },
       {
         mods = "LEADER",
         key = "s",
-        action = act.SplitVertical { domain = 'CurrentPaneDomain' }
+        action = wezterm.action_callback(function(window, pane)
+          split_pane_in_current_directory(window, pane, 'Down')
+        end)
       },
       {
         key = 'r',

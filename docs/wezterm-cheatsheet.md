@@ -17,8 +17,8 @@ With the default `colemak-dh` layout, the direction keys are `m/n/e/i`.
 
 | Keys | Description |
 | --- | --- |
-| `Ctrl-a v` | Split the current pane horizontally |
-| `Ctrl-a s` | Split the current pane vertically |
+| `Ctrl-a v` | Split the current pane horizontally, inheriting the active pane's current directory |
+| `Ctrl-a s` | Split the current pane vertically, inheriting the active pane's current directory |
 | `Ctrl-m` | Focus pane left |
 | `Ctrl-n` | Focus pane down |
 | `Ctrl-e` | Focus pane up |
@@ -87,6 +87,7 @@ On macOS, normal app launches use the default local domain instead of auto-conne
 | --- | --- |
 | Tab title | Tab index and active pane title |
 | Right status | Active workspace and active domain |
+| Zoom indicator | The window border turns green and the right status shows `ZOOM` when the active pane is zoomed |
 
 ## Notes
 
