@@ -533,10 +533,17 @@ in
           end
         '';
       };
-      # Override the broken onAttach from kickstart-nixvim upstream.
+      # AGENT_TODO: Remove this override once kickstart-nixvim updates pinned version
+      # See: https://github.com/JMartJonesy/kickstart.nixvim/issues
+      #
+      # Override the broken onAttach from kickstart-nixvim upstream (rev df53a8c).
       # The kickstart lsp.nix uses `event.data.client_id` and `event.buf` which are
       # not available in scope — only `client` and `bufnr` are passed as parameters.
       # This causes: "attempt to index global 'event' (a nil value)" on LspAttach.
+      #
+      # To remove: update the flake lock (`nix flake lock --update-input kickstart-nixvim`),
+      # rebuild, and test that LspAttach works without this block. If the upstream fix is
+      # in place, delete this entire `lsp.onAttach` block.
       lsp.onAttach = lib.mkForce ''
         local map = function(keys, func, desc)
           vim.keymap.set('n', keys, func, { buffer = bufnr, desc = 'LSP: ' .. desc })
