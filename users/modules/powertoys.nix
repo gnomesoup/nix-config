@@ -25,12 +25,34 @@ let
         88 # X
       ];
 
+  # Unbind Win+<number> so Weston (or other window managers) can use them
+  # for workspace/tab switching without interference from PowerToys.
+  westonWorkspaceUnmaps =
+    map
+      (keyCode: {
+        originalKeys = "260;${toString keyCode}";
+        exactMatch = false;
+        operationType = 1;
+      })
+      [
+        48 # 0
+        49 # 1
+        50 # 2
+        51 # 3
+        52 # 4
+        53 # 5
+        54 # 6
+        55 # 7
+        56 # 8
+        57 # 9
+      ];
+
   powerToysFiles = {
     "Keyboard Manager/default.json" = {
       remapKeys.inProcess = [ ];
       remapKeysToText.inProcess = [ ];
       remapShortcuts = {
-        global = macStyleShortcutRemaps;
+        global = macStyleShortcutRemaps ++ westonWorkspaceUnmaps;
         appSpecific = [ ];
       };
       remapShortcutsToText = {
