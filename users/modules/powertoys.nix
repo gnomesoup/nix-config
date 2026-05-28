@@ -25,17 +25,17 @@ let
         88 # X
       ];
 
-  # Unbind Win+<number> so Weston (or other window managers) can use them
-  # for workspace/tab switching without interference from PowerToys.
-  westonWorkspaceUnmaps =
+  # Forward Win+<number> to WezTerm's default tab-switching shortcuts.
+  # Win+0 is intentionally left unmapped so Windows keeps its default behavior.
+  weztermTabRemaps =
     map
       (keyCode: {
         originalKeys = "260;${toString keyCode}";
         exactMatch = false;
-        operationType = 1;
+        operationType = 0;
+        newRemapKeys = "17;16;${toString keyCode}";
       })
       [
-        48 # 0
         49 # 1
         50 # 2
         51 # 3
@@ -52,7 +52,7 @@ let
       remapKeys.inProcess = [ ];
       remapKeysToText.inProcess = [ ];
       remapShortcuts = {
-        global = macStyleShortcutRemaps ++ westonWorkspaceUnmaps;
+        global = macStyleShortcutRemaps ++ weztermTabRemaps;
         appSpecific = [ ];
       };
       remapShortcutsToText = {

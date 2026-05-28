@@ -142,7 +142,7 @@ The `jedha` Home Manager profile exports managed PowerToys files to:
 ~/.local/share/powertoys-windows
 ```
 
-Currently this manages the PowerToys Keyboard Manager profile that remaps `Win+A/C/P/V/X` to `Ctrl+A/C/P/V/X`.
+Currently this manages the PowerToys Keyboard Manager profile that remaps `Win+A/C/P/V/X` to `Ctrl+A/C/P/V/X` and `Win+1..9` to WezTerm's default `Ctrl+Shift+1..9` tab shortcuts. `Win+0` is not remapped.
 
 Apply the `jedha` NixOS config to refresh that export:
 
