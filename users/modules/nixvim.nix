@@ -391,6 +391,7 @@ in
   programs.nixvim = {
     # Personal Colemak-DH overrides layered on top of the kickstart base config.
     enable = true;
+    nixpkgs.useGlobalPackages = true;
     clipboard.providers = {
       "wl-copy".enable = lib.mkForce false;
       xsel.enable = lib.mkForce false;

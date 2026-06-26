@@ -43,6 +43,10 @@
   nixpkgs = {
     hostPlatform = "aarch64-darwin";
     config.allowUnfree = true;
+    # Logseq currently depends on Electron 39, which is EOL in nixpkgs.
+    config.permittedInsecurePackages = [
+      "electron-39.8.10"
+    ];
     config.allowBroken = true;
     # direnv's Darwin test suite currently hangs in zsh on this host, which
     # blocks darwin-rebuild while the package is built locally.

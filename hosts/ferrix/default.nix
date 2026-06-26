@@ -200,6 +200,8 @@
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
   nixpkgs.config.permittedInsecurePackages = [
+    # Logseq currently depends on Electron 39, which is EOL in nixpkgs.
+    "electron-39.8.10"
     "openclaw-2026.4.22"
   ];
 
