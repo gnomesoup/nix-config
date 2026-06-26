@@ -927,15 +927,39 @@ let
       window:set_config_overrides(overrides)
     end
 
+    local function spawn_cwd_for_current_domain(pane)
+      local cwd = pane:get_current_working_dir()
+      if not cwd then
+        return nil
+      end
+
+      if type(cwd) == "string" then
+        cwd = wezterm.url.parse(cwd)
+      end
+
+      local wsl = wsl_context(cwd, pane:get_domain_name())
+      if wsl then
+        return wsl.cwd
+      end
+
+      if is_local_file_url(cwd) then
+        return cwd.file_path
+      end
+
+      return url_decode(cwd.path or "")
+    end
+
     local function split_pane_in_current_directory(window, pane, direction)
       local split = {
         direction = direction,
-        domain = 'CurrentPaneDomain',
+        command = {
+          domain = 'CurrentPaneDomain',
+        },
       }
-      local cwd = pane:get_current_working_dir()
+      local cwd = spawn_cwd_for_current_domain(pane)
 
-      if cwd then
-        split.cwd = cwd
+      if cwd and cwd ~= "" then
+        split.command.cwd = cwd
       end
 
       window:perform_action(act.SplitPane(split), pane)
