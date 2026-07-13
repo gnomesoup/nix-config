@@ -10,6 +10,7 @@
     ./hardware-configuration.nix
     ./zulip.nix
     ../modules/fonts.nix
+    ../modules/nixos-default-zsh.nix
   ];
 
   sops.defaultSopsFile = ../../secrets/secrets.yaml;

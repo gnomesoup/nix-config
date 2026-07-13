@@ -12,6 +12,8 @@ in
 {
   imports = [ ./starship.nix ];
 
+  home.sessionVariables.SHELL = "${pkgs.zsh}/bin/zsh";
+
   programs.zoxide = {
     enable = true;
     enableZshIntegration = true;
@@ -186,6 +188,51 @@ in
         openclaw completion --shell zsh --write-state
       }
 
+      nix() {
+        emulate -L zsh
+
+        local subcommand=""
+        local i=1
+
+        while (( i <= $# )); do
+          case "''${argv[$i]}" in
+            --option)
+              (( i += 3 ))
+              ;;
+            --extra-experimental-features|--experimental-features|--log-format|--store)
+              (( i += 2 ))
+              ;;
+            --*)
+              (( i++ ))
+              ;;
+            -*)
+              (( i++ ))
+              ;;
+            *)
+              subcommand="''${argv[$i]}"
+              break
+              ;;
+          esac
+        done
+
+        if [[ "$subcommand" != "develop" ]]; then
+          command nix "$@"
+          return
+        fi
+
+        local arg
+        for arg in "$@"; do
+          case "$arg" in
+            --command|--command=*|-c|--help|-h|--phase|--phase=*)
+              command nix "$@"
+              return
+              ;;
+          esac
+        done
+
+        command nix "$@" --command ${pkgs.zsh}/bin/zsh
+      }
+
       nix-shell() {
         emulate -L zsh
 
@@ -199,12 +246,12 @@ in
           esac
         done
 
-        command nix-shell "$@" --run 'exec zsh -i'
+        command nix-shell "$@" --run 'exec ${pkgs.zsh}/bin/zsh -i'
       }
 
       nd() {
         emulate -L zsh
-        nix develop "$@" --command zsh
+        nix develop "$@"
       }
 
       __activate_git_root_venv() {

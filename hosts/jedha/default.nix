@@ -28,6 +28,7 @@ in
   imports = [
     nixos-wsl.nixosModules.default
     ../modules/fonts.nix
+    ../modules/nixos-default-zsh.nix
   ];
 
   sops.defaultSopsFile = ../../secrets/secrets.yaml;

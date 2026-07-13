@@ -8,6 +8,7 @@
 {
   imports = [
     ../modules/appleDefaults.nix
+    ../modules/default-zsh.nix
     ../modules/fonts.nix
     ../modules/homebrew.nix
   ];
@@ -59,10 +60,7 @@
     ];
   };
 
-  programs = {
-    direnv.enable = true;
-    zsh.enable = true;
-  };
+  programs.direnv.enable = true;
 
   services = {
     tailscale.enable = true;
