@@ -6,6 +6,7 @@
       "microsoft-outlook"
       "microsoft-teams"
       "chromium"
+      "gimp"
       "nextcloud"
       "rustdesk"
       "vorta"

@@ -19,13 +19,13 @@
   programs.zsh.initContent = lib.mkAfter ''
     # NixOS' global /etc/zshrc initializes LS_COLORS with dircolors. On WSL,
     # Windows-mounted directories are often world-writable, so GNU ls uses the
-    # other-writable/sticky directory colors. Replace the bright backgrounds with
-    # a grey background to keep them readable.
+    # other-writable/sticky directory colors. Use foreground-only colors so these
+    # entries stay readable in WezTerm without bright background blocks.
     if [[ -n "$LS_COLORS" ]]; then
       LS_COLORS=":$LS_COLORS:"
-      LS_COLORS="''${LS_COLORS//:ow=34;42:/:ow=34;47:}"
-      LS_COLORS="''${LS_COLORS//:tw=30;42:/:tw=30;47:}"
-      LS_COLORS="''${LS_COLORS//:st=37;44:/:st=37;47:}"
+      LS_COLORS="''${LS_COLORS//:ow=34;42:/:ow=01;34:}"
+      LS_COLORS="''${LS_COLORS//:tw=30;42:/:tw=01;33:}"
+      LS_COLORS="''${LS_COLORS//:st=37;44:/:st=01;36:}"
       LS_COLORS="''${LS_COLORS#:}"
       export LS_COLORS="''${LS_COLORS%:}"
     fi
