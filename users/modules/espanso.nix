@@ -6,6 +6,7 @@
 }:
 let
   inherit (pkgs.stdenv) isDarwin isLinux;
+  darwinEspansoBinary = "/Applications/Espanso.app/Contents/MacOS/espanso";
 in
 {
   sops = {
@@ -115,18 +116,16 @@ in
         config.sops.templates."espanso-match-private.yml".path;
   };
 
-  home.packages = lib.optionals isDarwin [ pkgs.espanso ];
-
   launchd.agents.espanso = lib.mkIf isDarwin {
     enable = true;
     config = {
-      EnvironmentVariables.PATH = "${pkgs.espanso}/bin:/usr/bin:/bin:/usr/sbin:/sbin";
+      EnvironmentVariables.PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin";
       KeepAlive = {
         Crashed = true;
         SuccessfulExit = false;
       };
       ProgramArguments = [
-        "${pkgs.espanso}/Applications/Espanso.app/Contents/MacOS/espanso"
+        darwinEspansoBinary
         "launcher"
       ];
       RunAtLoad = true;
