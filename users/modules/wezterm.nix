@@ -927,44 +927,6 @@ let
       window:set_config_overrides(overrides)
     end
 
-    local function spawn_cwd_for_current_domain(pane)
-      local cwd = pane:get_current_working_dir()
-      if not cwd then
-        return nil
-      end
-
-      if type(cwd) == "string" then
-        cwd = wezterm.url.parse(cwd)
-      end
-
-      local wsl = wsl_context(cwd, pane:get_domain_name())
-      if wsl then
-        return wsl.cwd
-      end
-
-      if is_local_file_url(cwd) then
-        return cwd.file_path
-      end
-
-      return url_decode(cwd.path or "")
-    end
-
-    local function split_pane_in_current_directory(window, pane, direction)
-      local split = {
-        direction = direction,
-        command = {
-          domain = 'CurrentPaneDomain',
-        },
-      }
-      local cwd = spawn_cwd_for_current_domain(pane)
-
-      if cwd and cwd ~= "" then
-        split.command.cwd = cwd
-      end
-
-      window:perform_action(act.SplitPane(split), pane)
-    end
-
     wezterm.on("update-status", function(window, pane)
       apply_window_border(window)
     end)
@@ -1080,7 +1042,6 @@ let
         }
       }
       config.default_domain = "WSL:NixOS"
-      config.default_mux_server_domain = "WSL:NixOS"
     else
       config.unix_domains = {
         {
@@ -1330,16 +1291,18 @@ let
       {
         mods = "LEADER",
         key = "v",
-        action = wezterm.action_callback(function(window, pane)
-          split_pane_in_current_directory(window, pane, 'Right')
-        end)
+        action = act.SplitPane {
+          direction = 'Right',
+          command = { domain = 'CurrentPaneDomain' },
+        }
       },
       {
         mods = "LEADER",
         key = "s",
-        action = wezterm.action_callback(function(window, pane)
-          split_pane_in_current_directory(window, pane, 'Down')
-        end)
+        action = act.SplitPane {
+          direction = 'Down',
+          command = { domain = 'CurrentPaneDomain' },
+        }
       },
       {
         key = 'r',
