@@ -298,10 +298,29 @@ let
       return nil, nil
     end
 
-    local function project_tab_for_root(window, root)
+    local function same_tab(left, right)
+      if not left or not right then
+        return false
+      end
+
+      if left == right then
+        return true
+      end
+
+      local left_ok, left_id = pcall(function()
+        return left:tab_id()
+      end)
+      local right_ok, right_id = pcall(function()
+        return right:tab_id()
+      end)
+
+      return left_ok and right_ok and left_id == right_id
+    end
+
+    local function project_tab_for_root(window, root, ignored_tab)
       for _, tab in ipairs(current_window_tabs(window)) do
         local existing_root = single_tab_root(tab)
-        if existing_root == root then
+        if existing_root == root and not same_tab(tab, ignored_tab) then
           return tab
         end
       end
@@ -511,10 +530,10 @@ let
       return { DomainName = domain_name }
     end
 
-    local function open_project_tab(window, pane, project)
+    local function open_project_tab(window, pane, project, ignored_tab)
       remember_project(project)
 
-      local existing_tab = project_tab_for_root(window, project.root)
+      local existing_tab = project_tab_for_root(window, project.root, ignored_tab)
       if existing_tab then
         local activated, activate_error = activate_tab(existing_tab)
         if not activated then
@@ -669,11 +688,12 @@ let
       local shown_project_roots = {}
       local recent_projects = read_recent_projects()
       local current_project = project_info_for_pane(pane)
+      local active_tab = window:active_tab()
 
       if
         current_project
         and not project_is_saved(current_project, recent_projects)
-        and not project_tab_for_root(window, current_project.root)
+        and not project_tab_for_root(window, current_project.root, active_tab)
       then
         table.insert(choices, {
           id = "new-current-project",
@@ -721,7 +741,7 @@ let
             end
 
             if id == "new-current-project" and current_project then
-              open_project_tab(selector_window, selector_pane, current_project)
+              open_project_tab(selector_window, selector_pane, current_project, active_tab)
               return
             end
 

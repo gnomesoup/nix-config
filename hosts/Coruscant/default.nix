@@ -3,6 +3,7 @@
 {
   imports = [
     ../modules/appleDefaults.nix
+    ../modules/default-zsh.nix
     ../modules/fonts.nix
     ../modules/homebrew.nix
   ];
@@ -35,6 +36,10 @@
   nixpkgs = {
     hostPlatform = "aarch64-darwin";
     config.allowUnfree = true;
+    # Logseq currently depends on Electron 39, which is EOL in nixpkgs.
+    config.permittedInsecurePackages = [
+      "electron-39.8.10"
+    ];
     # direnv's Darwin test suite currently hangs in zsh on this host, which
     # blocks darwin-rebuild while the package is built locally.
     overlays = [
@@ -46,10 +51,7 @@
     ];
   };
 
-  programs = {
-    direnv.enable = true;
-    zsh.enable = true;
-  };
+  programs.direnv.enable = true;
 
   services.tailscale.enable = true;
 

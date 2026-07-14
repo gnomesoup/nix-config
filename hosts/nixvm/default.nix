@@ -14,6 +14,7 @@
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
     ../modules/fonts.nix
+    ../modules/nixos-default-zsh.nix
   ];
 
   # Allow unfree
