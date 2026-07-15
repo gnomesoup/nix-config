@@ -11,6 +11,7 @@ in
 {
   home.packages = [
     # pkgs.plover.dev
+    pkgs.input-leap
     pkgs.keymapp
     pkgs.logseq
     pkgs.super-productivity
