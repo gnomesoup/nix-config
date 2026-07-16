@@ -40,6 +40,20 @@
 
   system.primaryUser = "mpfammatter";
 
+  system.defaults.CustomUserPreferences."com.github.InputLeap" = {
+    autoHide = true;
+    autoStart = true;
+    configFile = "/Users/mpfammatter/.config/InputLeap/input-leap.conf";
+    groupClientChecked = false;
+    groupServerChecked = true;
+    minimizeToTray = true;
+    screenName = "exegol.local";
+    startedBefore = true;
+    useExternalConfig = true;
+    useInternalConfig = false;
+    wizardLastRun = 9;
+  };
+
   # The platform the configuration will be used on.
   nixpkgs = {
     hostPlatform = "aarch64-darwin";
@@ -64,6 +78,19 @@
 
   services = {
     tailscale.enable = true;
+  };
+
+  launchd.user.agents.input-leap-server = {
+    command = "${pkgs.input-leap}/bin/input-leap";
+    serviceConfig = {
+      RunAtLoad = true;
+      KeepAlive = {
+        Crashed = true;
+        SuccessfulExit = false;
+      };
+      StandardOutPath = "/Users/mpfammatter/Library/Logs/input-leap.out.log";
+      StandardErrorPath = "/Users/mpfammatter/Library/Logs/input-leap.err.log";
+    };
   };
 
   users.users.mpfammatter = {
