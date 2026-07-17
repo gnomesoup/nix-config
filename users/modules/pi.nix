@@ -24,7 +24,10 @@ let
   piSettingsFile = jsonFormat.generate "pi-settings.json" piSettings;
 in
 {
-  home.packages = [ pkgs.pi-coding-agent ];
+  home.packages = [
+    pkgs.mcp-nixos
+    pkgs.pi-coding-agent
+  ];
 
   # Write a normal file instead of a Home Manager symlink. Pi records transient
   # runtime fields such as changelog state in settings.json; each rebuild
