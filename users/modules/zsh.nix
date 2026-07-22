@@ -292,21 +292,106 @@ in
       fi
 
       if [[ -d /proc/sys/fs/binfmt_misc ]] && [[ -f /proc/sys/fs/binfmt_misc/WSLInterop || -n "$WSL_DISTRO_NAME" ]]; then
-        if command -v wslpath >/dev/null 2>&1 && command -v powershell.exe >/dev/null 2>&1; then
-          cdw() {
+        if command -v wslpath >/dev/null 2>&1; then
+          __wsl_path_is_windows_drive() {
             emulate -L zsh
-            local win_path
-            win_path="$(powershell.exe -c "[Environment]::GetEnvironmentVariable('USERPROFILE','User')" 2>/dev/null)" || {
-              echo "cdw: failed to get Windows USERPROFILE" >&2
-              return 1
-            }
-            local wsl_path
-            wsl_path="$(wslpath "$win_path" 2>/dev/null)" || {
-              echo "cdw: failed to convert path '$win_path'" >&2
-              return 1
-            }
-            cd "$wsl_path"
+
+            local windows_drive_regex='^[A-Za-z]:([\\/]|$)'
+
+            [[ "$1" =~ "$windows_drive_regex" ]]
           }
+
+          __wsl_path_is_windows() {
+            emulate -L zsh
+
+            local input_path="$1"
+            local windows_unc_regex='^(\\\\|//)'
+
+            __wsl_path_is_windows_drive "$input_path" || [[ "$input_path" =~ "$windows_unc_regex" ]]
+          }
+
+          __wsl_windows_drive_to_linux() {
+            emulate -L zsh
+
+            local input_path="$1"
+            local drive rest
+            drive="$(printf '%s' "$input_path" | cut -c1 | tr '[:upper:]' '[:lower:]')"
+            rest="$(printf '%s' "$input_path" | cut -c3-)"
+            rest="''${rest//\\//}"
+            rest="''${rest##/}"
+            print -r -- "/mnt/$drive/$rest"
+          }
+
+          wp() {
+            emulate -L zsh
+
+            if (( $# != 1 )); then
+              print -u2 "Usage: wp <path>"
+              return 1
+            fi
+
+            local input_path="$1"
+
+            if __wsl_path_is_windows_drive "$input_path"; then
+              wslpath -u "$input_path" 2>/dev/null || __wsl_windows_drive_to_linux "$input_path"
+            elif __wsl_path_is_windows "$input_path"; then
+              wslpath -u "$input_path"
+            else
+              wslpath -w "$input_path"
+            fi
+          }
+
+          wpq() {
+            emulate -L zsh
+
+            if (( $# != 1 )); then
+              print -u2 "Usage: wpq <path>"
+              return 1
+            fi
+
+            local converted_path
+            converted_path="$(wp "$1")" || return
+            print -r -- "''${(q)converted_path}"
+          }
+
+          if command -v powershell.exe >/dev/null 2>&1; then
+            cdw() {
+              emulate -L zsh
+              local win_path
+              win_path="$(powershell.exe -c "[Environment]::GetEnvironmentVariable('USERPROFILE','User')" 2>/dev/null)" || {
+                echo "cdw: failed to get Windows USERPROFILE" >&2
+                return 1
+              }
+              local wsl_path
+              wsl_path="$(wslpath "$win_path" 2>/dev/null)" || {
+                echo "cdw: failed to convert path '$win_path'" >&2
+                return 1
+              }
+              cd "$wsl_path"
+            }
+
+            wpo() {
+              emulate -L zsh
+
+              if (( $# != 1 )); then
+                print -u2 "Usage: wpo <path>"
+                return 1
+              fi
+
+              local input_path="$1"
+              local win_path
+              if __wsl_path_is_windows "$input_path"; then
+                win_path="$input_path"
+              else
+                win_path="$(wslpath -w "$input_path" 2>/dev/null)" || {
+                  print -u2 "wpo: failed to convert path '$input_path'"
+                  return 1
+                }
+              fi
+
+              powershell.exe -NoProfile -Command 'Start-Process -FilePath $args[0]' "$win_path"
+            }
+          fi
         fi
       fi
 
