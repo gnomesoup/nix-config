@@ -23,6 +23,7 @@ let
         80 # P
         86 # V
         88 # X
+        90 # Z
       ];
 
   # Forward Win+<number> to WezTerm's default tab-switching shortcuts.
