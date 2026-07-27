@@ -590,6 +590,46 @@ in
         end
       '';
       telescope.settings.pickers.find_files.hidden = true;
+      # kickstart-nixvim references grammars that may be removed from newer
+      # nixpkgs revisions. Preserve its selection while skipping unavailable
+      # grammars instead of failing the entire system evaluation.
+      treesitter.grammarPackages =
+        let
+          grammars = pkgs.vimPlugins.nvim-treesitter.builtGrammars;
+          grammarNames = [
+            "bash"
+            "ssh_config"
+            "tmux"
+            "nix"
+            "query"
+            "vim"
+            "vimdoc"
+            "csv"
+            "diff"
+            "editorconfig"
+            "git_config"
+            "git_rebase"
+            "gitattributes"
+            "gitcommit"
+            "gitignore"
+            "ini"
+            "markdown"
+            "markdown_inline"
+            "regex"
+            "yaml"
+            "rust"
+            "toml"
+            "css"
+            "html"
+            "javascript"
+            "json"
+          ];
+        in
+        lib.mkForce (
+          builtins.map (name: grammars.${name}) (
+            builtins.filter (name: builtins.hasAttr name grammars) grammarNames
+          )
+        );
       "which-key" = {
         settings = {
           replace = {
