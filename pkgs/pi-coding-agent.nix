@@ -35,6 +35,17 @@ let
       }
     else
       null;
+  # pi-ai >= 0.82 generates provider model catalogs as JSON files that are
+  # present in the published npm package but ignored in the GitHub source
+  # archive. Fetch the matching npm package and hydrate those files locally so
+  # the TypeScript build remains offline/reproducible under Nix.
+  aiModelDataTarballs = {
+    "0.82.1" = fetchurl {
+      url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.82.1.tgz";
+      hash = "sha512-3WFYRhEp3lQB3444EhPMBcM7zSaEUE3eJgHOR7s4081NLqbw/FsWilIKWXSua0Gv3sRr7m9xMidR3pPDE7jI/A==";
+    };
+  };
+  aiModelDataTarball = aiModelDataTarballs.${version} or null;
   patchedPackageLock =
     if patchXlsx then
       packageLock
@@ -66,13 +77,20 @@ buildNpmPackage (finalAttrs: {
   };
   npmConfigHook = importNpmLock.npmConfigHook;
 
-  # importNpmLock only patches the root package files. The monorepo's web-ui
-  # workspace currently declares xlsx as a direct URL dependency, so patch that
-  # workspace package too even though this derivation only builds coding-agent.
-  postPatch = lib.optionalString patchXlsx ''
-    substituteInPlace packages/web-ui/package.json \
-      --replace-fail '${xlsxPackage.resolved}' '${xlsxPackage.version}'
-  '';
+  # Hydrate generated pi-ai model data when the GitHub archive omits it.
+  # importNpmLock only patches the root package files; patch web-ui separately
+  # when it declares xlsx as a direct URL dependency.
+  postPatch =
+    lib.optionalString (aiModelDataTarball != null) ''
+      model_data_tmp=$(mktemp -d)
+      tar -xzf ${aiModelDataTarball} -C "$model_data_tmp"
+      mkdir -p packages/ai/src/providers/data
+      cp -R "$model_data_tmp/package/dist/providers/data/." packages/ai/src/providers/data/
+    ''
+    + lib.optionalString patchXlsx ''
+      substituteInPlace packages/web-ui/package.json \
+        --replace-fail '${xlsxPackage.resolved}' '${xlsxPackage.version}'
+    '';
 
   npmWorkspace = "packages/coding-agent";
   dontNpmPrune = true;
@@ -92,6 +110,8 @@ buildNpmPackage (finalAttrs: {
     runHook preBuild
 
     npx tsgo -p packages/ai/tsconfig.build.json
+    rm -rf packages/ai/dist/providers/data
+    cp -R packages/ai/src/providers/data packages/ai/dist/providers/data
     npx tsgo -p packages/tui/tsconfig.build.json
     npx tsgo -p packages/agent/tsconfig.build.json
     npm run build --workspace=packages/coding-agent
