@@ -19,6 +19,7 @@
 
   # Necessary for using flakes on this system.
   nix.settings = {
+    download-buffer-size = 524288000;
     experimental-features = "nix-command flakes";
     substituters = [ "https://cache.nixos.org" ];
     trusted-public-keys = [

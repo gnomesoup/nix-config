@@ -354,16 +354,73 @@ let
     end, {})
 
     -- Git-based project sessions
+    local function git_session_path()
+      local cwd = vim.loop.cwd()
+      if not cwd then
+        return nil
+      end
+
+      local root = vim.fn.systemlist({ "git", "-C", cwd, "rev-parse", "--show-toplevel" })[1]
+      if vim.v.shell_error ~= 0 or not root or root == "" then
+        return nil
+      end
+
+      return root .. "/.nvimsession"
+    end
+
+    local function session_has_unrestorable_buffers(session_path)
+      local ok, lines = pcall(vim.fn.readfile, session_path)
+      if not ok then
+        return false
+      end
+
+      for _, line in ipairs(lines) do
+        if line:match("Neogit%w*") or line:match("term://") then
+          return true
+        end
+      end
+
+      return false
+    end
+
+    local function session_window_state()
+      local has_restorable = false
+      local has_unrestorable = false
+
+      for _, win in ipairs(vim.api.nvim_list_wins()) do
+        if vim.api.nvim_win_get_config(win).relative == "" then
+          local buf = vim.api.nvim_win_get_buf(win)
+          local name = vim.api.nvim_buf_get_name(buf)
+          local buftype = vim.api.nvim_get_option_value("buftype", { buf = buf })
+
+          if name:match("Neogit%w*") or buftype == "terminal" then
+            has_unrestorable = true
+          elseif buftype == "" and name ~= "" then
+            has_restorable = true
+          end
+        end
+      end
+
+      return has_restorable, has_unrestorable
+    end
+
     vim.api.nvim_create_autocmd("VimLeavePre", {
       callback = function()
-        if vim.fn.argc() > 0 then
+        local has_restorable, has_unrestorable = session_window_state()
+        if vim.fn.argc() > 0 or has_unrestorable or not has_restorable then
           return
         end
 
-        local git_root = vim.fn.finddir('.git', vim.loop.cwd())
-        if #git_root > 0 then
-          local session_path = vim.fn.fnamemodify(git_root, ':p:h') .. "/.nvimsession"
-          vim.cmd("mksession! " .. session_path)
+        local session_path = git_session_path()
+        if session_path then
+          local sessionoptions = vim.o.sessionoptions
+          vim.opt.sessionoptions:remove({ "buffers", "terminal" })
+          local ok, err = pcall(vim.cmd, "mksession! " .. vim.fn.fnameescape(session_path))
+          vim.o.sessionoptions = sessionoptions
+
+          if not ok then
+            vim.notify("Could not save session: " .. err, vim.log.levels.WARN, { title = "Session" })
+          end
         end
       end,
     })
@@ -374,11 +431,16 @@ let
           return
         end
 
-        local git_root = vim.fn.finddir('.git', vim.loop.cwd())
-        if #git_root > 0 then
-          local session_path = vim.fn.fnamemodify(git_root, ':p:h') .. "/.nvimsession"
-          if vim.fn.filereadable(session_path) == 1 then
-            vim.cmd("source " .. session_path)
+        local session_path = git_session_path()
+        if session_path and vim.fn.filereadable(session_path) == 1 then
+          if session_has_unrestorable_buffers(session_path) then
+            vim.notify("Skipping session with Neogit or terminal buffers: " .. session_path, vim.log.levels.WARN, { title = "Session" })
+            return
+          end
+
+          local ok, err = pcall(vim.cmd, "source " .. vim.fn.fnameescape(session_path))
+          if not ok then
+            vim.notify("Could not load session: " .. err, vim.log.levels.WARN, { title = "Session" })
           end
         end
       end,
@@ -590,6 +652,46 @@ in
         end
       '';
       telescope.settings.pickers.find_files.hidden = true;
+      # kickstart-nixvim references grammars that may be removed from newer
+      # nixpkgs revisions. Preserve its selection while skipping unavailable
+      # grammars instead of failing the entire system evaluation.
+      treesitter.grammarPackages =
+        let
+          grammars = pkgs.vimPlugins.nvim-treesitter.builtGrammars;
+          grammarNames = [
+            "bash"
+            "ssh_config"
+            "tmux"
+            "nix"
+            "query"
+            "vim"
+            "vimdoc"
+            "csv"
+            "diff"
+            "editorconfig"
+            "git_config"
+            "git_rebase"
+            "gitattributes"
+            "gitcommit"
+            "gitignore"
+            "ini"
+            "markdown"
+            "markdown_inline"
+            "regex"
+            "yaml"
+            "rust"
+            "toml"
+            "css"
+            "html"
+            "javascript"
+            "json"
+          ];
+        in
+        lib.mkForce (
+          builtins.map (name: grammars.${name}) (
+            builtins.filter (name: builtins.hasAttr name grammars) grammarNames
+          )
+        );
       "which-key" = {
         settings = {
           replace = {
