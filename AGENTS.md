@@ -23,6 +23,7 @@ Treat changes as infrastructure updates: prefer declarative changes and reversib
 - Formatting relies on `nixfmt-rfc-style` plus `nixpkgs-fmt`; they can be invoked via `nix fmt`.
 - Preferred shells are zsh + starship; alias files live under `users/modules/zsh.nix`.
 - Keep Determinate Systems installers in mind when touching flake inputs.
+- When researching or editing Nix configurations, connect to the `nixos` MCP server first and use `nixos_nix` for current package, option, flake, Home Manager, and nix-darwin information. Prefer it over `nix search` or `nix eval` for discovery; continue using local `nix eval`, builds, and checks for repository-specific validation.
 
 ## Core Build Commands
 - `nix flake show` — inspect available systems and outputs.
