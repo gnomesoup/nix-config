@@ -389,7 +389,8 @@ in
                 }
               fi
 
-              powershell.exe -NoProfile -Command 'Start-Process -FilePath $args[0]' "$win_path"
+              local ps_win_path="''${win_path//\'/\'\'}"
+              powershell.exe -NoProfile -Command "Start-Process -FilePath '$ps_win_path'"
             }
           fi
         fi
