@@ -2,9 +2,13 @@
   pkgs,
   vars,
   self,
+  freenet-core,
   ...
 }:
 
+let
+  freenet = freenet-core.packages.${pkgs.stdenv.hostPlatform.system}.freenet;
+in
 {
   imports = [
     ../modules/appleDefaults.nix
@@ -23,6 +27,7 @@
     borgbackup
     sops
     age
+    freenet
   ];
 
   # Necessary for using flakes on this system.
@@ -80,16 +85,33 @@
     tailscale.enable = true;
   };
 
-  launchd.user.agents.input-leap-server = {
-    command = "${pkgs.input-leap}/bin/input-leap";
-    serviceConfig = {
-      RunAtLoad = true;
-      KeepAlive = {
-        Crashed = true;
-        SuccessfulExit = false;
+  launchd.user.agents = {
+    freenet = {
+      serviceConfig = {
+        ProgramArguments = [
+          "${freenet}/bin/freenet"
+          "network"
+          "--disable-auto-update"
+        ];
+        RunAtLoad = true;
+        KeepAlive.SuccessfulExit = false;
+        ThrottleInterval = 10;
+        StandardOutPath = "/Users/mpfammatter/Library/Logs/freenet.out.log";
+        StandardErrorPath = "/Users/mpfammatter/Library/Logs/freenet.err.log";
       };
-      StandardOutPath = "/Users/mpfammatter/Library/Logs/input-leap.out.log";
-      StandardErrorPath = "/Users/mpfammatter/Library/Logs/input-leap.err.log";
+    };
+
+    input-leap-server = {
+      command = "${pkgs.input-leap}/bin/input-leap";
+      serviceConfig = {
+        RunAtLoad = true;
+        KeepAlive = {
+          Crashed = true;
+          SuccessfulExit = false;
+        };
+        StandardOutPath = "/Users/mpfammatter/Library/Logs/input-leap.out.log";
+        StandardErrorPath = "/Users/mpfammatter/Library/Logs/input-leap.err.log";
+      };
     };
   };
 

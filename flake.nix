@@ -11,6 +11,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    freenet-core = {
+      url = "github:freenet/freenet-core";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -40,6 +45,7 @@
       nix-darwin,
       nixpkgs,
       home-manager,
+      freenet-core,
       sops-nix,
       kickstart-nixvim,
       nixos-wsl,
@@ -235,7 +241,7 @@
 
         "exegol" = nix-darwin.lib.darwinSystem {
           specialArgs = {
-            inherit self;
+            inherit self freenet-core;
           };
           modules = [
             ./hosts/exegol
