@@ -337,17 +337,23 @@ in
           if command -v powershell.exe >/dev/null 2>&1; then
             cdw() {
               emulate -L zsh
+
               local win_path
-              win_path="$(powershell.exe -c "[Environment]::GetEnvironmentVariable('USERPROFILE','User')" 2>/dev/null)" || {
-                echo "cdw: failed to get Windows USERPROFILE" >&2
+              win_path="$(powershell.exe -NoProfile -NonInteractive -Command '[Console]::Out.Write($env:USERPROFILE)' 2>/dev/null)" || {
+                print -u2 "cdw: failed to get Windows USERPROFILE"
                 return 1
               }
+              if [[ -z "$win_path" ]]; then
+                print -u2 "cdw: Windows USERPROFILE is empty"
+                return 1
+              fi
+
               local wsl_path
-              wsl_path="$(wslpath "$win_path" 2>/dev/null)" || {
-                echo "cdw: failed to convert path '$win_path'" >&2
+              wsl_path="$(wslpath -u "$win_path" 2>/dev/null)" || {
+                print -u2 "cdw: failed to convert path '$win_path'"
                 return 1
               }
-              cd "$wsl_path"
+              builtin cd -- "$wsl_path"
             }
 
             wpo() {
