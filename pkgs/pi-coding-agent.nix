@@ -44,6 +44,10 @@ let
       url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.82.1.tgz";
       hash = "sha512-3WFYRhEp3lQB3444EhPMBcM7zSaEUE3eJgHOR7s4081NLqbw/FsWilIKWXSua0Gv3sRr7m9xMidR3pPDE7jI/A==";
     };
+    "0.84.1" = fetchurl {
+      url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.1.tgz";
+      hash = "sha256-araJGJ58s95c2xJjEqPmDorDX+XuXxtj0A9xHIpDDHM=";
+    };
   };
   aiModelDataTarball = aiModelDataTarballs.${version} or null;
   patchedPackageLock =
@@ -109,11 +113,14 @@ buildNpmPackage (finalAttrs: {
   buildPhase = ''
     runHook preBuild
 
+    npx tsgo -p packages/telemetry/tsconfig.build.json
     npx tsgo -p packages/ai/tsconfig.build.json
     rm -rf packages/ai/dist/providers/data
     cp -R packages/ai/src/providers/data packages/ai/dist/providers/data
     npx tsgo -p packages/tui/tsconfig.build.json
     npx tsgo -p packages/agent/tsconfig.build.json
+    npx tsgo -p packages/protocol/tsconfig.build.json
+    npx tsgo -p packages/client/tsconfig.build.json
     npm run build --workspace=packages/coding-agent
 
     runHook postBuild
@@ -127,7 +134,10 @@ buildNpmPackage (finalAttrs: {
 
     # Replace workspace deps needed at runtime with real copies
     for ws in @earendil-works/pi-ai:packages/ai \
+              @earendil-works/pi-telemetry:packages/telemetry \
               @earendil-works/pi-agent-core:packages/agent \
+              @earendil-works/pi-client:packages/client \
+              @earendil-works/pi-protocol:packages/protocol \
               @earendil-works/pi-tui:packages/tui; do
       IFS=: read -r pkg src <<< "$ws"
       rm "$nm/$pkg"

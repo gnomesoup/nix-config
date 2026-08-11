@@ -655,6 +655,11 @@ in
       # kickstart-nixvim references grammars that may be removed from newer
       # nixpkgs revisions. Preserve its selection while skipping unavailable
       # grammars instead of failing the entire system evaluation.
+      # kickstart-nixvim configures the legacy nvim-treesitter setting to disable
+      # indentation for Ruby. Mirror it with Nixvim's native main-branch option
+      # and clear the legacy setting so Nixvim does not emit a migration warning.
+      treesitter.indent.disable = lib.mkForce [ "ruby" ];
+      treesitter.settings.indent.disable = lib.mkForce null;
       treesitter.grammarPackages =
         let
           grammars = pkgs.vimPlugins.nvim-treesitter.builtGrammars;
