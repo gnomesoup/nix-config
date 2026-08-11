@@ -177,17 +177,6 @@ in
         }
       }
 
-      openclaw-refresh-completion() {
-        emulate -L zsh
-
-        if ! command -v openclaw >/dev/null 2>&1; then
-          print -u2 "openclaw is not installed"
-          return 1
-        fi
-
-        openclaw completion --shell zsh --write-state
-      }
-
       nix() {
         emulate -L zsh
 
@@ -280,15 +269,6 @@ in
 
       if command -v opencode >/dev/null 2>&1; then
         source <(opencode completion)
-      fi
-
-      if command -v openclaw >/dev/null 2>&1; then
-        local openclaw_state_dir="''${OPENCLAW_STATE_DIR:-$HOME/.openclaw}"
-        local openclaw_completion_file="$openclaw_state_dir/completions/openclaw.zsh"
-
-        if [[ -f "$openclaw_completion_file" ]]; then
-          source "$openclaw_completion_file"
-        fi
       fi
 
       if [[ -d /proc/sys/fs/binfmt_misc ]] && [[ -f /proc/sys/fs/binfmt_misc/WSLInterop || -n "$WSL_DISTRO_NAME" ]]; then
@@ -470,7 +450,6 @@ in
       "iud" = "immich upload --delete ~/Downloads";
       "venv" = "__activate_git_root_venv";
       "doco" = "docker compose";
-      "docooc" = "docker compose run --rm openclaw-cli";
       "wz" = "wezterm";
       "wzc" = "wezterm cli";
     };
