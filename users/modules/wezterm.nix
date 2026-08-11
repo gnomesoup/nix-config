@@ -581,7 +581,7 @@ let
       local right_ok, right_err = pcall(function()
         side_pane = editor_pane:split {
           direction = "Right",
-          size = 0.25,
+          size = 0.5,
         }
       end)
       if not right_ok then
@@ -1108,29 +1108,20 @@ let
       return selector_label(parts)
     end
 
-    local function open_domain_tab(window, pane, choice)
-      local mux_window = window:mux_window()
-      if not mux_window then
-        notify(window, "Could not determine the current window")
+    local function attach_domain(window, choice)
+      local domain = mux.get_domain(choice.name)
+      if not domain then
+        notify(window, "Unknown domain '" .. choice.name .. "'")
         return
       end
 
-      local ok, tab, domain_pane = pcall(function()
-        return mux_window:spawn_tab {
-          domain = { DomainName = choice.name },
-        }
+      -- Unlike spawning a tab in the domain, attach imports only its existing
+      -- sessions and does not create a default session when it is empty.
+      local ok, attach_error = pcall(function()
+        domain:attach()
       end)
-      if not ok or not tab then
-        notify(window, "Failed to open domain '" .. choice.name .. "': " .. tostring(tab))
-        return
-      end
-
-      pcall(function()
-        tab:set_title(choice.title)
-      end)
-      activate_tab(tab)
-      if domain_pane then
-        domain_pane:activate()
+      if not ok then
+        notify(window, "Failed to attach domain '" .. choice.name .. "': " .. tostring(attach_error))
       end
     end
 
@@ -1192,8 +1183,8 @@ let
 
       window:perform_action(
         act.InputSelector {
-          title = "Open Domain Tab",
-          description = "Open a new tab in the selected domain.",
+          title = "Attach Domain",
+          description = "Open the selected domain's existing mux sessions.",
           fuzzy_description = "Fuzzy search by host, domain, or address.",
           fuzzy = true,
           choices = choices,
@@ -1204,7 +1195,7 @@ let
 
             local choice = domain_by_name[id]
             if choice then
-              open_domain_tab(selector_window, selector_pane, choice)
+              attach_domain(selector_window, choice)
             end
           end),
         },
