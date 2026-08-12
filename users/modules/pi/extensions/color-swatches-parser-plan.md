@@ -16,6 +16,8 @@ users/modules/pi/extensions/
 
 `users/modules/pi.nix` links both files into `~/.pi/agent/extensions/`. Make changes to the repository copies rather than editing the generated files in the home directory, and update this plan whenever the extension's implementation or migration status changes.
 
+The current extension provides `/color-swatches [on|off|toggle]`. With no argument, the command toggles highlighting for the current extension runtime; restarting Pi or running `/reload` resets highlighting to enabled.
+
 ## Selected parser
 
 Use **Culori `4.0.2`**, pinned exactly, with **`@types/culori` `4.0.1`** as a pinned development dependency.

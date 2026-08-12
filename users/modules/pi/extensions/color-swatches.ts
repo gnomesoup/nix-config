@@ -159,6 +159,24 @@ function colorize(text: string): string {
 }
 
 export default function (pi: ExtensionAPI) {
+	let enabled = true;
+
+	pi.registerCommand("color-swatches", {
+		description: "Toggle color highlighting, or set it with on/off",
+		handler: async (args, ctx) => {
+			const action = args.trim().toLowerCase();
+			if (action === "" || action === "toggle") enabled = !enabled;
+			else if (action === "on") enabled = true;
+			else if (action === "off") enabled = false;
+			else {
+				ctx.ui.notify("Usage: /color-swatches [on|off|toggle]", "warning");
+				return;
+			}
+
+			ctx.ui.notify(`Color highlighting ${enabled ? "enabled" : "disabled"}`, "info");
+		},
+	});
+
 	const markdownPrototype = Markdown.prototype as typeof Markdown.prototype & Record<symbol, PatchState | undefined>;
 	let markdownState = markdownPrototype[PATCH_KEY];
 	if (!markdownState) {
@@ -166,6 +184,8 @@ export default function (pi: ExtensionAPI) {
 		markdownState = { originalRender, references: 0 };
 		markdownPrototype[PATCH_KEY] = markdownState;
 		markdownPrototype.render = function (width: number): string[] {
+			if (!enabled) return originalRender.call(this, width);
+
 			const instance = this as unknown as MarkdownInstance;
 			const originalText = instance.text;
 			instance.text = colorize(originalText);
@@ -185,6 +205,8 @@ export default function (pi: ExtensionAPI) {
 		textState = { originalRender, references: 0 };
 		textPrototype[TEXT_PATCH_KEY] = textState;
 		textPrototype.render = function (width: number): string[] {
+			if (!enabled) return originalRender.call(this, width);
+
 			const instance = this as unknown as TextInstance;
 			const originalText = instance.text;
 			instance.text = colorize(originalText);
