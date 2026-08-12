@@ -29,6 +29,12 @@ in
     pkgs.pi-coding-agent
   ];
 
+  home.file = {
+    ".pi/agent/extensions/color-swatches.ts".source = ./pi/extensions/color-swatches.ts;
+    ".pi/agent/extensions/color-swatches-parser-plan.md".source =
+      ./pi/extensions/color-swatches-parser-plan.md;
+  };
+
   # Write a normal file instead of a Home Manager symlink. Pi records transient
   # runtime fields such as changelog state in settings.json; each rebuild
   # reasserts this declarative configuration.
