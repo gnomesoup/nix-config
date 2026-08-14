@@ -51,6 +51,7 @@ in
     configFile = "/Users/mpfammatter/.config/InputLeap/input-leap.conf";
     groupClientChecked = false;
     groupServerChecked = true;
+    "internalConfig.screenSaverSync" = false;
     minimizeToTray = true;
     screenName = "exegol.local";
     startedBefore = true;
@@ -58,6 +59,9 @@ in
     useInternalConfig = false;
     wizardLastRun = 9;
   };
+
+  home-manager.users.mpfammatter.home.file.".config/InputLeap/input-leap.conf".source =
+    ./input-leap.conf;
 
   # The platform the configuration will be used on.
   nixpkgs = {

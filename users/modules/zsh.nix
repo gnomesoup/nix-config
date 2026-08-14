@@ -177,6 +177,42 @@ in
         }
       }
 
+      input-leap-restart() {
+        emulate -L zsh
+
+        case "$(uname -s)" in
+          Darwin)
+            local service="gui/$(id -u)/org.nixos.input-leap-server"
+            if ! launchctl print "$service" >/dev/null 2>&1; then
+              print -u2 "input-leap-restart: launchd service is not loaded: $service"
+              return 1
+            fi
+            launchctl kickstart -k "$service"
+            ;;
+          Linux)
+            if ! command -v systemctl >/dev/null 2>&1; then
+              print -u2 "input-leap-restart: systemctl is unavailable"
+              return 1
+            fi
+
+            local unit
+            for unit in input-leap-server.service input-leap.service; do
+              if systemctl --user cat "$unit" >/dev/null 2>&1; then
+                systemctl --user restart "$unit"
+                return
+              fi
+            done
+
+            print -u2 "input-leap-restart: no supported user service found"
+            return 1
+            ;;
+          *)
+            print -u2 "input-leap-restart: unsupported operating system: $(uname -s)"
+            return 1
+            ;;
+        esac
+      }
+
       nix() {
         emulate -L zsh
 
@@ -454,6 +490,7 @@ in
         else
           "nix-collect-garbage --delete-older-than 7d; sudo nix-collect-garbage --delete-older-than 30d; ${optimiseNixStore}";
       "iud" = "immich upload --delete ~/Downloads";
+      "ilr" = "input-leap-restart";
       "venv" = "__activate_git_root_venv";
       "doco" = "docker compose";
       "wz" = "wezterm";
