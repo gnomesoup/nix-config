@@ -19,7 +19,10 @@ let
     defaultProvider = "openai-codex";
     defaultThinkingLevel = "high";
     npmCommand = [ "${piNpm}/bin/pi-npm" ];
-    packages = [ "npm:@alpino13/pi-ask" ];
+    packages = [
+      "npm:@alpino13/pi-ask"
+      "npm:pi-web-search@1.3.1"
+    ];
   };
   piSettingsFile = jsonFormat.generate "pi-settings.json" piSettings;
 in
