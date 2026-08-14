@@ -8,7 +8,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
-import { Text } from "@earendil-works/pi-tui";
+import { Container, fuzzyFilter, Input, SelectList, Spacer, Text } from "@earendil-works/pi-tui";
 
 const CONFIG_VERSION = 1;
 const CONFIG_PATH = join(getAgentDir(), "lite-mode.json");
@@ -126,14 +126,13 @@ export default function liteModeExtension(pi: ExtensionAPI) {
 	}
 
 	function updateUi(ctx: ExtensionContext): void {
+		ctx.ui.setStatus(STATUS_KEY, undefined);
 		if (!enabled || !liteModel) {
-			ctx.ui.setStatus(STATUS_KEY, undefined);
 			ctx.ui.setWidget(WIDGET_KEY, undefined);
 			return;
 		}
 
 		const label = modelKey(liteModel);
-		ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("warning", ctx.ui.theme.bold("⚡ LITE")));
 		ctx.ui.setWidget(WIDGET_KEY, (_tui, theme) =>
 			new Text(
 				theme.fg("warning", theme.bold(`⚡ LITE MODE — ${label}`)),
@@ -302,13 +301,96 @@ export default function liteModeExtension(pi: ExtensionAPI) {
 				return;
 			}
 
-			const selected = await ctx.ui.select(
-				"Select the Lite model",
-				models.map((model) => modelKey(modelRef(model))),
-			);
-			if (!selected) return;
-			const ref = parseModelArgument(selected);
-			if (ref) await assignLiteModel(ref, ctx);
+			if (ctx.mode !== "tui") {
+				const selected = await ctx.ui.select(
+					"Select the Lite model",
+					models.map((model) => modelKey(modelRef(model))),
+				);
+				const ref = selected && parseModelArgument(selected);
+				if (ref) await assignLiteModel(ref, ctx);
+				return;
+			}
+
+			const orderedModels = [...models].sort((left, right) => {
+				const leftIsCurrent = sameModel(left, liteModel);
+				const rightIsCurrent = sameModel(right, liteModel);
+				if (leftIsCurrent !== rightIsCurrent) return leftIsCurrent ? -1 : 1;
+				return modelKey(modelRef(left)).localeCompare(modelKey(modelRef(right)));
+			});
+			const selected = await ctx.ui.custom<Model<Api> | undefined>((tui, theme, keybindings, done) => {
+				const container = new Container();
+				const searchInput = new Input();
+				const listContainer = new Container();
+				let selectList: SelectList;
+
+				const rebuildList = () => {
+					const query = searchInput.getValue();
+					const matchingModels = query
+						? fuzzyFilter(
+								orderedModels,
+								query,
+								(model) => `${model.provider} ${modelKey(modelRef(model))} ${model.name ?? ""}`,
+							)
+						: orderedModels;
+					selectList = new SelectList(
+						matchingModels.map((model) => ({
+							value: modelKey(modelRef(model)),
+							label: model.id,
+							description: `[${model.provider}]`,
+						})),
+						10,
+						{
+							selectedPrefix: (text) => theme.fg("accent", text),
+							selectedText: (text) => theme.fg("accent", text),
+							description: (text) => theme.fg("muted", text),
+							scrollInfo: (text) => theme.fg("muted", text),
+							noMatch: (text) => theme.fg("muted", text),
+						},
+					);
+					const currentIndex = matchingModels.findIndex((model) => sameModel(model, liteModel));
+					if (!query && currentIndex >= 0) selectList.setSelectedIndex(currentIndex);
+					selectList.onSelect = (item) => {
+						done(matchingModels.find((model) => modelKey(modelRef(model)) === item.value));
+					};
+					selectList.onCancel = () => done(undefined);
+					listContainer.clear();
+					listContainer.addChild(selectList);
+				};
+
+				container.addChild(new Text(theme.fg("accent", theme.bold("Select the Lite model")), 1, 0));
+				container.addChild(new Text(theme.fg("muted", "Type to search • ↑↓ navigate • enter select • esc cancel"), 1, 0));
+				container.addChild(new Spacer(1));
+				container.addChild(searchInput);
+				container.addChild(new Spacer(1));
+				container.addChild(listContainer);
+				rebuildList();
+
+				return {
+					get focused() {
+						return searchInput.focused;
+					},
+					set focused(value: boolean) {
+						searchInput.focused = value;
+					},
+					render: (width) => container.render(width),
+					invalidate: () => container.invalidate(),
+					handleInput: (data) => {
+						if (
+							keybindings.matches(data, "tui.select.up") ||
+							keybindings.matches(data, "tui.select.down") ||
+							keybindings.matches(data, "tui.select.confirm") ||
+							keybindings.matches(data, "tui.select.cancel")
+						) {
+							selectList.handleInput(data);
+						} else {
+							searchInput.handleInput(data);
+							rebuildList();
+						}
+						tui.requestRender();
+					},
+				};
+			});
+			if (selected) await assignLiteModel(modelRef(selected), ctx);
 		},
 	});
 
