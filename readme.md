@@ -1,6 +1,8 @@
 # Mixed Nix Configuration
 
-A nix config with multiple hosts and multiple architectures
+A nix config with multiple hosts and multiple architectures.
+
+See the [configuration wiring diagram](docs/wiring-diagram.md) for the flake inputs, outputs, host profiles, Home Manager profiles, shared modules, and secrets flow.
 
 ## Installation
 
