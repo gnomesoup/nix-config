@@ -3,13 +3,14 @@
   buildNpmPackage,
   fetchurl,
   importNpmLock,
-  nix-update-script,
+  python3,
   versionCheckHook,
   src,
   version,
   writableTmpDirAsHomeHook,
   ripgrep,
   makeBinaryWrapper,
+  writeShellApplication,
 }:
 let
   rootPackage = builtins.fromJSON (builtins.readFile "${src}/package.json");
@@ -38,7 +39,9 @@ let
   # pi-ai >= 0.82 generates provider model catalogs as JSON files that are
   # present in the published npm package but ignored in the GitHub source
   # archive. Fetch the matching npm package and hydrate those files locally so
-  # the TypeScript build remains offline/reproducible under Nix.
+  # the TypeScript build remains offline/reproducible under Nix. After updating
+  # the pi-mono input, refresh this map with:
+  #   nix run .#update-pi-coding-agent
   aiModelDataTarballs = {
     "0.82.1" = fetchurl {
       url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.82.1.tgz";
@@ -48,8 +51,19 @@ let
       url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.1.tgz";
       hash = "sha256-araJGJ58s95c2xJjEqPmDorDX+XuXxtj0A9xHIpDDHM=";
     };
+    "0.84.2" = fetchurl {
+      url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.2.tgz";
+      hash = "sha512-6MzsrYIYNVlE7SfpbL2yYb67Qo58p/7Q+xWG1RZvoX1P80aRCHSod2/13aFpxkow1lPO2LEh3c495J0Gwmyjig==";
+    };
   };
   aiModelDataTarball = aiModelDataTarballs.${version} or null;
+  updateScript = writeShellApplication {
+    name = "update-pi-coding-agent";
+    runtimeInputs = [ python3 ];
+    text = ''
+      exec python3 ${./update-pi-coding-agent.py} --version ${lib.escapeShellArg version} "$@"
+    '';
+  };
   patchedPackageLock =
     if patchXlsx then
       packageLock
@@ -161,7 +175,10 @@ buildNpmPackage (finalAttrs: {
   versionCheckProgram = "${placeholder "out"}/bin/pi";
   versionCheckProgramArg = "--version";
 
-  passthru.updateScript = nix-update-script { };
+  passthru = {
+    updateScript = lib.getExe updateScript;
+    updateScriptPackage = updateScript;
+  };
 
   meta = {
     description = "Coding agent CLI with read, bash, edit, write tools and session management";

@@ -89,6 +89,19 @@
 
       formatter = forAllSystems (system: (mkPkgs system).nixfmt);
 
+      apps = forAllSystems (
+        system:
+        let
+          package = (mkPkgs system).pi-coding-agent;
+        in
+        {
+          update-pi-coding-agent = {
+            type = "app";
+            program = package.passthru.updateScript;
+          };
+        }
+      );
+
       packages.x86_64-linux.pi-coding-agent = (mkPkgs "x86_64-linux").pi-coding-agent;
 
       homeConfigurations = {

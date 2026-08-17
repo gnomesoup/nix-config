@@ -119,6 +119,7 @@ Treat changes as infrastructure updates: prefer declarative changes and reversib
 ## Common Pitfalls
 - Forgetting to enable `nix-command flakes` on new hosts stalls rebuilds—mirror existing settings.
 - Missing `home-manager.backupFileExtension` duplicates dotfiles; keep it consistent with flake outputs.
+- After updating the `pi-mono` input, run `nix run .#update-pi-coding-agent` to refresh the generated model-data tarball and hash before building.
 - Darwin hosts using `system.defaults.*` should also set `system.primaryUser` so user-scoped defaults apply during activation.
 - Samba shares on `hoth` expect matching system users; do not rename without updating `services.samba.settings`.
 - `immich` service on `nixvm` assumes an external secrets file; never bake credentials directly.
