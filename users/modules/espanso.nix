@@ -5,7 +5,7 @@
   ...
 }:
 let
-  inherit (pkgs.stdenv) isDarwin isLinux;
+  inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
   darwinEspansoBinary = "/Applications/Espanso.app/Contents/MacOS/espanso";
 in
 {

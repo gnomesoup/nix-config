@@ -8,7 +8,7 @@ let
     ];
   };
   superProductivity =
-    if pkgs.stdenv.isDarwin then
+    if pkgs.stdenv.hostPlatform.isDarwin then
       pkgs.super-productivity.overrideAttrs (old: {
         # macOS 26's iconutil rejects the regenerated source PNGs even though
         # the source's already-compiled ICNS is valid. Avoid the redundant
@@ -32,7 +32,7 @@ in
     # pkgs.brave
     # pkgs.ladybird
   ]
-  ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+  ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [
     gimpWithPlugins
     pkgs.scantailor-advanced
   ];

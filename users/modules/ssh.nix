@@ -5,7 +5,7 @@
   ...
 }:
 let
-  isDarwin = pkgs.stdenv.isDarwin;
+  isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
   remoteConfigFile = config.sops.secrets."mpfammatter/remote/config".path;
   renderScript = pkgs.writeShellScript "render-ssh-remote-config" ''
     set -euo pipefail

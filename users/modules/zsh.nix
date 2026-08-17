@@ -28,7 +28,7 @@ in
     enableCompletion = true;
     initContent = ''
       ${
-        if pkgs.stdenv.isDarwin then
+        if pkgs.stdenv.hostPlatform.isDarwin then
           ''
             if command -v ssh-add >/dev/null 2>&1; then
               ssh-add --apple-load-keychain >/dev/null 2>&1 || true
@@ -170,7 +170,7 @@ in
         fi
 
         ${
-          if pkgs.stdenv.isDarwin then
+          if pkgs.stdenv.hostPlatform.isDarwin then
             "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)"
           else
             "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup"
@@ -473,19 +473,19 @@ in
       "glp" =
         "git log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit";
       "apply" =
-        if pkgs.stdenv.isDarwin then
+        if pkgs.stdenv.hostPlatform.isDarwin then
           "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)"
         else
           "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup";
       "drs" = "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)";
       "hms" =
-        if pkgs.stdenv.isDarwin then
+        if pkgs.stdenv.hostPlatform.isDarwin then
           "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)"
         else
           "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup";
       "nrs" = "sudo nixos-rebuild switch --flake path:$HOME/nix-config#$(hostname)";
       "garbage" =
-        if pkgs.stdenv.isDarwin then
+        if pkgs.stdenv.hostPlatform.isDarwin then
           "nix-collect-garbage --delete-older-than 7d; sudo nix store optimise"
         else
           "nix-collect-garbage --delete-older-than 7d; sudo nix-collect-garbage --delete-older-than 30d; ${optimiseNixStore}";

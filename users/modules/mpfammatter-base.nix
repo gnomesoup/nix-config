@@ -6,7 +6,8 @@
       EDITOR = "nvim";
       VISUAL = "nvim";
     };
-    homeDirectory = if pkgs.stdenv.isDarwin then "/Users/mpfammatter" else "/home/mpfammatter";
+    homeDirectory =
+      if pkgs.stdenv.hostPlatform.isDarwin then "/Users/mpfammatter" else "/home/mpfammatter";
     stateVersion = "23.11";
     packages = [
       pkgs.immich-cli
