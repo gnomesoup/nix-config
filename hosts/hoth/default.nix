@@ -157,6 +157,8 @@
         "hosts deny" = "0.0.0.0/0";
         "guest account" = "nobody";
         "map to guest" = "bad user";
+        # AAPL negotiation is global; only dedicated backup shares advertise Time Machine.
+        "fruit:aapl" = "yes";
       };
       homeassistant = {
         path = "/mnt/backup2/homeassistant";
@@ -166,8 +168,6 @@
         browseable = "yes";
         "comment" = "Backups for Home Assistant";
         "force user" = "ha-backup";
-        "fruit:aapl" = "yes";
-        "fruit:time machine" = "yes";
         "vfs objects" = "catia fruit streams_xattr";
         "spotlight" = "yes";
       };
@@ -181,8 +181,6 @@
         "directory mask" = 2777;
         "comment" = "Pinchflat Downloads";
         "force user" = "ferrix-smb";
-        "fruit:aapl" = "yes";
-        "fruit:time machine" = "yes";
         "vfs objects" = "catia fruit streams_xattr";
         "spotlight" = "yes";
       };
@@ -196,8 +194,6 @@
         "directory mask" = 2777;
         "comment" = "Jellyfin";
         "force user" = "ferrix-smb";
-        "fruit:aapl" = "yes";
-        "fruit:time machine" = "yes";
         "vfs objects" = "catia fruit streams_xattr";
         "spotlight" = "yes";
       };
@@ -209,7 +205,6 @@
         browseable = "yes";
         "comment" = "Time Machine";
         "force user" = "coruscant-tm";
-        "fruit:aapl" = "yes";
         "fruit:time machine" = "yes";
         "vfs objects" = "catia fruit streams_xattr";
         "spotlight" = "yes";
@@ -222,7 +217,6 @@
         browseable = "yes";
         "comment" = "Time Machine";
         "force user" = "exegol-tm";
-        "fruit:aapl" = "yes";
         "fruit:time machine" = "yes";
         "vfs objects" = "catia fruit streams_xattr";
         "spotlight" = "yes";
@@ -235,7 +229,6 @@
         browseable = "yes";
         "comment" = "Time Machine";
         "force user" = "pinkimac-tm";
-        "fruit:aapl" = "yes";
         "fruit:time machine" = "yes";
         "vfs objects" = "catia fruit streams_xattr";
         "spotlight" = "yes";
