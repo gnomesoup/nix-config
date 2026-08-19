@@ -37,6 +37,7 @@ in
     ".pi/agent/extensions/color-swatches-parser-plan.md".source =
       ./pi/extensions/color-swatches-parser-plan.md;
     ".pi/agent/extensions/lite-mode.ts".source = ./pi/extensions/lite-mode.ts;
+    ".pi/agent/extensions/think.ts".source = ./pi/extensions/think.ts;
   };
 
   # Write a normal file instead of a Home Manager symlink. Pi records transient
