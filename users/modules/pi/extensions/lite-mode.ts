@@ -422,6 +422,29 @@ export default function liteModeExtension(pi: ExtensionAPI) {
 		updateUi(ctx);
 	});
 
+	pi.on("session_before_switch", async (_event, ctx) => {
+		if (!enabled) return;
+		if (!mainModel) {
+			ctx.ui.notify("The main model was not recorded; Lite Mode could not be disabled before switching sessions.", "error");
+			return { cancel: true };
+		}
+
+		const target = ctx.modelRegistry.find(mainModel.provider, mainModel.model);
+		if (!target) {
+			ctx.ui.notify(`Main model ${modelKey(mainModel)} is no longer available; session switch cancelled.`, "error");
+			return { cancel: true };
+		}
+		if (!sameModel(ctx.model, mainModel) && !(await setModel(target))) {
+			ctx.ui.notify(`Could not restore ${modelKey(mainModel)}; session switch cancelled.`, "error");
+			return { cancel: true };
+		}
+
+		enabled = false;
+		persistState();
+		updateUi(ctx);
+		ctx.ui.notify(`Lite Mode disabled before switching sessions: restored ${modelKey(mainModel)}.`, "info");
+	});
+
 	pi.on("model_select", async (event, ctx) => {
 		refreshAvailableModels(ctx);
 		if (internalModelChange || event.source === "restore") return;
