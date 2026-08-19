@@ -1,0 +1,41 @@
+--- a/packages/coding-agent/src/modes/interactive/components/footer.ts
++++ b/packages/coding-agent/src/modes/interactive/components/footer.ts
+@@ -201,22 +201,16 @@
+ 		const totalNeeded = statsLeftWidth + minPadding + rightSideWidth;
+ 
+ 		let statsLine: string;
++		let modelLine: string | undefined;
+ 		if (totalNeeded <= width) {
+ 			// Both fit - add padding to right-align model
+ 			const padding = " ".repeat(width - statsLeftWidth - rightSideWidth);
+ 			statsLine = statsLeft + padding + rightSide;
+ 		} else {
+-			// Need to truncate right side
+-			const availableForRight = width - statsLeftWidth - minPadding;
+-			if (availableForRight > 0) {
+-				const truncatedRight = truncateToWidth(rightSide, availableForRight, "");
+-				const truncatedRightWidth = visibleWidth(truncatedRight);
+-				const padding = " ".repeat(Math.max(0, width - statsLeftWidth - truncatedRightWidth));
+-				statsLine = statsLeft + padding + truncatedRight;
+-			} else {
+-				// Not enough space for right side at all
+-				statsLine = statsLeft;
+-			}
++			// Preserve the full model and thinking level on their own line instead
++			// of truncating them to fit beside the usage stats.
++			statsLine = statsLeft;
++			modelLine = truncateToWidth(rightSide, width, "");
+ 		}
+ 
+ 		// Apply dim to each part separately. statsLeft may contain color codes (for context %)
+@@ -229,6 +223,10 @@
+ 		const pwdLine = truncateToWidth(theme.fg("dim", pwd), width, theme.fg("dim", "..."));
+ 		const lines = [pwdLine, dimStatsLeft + dimRemainder];
+ 
++		if (modelLine) {
++			lines.push(theme.fg("dim", modelLine));
++		}
++
+ 		// Add extension statuses on a single line, sorted by key alphabetically
+ 		const extensionStatuses = this.footerData.getExtensionStatuses();
+ 		if (extensionStatuses.size > 0) {

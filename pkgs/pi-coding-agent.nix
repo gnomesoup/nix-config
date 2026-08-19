@@ -83,6 +83,9 @@ buildNpmPackage (finalAttrs: {
   pname = "pi-coding-agent";
   inherit src version;
 
+  # Keep the model and thinking-level indicator visible in narrow terminals.
+  patches = [ ./pi-footer-wrap.patch ];
+
   npmDeps = importNpmLock {
     npmRoot = finalAttrs.src;
     package = rootPackage;
