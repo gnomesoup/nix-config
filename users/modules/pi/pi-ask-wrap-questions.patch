@@ -29,7 +29,22 @@ index f4bedb5..c0629a4 100644
  
  interface ParsedOption {
    value: string;
-@@ -775,6 +786,19 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
+@@ -333,7 +344,12 @@ async function runAskFlow(
+ 
+   const reply = formatAnswerReply(answers);
+-  ctx.ui.setEditorText(reply);
+-  ctx.ui.notify("Answers loaded into the editor. Submit them to the main model when ready.", "success");
++  if (options.emitSummaryMessage !== false) {
++    ctx.ui.setEditorText(reply);
++    ctx.ui.notify("Answers loaded into the editor. Submit them to the main model when ready.", "success");
++  } else {
++    ctx.ui.setEditorText("");
++    ctx.ui.notify("Answers sent to the model.", "success");
++  }
+ 
+   if (options.emitSummaryMessage !== false) {
+     pi.sendMessage({
+@@ -775,6 +791,19 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
  
          const lines: string[] = [];
          const add = (value: string) => lines.push(truncateToWidth(value, width));
