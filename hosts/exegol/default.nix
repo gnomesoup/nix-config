@@ -48,20 +48,17 @@ in
   system.defaults.CustomUserPreferences."com.github.InputLeap" = {
     autoHide = true;
     autoStart = true;
-    configFile = "/Users/mpfammatter/.config/InputLeap/input-leap.conf";
-    groupClientChecked = false;
-    groupServerChecked = true;
+    groupClientChecked = true;
+    groupServerChecked = false;
     "internalConfig.screenSaverSync" = false;
     minimizeToTray = true;
     screenName = "exegol.local";
+    serverHostname = "rnieukirk5540";
     startedBefore = true;
-    useExternalConfig = true;
+    useExternalConfig = false;
     useInternalConfig = false;
     wizardLastRun = 9;
   };
-
-  home-manager.users.mpfammatter.home.file.".config/InputLeap/input-leap.conf".source =
-    ./input-leap.conf;
 
   # The platform the configuration will be used on.
   nixpkgs = {
@@ -105,9 +102,15 @@ in
       };
     };
 
-    input-leap-server = {
-      command = "${pkgs.input-leap}/bin/input-leap";
+    input-leap-client = {
       serviceConfig = {
+        ProgramArguments = [
+          "${pkgs.input-leap}/bin/input-leapc"
+          "--no-daemon"
+          "--name"
+          "exegol.local"
+          "rnieukirk5540"
+        ];
         RunAtLoad = true;
         KeepAlive = {
           Crashed = true;

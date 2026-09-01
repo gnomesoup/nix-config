@@ -182,12 +182,16 @@ in
 
         case "$(uname -s)" in
           Darwin)
-            local service="gui/$(id -u)/org.nixos.input-leap-server"
-            if ! launchctl print "$service" >/dev/null 2>&1; then
-              print -u2 "input-leap-restart: launchd service is not loaded: $service"
-              return 1
-            fi
-            launchctl kickstart -k "$service"
+            local service
+            for service in "gui/$(id -u)/org.nixos.input-leap-client" "gui/$(id -u)/org.nixos.input-leap-server"; do
+              if launchctl print "$service" >/dev/null 2>&1; then
+                launchctl kickstart -k "$service"
+                return
+              fi
+            done
+
+            print -u2 "input-leap-restart: no supported launchd service found"
+            return 1
             ;;
           Linux)
             if ! command -v systemctl >/dev/null 2>&1; then
