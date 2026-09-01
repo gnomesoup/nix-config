@@ -14,13 +14,25 @@ let
       exec ${pkgs.nodejs}/bin/npm --prefix ${lib.escapeShellArg piNpmPrefix} "$@"
     '';
   };
+  # Pin and patch pi-ask until upstream wraps questionnaire prompts instead of
+  # truncating them to one terminal line.
+  piAsk = pkgs.applyPatches {
+    name = "pi-ask-0.1.0";
+    src = pkgs.fetchFromGitHub {
+      owner = "AlvaroRausell";
+      repo = "pi-ask";
+      rev = "0b3f1bd25eec50367885d656801bdea74d4aa990";
+      hash = "sha256-sf6HlOa8bUK/5SsCql0BDIs/SCjCCHwUgrVUluX4U+s=";
+    };
+    patches = [ ./pi/pi-ask-wrap-questions.patch ];
+  };
   piSettings = {
     defaultModel = "gpt-5.5";
     defaultProvider = "openai-codex";
     defaultThinkingLevel = "high";
     npmCommand = [ "${piNpm}/bin/pi-npm" ];
     packages = [
-      "npm:@alpino13/pi-ask"
+      "${piAsk}"
       "npm:pi-web-search@1.3.1"
     ];
   };
