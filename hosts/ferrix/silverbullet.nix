@@ -34,8 +34,30 @@
     };
   };
 
-  services.tailscale.serve = {
-    enable = true;
-    services.silverbullet.endpoints."tcp:443" = "http://127.0.0.1:3000";
+  # The Tailscale JSON configuration currently loses the distinction between
+  # an HTTPS frontend and an HTTP backend, so configure Serve through its CLI.
+  systemd.services.tailscale-serve-silverbullet = {
+    description = "Tailscale Serve configuration for SilverBullet";
+    wantedBy = [ "multi-user.target" ];
+    after = [
+      "silverbullet.service"
+      "tailscaled-autoconnect.service"
+      "tailscaled-set.service"
+      "tailscaled.service"
+    ];
+    wants = [
+      "silverbullet.service"
+      "tailscaled.service"
+    ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.tailscale}/bin/tailscale serve --service=svc:silverbullet --https=443 --bg http://127.0.0.1:3000";
+      ExecStop = pkgs.writeShellScript "tailscale-serve-silverbullet-stop" ''
+        ${pkgs.tailscale}/bin/tailscale serve drain svc:silverbullet || true
+        ${pkgs.tailscale}/bin/tailscale serve clear svc:silverbullet || true
+      '';
+    };
   };
 }
