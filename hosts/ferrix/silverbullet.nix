@@ -5,12 +5,12 @@
     wantedBy = [ "multi-user.target" ];
     after = [ "network.target" ];
 
-    # Keep SilverBullet private until authentication and Tailscale Serve are configured.
+    # SilverBullet is reachable only through the Tailscale firewall rule below.
     environment.SB_SHELL_BACKEND = "off";
 
     serviceConfig = {
       ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /var/lib/silverbullet/space";
-      ExecStart = "${pkgs.silverbullet}/bin/silverbullet -L 127.0.0.1 -p 3000 /var/lib/silverbullet/space";
+      ExecStart = "${pkgs.silverbullet}/bin/silverbullet -L 0.0.0.0 -p 3000 /var/lib/silverbullet/space";
       DynamicUser = true;
       StateDirectory = "silverbullet";
       StateDirectoryMode = "0750";
@@ -33,4 +33,6 @@
       RestrictSUIDSGID = true;
     };
   };
+
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 3000 ];
 }
