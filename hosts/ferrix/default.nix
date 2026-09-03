@@ -8,6 +8,7 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
+    ./silverbullet.nix
     ./zulip.nix
     ../modules/fonts.nix
     ../modules/nixos-default-zsh.nix
@@ -200,10 +201,6 @@
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
-  nixpkgs.config.permittedInsecurePackages = [
-    # Logseq currently depends on Electron 39, which is EOL in nixpkgs.
-    "electron-39.8.10"
-  ];
 
   # Enable nix-ld for running non-nix packages in a sandbox.
   programs.nix-ld.enable = true;
