@@ -1,6 +1,9 @@
 { pkgs, config, ... }:
 let
   keys = config.vimBindingKeys;
+  darwinSwitch = "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)";
+  homeManagerSwitch = "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup";
+  nixosSwitch = "sudo nixos-rebuild switch --flake path:$HOME/nix-config#$(hostname)";
   optimiseNixStore = ''
     if grep -qiE '(microsoft|wsl)' /proc/sys/kernel/osrelease /proc/version 2>/dev/null; then
       echo 'Skipping nix store optimisation on WSL'
@@ -169,12 +172,7 @@ in
           return 1
         fi
 
-        ${
-          if pkgs.stdenv.hostPlatform.isDarwin then
-            "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)"
-          else
-            "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup"
-        }
+        ${if pkgs.stdenv.hostPlatform.isDarwin then darwinSwitch else homeManagerSwitch}
       }
 
       input-leap-restart() {
@@ -478,16 +476,12 @@ in
         "git log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit";
       "apply" =
         if pkgs.stdenv.hostPlatform.isDarwin then
-          "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)"
+          darwinSwitch
         else
-          "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup";
-      "drs" = "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)";
-      "hms" =
-        if pkgs.stdenv.hostPlatform.isDarwin then
-          "sudo darwin-rebuild switch --flake path:$HOME/nix-config#$(scutil --get LocalHostName)"
-        else
-          "nix run github:nix-community/home-manager -- switch --flake path:$HOME/nix-config#mpfammatter-linux -b backup";
-      "nrs" = "sudo nixos-rebuild switch --flake path:$HOME/nix-config#$(hostname)";
+          "${nixosSwitch} && ${homeManagerSwitch}";
+      "drs" = darwinSwitch;
+      "hms" = if pkgs.stdenv.hostPlatform.isDarwin then darwinSwitch else homeManagerSwitch;
+      "nrs" = nixosSwitch;
       "garbage" =
         if pkgs.stdenv.hostPlatform.isDarwin then
           "nix-collect-garbage --delete-older-than 7d; sudo nix store optimise"

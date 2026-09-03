@@ -138,7 +138,7 @@ Treat changes as infrastructure updates: prefer declarative changes and reversib
 - Keep TailScale credentials secure; enabling service on macOS requires admin rights.
 
 ## Quick Commands Cheat Sheet
-- Apply the active config automatically: `apply` alias → macOS uses `sudo darwin-rebuild switch --flake ~/nix-config#$(scutil --get LocalHostName)`, Linux uses `home-manager switch`.
+- Apply the active config automatically: `apply` alias → macOS uses `sudo darwin-rebuild switch --flake ~/nix-config#$(scutil --get LocalHostName)`, Linux uses `nixos-rebuild switch` followed by `home-manager switch`.
 - Update inputs: `nix flake update` (run with care, review `flake.lock`).
 - Garbage collect build artifacts: `nix-collect-garbage --delete-older-than 7d` (alias `garbage`).
 - Switch active host automatically on macOS: `drs` alias → `sudo darwin-rebuild switch --flake ~/nix-config#$(scutil --get LocalHostName)`.

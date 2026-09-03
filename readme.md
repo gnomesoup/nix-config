@@ -56,11 +56,12 @@ If you want the `home-manager` command installed permanently on Linux, run:
 nix profile install github:nix-community/home-manager
 ```
 
-The `apply` alias is the recommended cross-platform entrypoint. `hms` still works, but on macOS it now dispatches to `darwin-rebuild` so packages and generated config stay aligned.
+The `apply` alias is the recommended cross-platform entrypoint. On Linux, it runs `nrs` first and then `hms` if the NixOS rebuild succeeds.
+`hms` still works, but on macOS it now dispatches to `darwin-rebuild` so packages and generated config stay aligned.
 
 On macOS, `apply`, `hms`, and `drs` all go through `darwin-rebuild`, so Neovim binaries, plugin packs, and generated config stay in sync.
 
-Use a full rebuild when changing host modules, services, users, boot settings, or other system-level options.
+Use `nrs` directly when you only need a full system rebuild, or `hms` directly when you only need a standalone Home Manager switch.
 
 ## WezTerm
 
