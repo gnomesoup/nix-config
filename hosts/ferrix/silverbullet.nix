@@ -53,6 +53,7 @@
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      ExecStartPre = "-${pkgs.tailscale}/bin/tailscale serve clear svc:silverbullet";
       ExecStart = "${pkgs.tailscale}/bin/tailscale serve --service=svc:silverbullet --https=443 --bg http://127.0.0.1:3000";
       ExecStop = pkgs.writeShellScript "tailscale-serve-silverbullet-stop" ''
         ${pkgs.tailscale}/bin/tailscale serve drain svc:silverbullet || true
