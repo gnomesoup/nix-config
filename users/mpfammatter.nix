@@ -7,6 +7,7 @@
 {
   imports = [
     ./modules/espanso.nix
+    ./modules/herdr.nix
     ./modules/mpfammatter-base.nix
     ./modules/nixvim.nix
     ./modules/pi.nix
