@@ -1108,20 +1108,28 @@ let
       return selector_label(parts)
     end
 
-    local function attach_domain(window, choice)
-      local domain = mux.get_domain(choice.name)
-      if not domain then
-        notify(window, "Unknown domain '" .. choice.name .. "'")
+    local function open_domain_tab(window, pane, choice)
+      local mux_window = window:mux_window()
+      if not mux_window then
+        notify(window, "No active mux window for domain '" .. choice.name .. "'")
         return
       end
 
-      -- Unlike spawning a tab in the domain, attach imports only its existing
-      -- sessions and does not create a default session when it is empty.
-      local ok, attach_error = pcall(function()
-        domain:attach()
+      local ok, tab, spawned_pane = pcall(function()
+        return mux_window:spawn_tab {
+          domain = { DomainName = choice.name },
+        }
       end)
       if not ok then
-        notify(window, "Failed to attach domain '" .. choice.name .. "': " .. tostring(attach_error))
+        notify(window, "Failed to open domain '" .. choice.name .. "' in a new tab: " .. tostring(tab))
+        return
+      end
+
+      if tab then
+        tab:activate()
+      end
+      if spawned_pane then
+        spawned_pane:activate()
       end
     end
 
@@ -1183,8 +1191,8 @@ let
 
       window:perform_action(
         act.InputSelector {
-          title = "Attach Domain",
-          description = "Open the selected domain's existing mux sessions.",
+          title = "Open Domain",
+          description = "Open the selected domain in a new tab.",
           fuzzy_description = "Fuzzy search by host, domain, or address.",
           fuzzy = true,
           choices = choices,
@@ -1195,7 +1203,7 @@ let
 
             local choice = domain_by_name[id]
             if choice then
-              attach_domain(selector_window, choice)
+              open_domain_tab(selector_window, selector_pane, choice)
             end
           end),
         },
