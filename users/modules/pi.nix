@@ -14,8 +14,8 @@ let
       exec ${pkgs.nodejs}/bin/npm --prefix ${lib.escapeShellArg piNpmPrefix} "$@"
     '';
   };
-  # Pin and patch pi-ask until upstream wraps questionnaire prompts instead of
-  # truncating them to one terminal line.
+  # Pin and patch pi-ask until upstream renders long questionnaire prompts as
+  # scrollable Markdown so fenced code remains readable.
   piAsk = pkgs.applyPatches {
     name = "pi-ask-0.1.0";
     src = pkgs.fetchFromGitHub {
