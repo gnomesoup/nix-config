@@ -27,6 +27,18 @@ in
         version_check = false;
         manifest_check = false;
       };
+      theme = {
+        name = "terminal";
+        custom = {
+          sidebar_bg = "#212026";
+          active_row_bg = "#444155";
+          selection_bg = "#34363b";
+          panel_bg = "reset";
+          accent = "#4f97d7";
+          red = "#e0211d";
+          green = "#52AD70";
+        };
+      };
       keys = {
         focus_pane_left = "prefix+${keys.left}";
         focus_pane_down = "prefix+${keys.down}";
