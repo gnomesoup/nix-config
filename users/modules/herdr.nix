@@ -35,6 +35,11 @@ in
         focus_pane_up = "prefix+${keys.up}";
         focus_pane_right = "prefix+${keys.right}";
 
+        swap_pane_left = "prefix+alt+${keys.left}";
+        swap_pane_down = "prefix+alt+${keys.down}";
+        swap_pane_up = "prefix+alt+${keys.up}";
+        swap_pane_right = "prefix+alt+${keys.right}";
+
         navigate_pane_left = keys.left;
         navigate_pane_down = keys.down;
         navigate_pane_up = keys.up;
