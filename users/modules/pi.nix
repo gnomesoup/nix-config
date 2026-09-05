@@ -27,7 +27,7 @@ let
     patches = [ ./pi/pi-ask-wrap-questions.patch ];
   };
   piSettings = {
-    defaultModel = "gpt-5.5";
+    defaultModel = "sol";
     defaultProvider = "openai-codex";
     defaultThinkingLevel = "high";
     npmCommand = [ "${piNpm}/bin/pi-npm" ];
@@ -36,7 +36,11 @@ let
       "npm:pi-web-search@1.3.1"
     ];
   };
+  piAskSettings = {
+    model = "openai-codex/luna";
+  };
   piSettingsFile = jsonFormat.generate "pi-settings.json" piSettings;
+  piAskSettingsFile = jsonFormat.generate "pi-ask.json" piAskSettings;
 in
 {
   home.packages = [
@@ -57,15 +61,20 @@ in
   # reasserts this declarative configuration.
   home.activation.configurePi = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     settings=${lib.escapeShellArg "${config.home.homeDirectory}/.pi/agent/settings.json"}
+    ask_settings=${lib.escapeShellArg "${config.home.homeDirectory}/.pi/agent/pi-ask.json"}
     settings_dir="$(${pkgs.coreutils}/bin/dirname "$settings")"
     tmp="$settings.tmp"
+    ask_tmp="$ask_settings.tmp"
 
     if [ -n "''${DRY_RUN_CMD:-}" ]; then
       echo "Would write pi settings to $settings"
+      echo "Would write pi ask settings to $ask_settings"
     else
       ${pkgs.coreutils}/bin/mkdir -p "$settings_dir" ${lib.escapeShellArg piNpmPrefix}
       ${pkgs.coreutils}/bin/install -m 0644 ${piSettingsFile} "$tmp"
       ${pkgs.coreutils}/bin/mv "$tmp" "$settings"
+      ${pkgs.coreutils}/bin/install -m 0644 ${piAskSettingsFile} "$ask_tmp"
+      ${pkgs.coreutils}/bin/mv "$ask_tmp" "$ask_settings"
     fi
   '';
 }
