@@ -1385,6 +1385,12 @@ let
       },
     }
 
+    if is_macos then
+      for index = 1, 9 do
+        add_binding(config.keys, tostring(index), 'SUPER', act.DisableDefaultAssignment)
+      end
+    end
+
     return config
   '';
 in

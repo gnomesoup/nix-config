@@ -26,15 +26,15 @@ let
         90 # Z
       ];
 
-  # Forward Win+<number> to WezTerm's default tab-switching shortcuts.
+  # Forward Win+<number> to Herdr without replacing WezTerm's Ctrl+Shift+<number> tab shortcuts.
   # Win+0 is intentionally left unmapped so Windows keeps its default behavior.
-  weztermTabRemaps =
+  herdrWorkspaceRemaps =
     map
       (keyCode: {
         originalKeys = "260;${toString keyCode}";
         exactMatch = false;
         operationType = 0;
-        newRemapKeys = "17;16;${toString keyCode}";
+        newRemapKeys = "17;18;${toString keyCode}";
       })
       [
         49 # 1
@@ -53,7 +53,7 @@ let
       remapKeys.inProcess = [ ];
       remapKeysToText.inProcess = [ ];
       remapShortcuts = {
-        global = macStyleShortcutRemaps ++ weztermTabRemaps;
+        global = macStyleShortcutRemaps ++ herdrWorkspaceRemaps;
         appSpecific = [ ];
       };
       remapShortcutsToText = {

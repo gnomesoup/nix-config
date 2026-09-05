@@ -28,6 +28,8 @@ in
         manifest_check = false;
       };
       keys = {
+        switch_workspace = lib.mkDefault "super+1..9";
+
         focus_pane_left = "prefix+${keys.left}";
         focus_pane_down = "prefix+${keys.down}";
         focus_pane_up = "prefix+${keys.up}";
