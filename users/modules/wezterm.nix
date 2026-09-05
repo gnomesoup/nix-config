@@ -1040,6 +1040,7 @@ let
       "FiraCode Nerd Font Mono",
     }
     config.font_size = 16.0
+    config.enable_kitty_keyboard = true
     config.hide_tab_bar_if_only_one_tab = false
     config.window_frame = window_frame_for_border(window_border_colors.active)
     config.use_fancy_tab_bar = false
