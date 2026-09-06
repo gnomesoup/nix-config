@@ -14,18 +14,8 @@ let
       exec ${pkgs.nodejs}/bin/npm --prefix ${lib.escapeShellArg piNpmPrefix} "$@"
     '';
   };
-  # Pin and patch pi-ask until upstream renders long questionnaire prompts as
-  # scrollable Markdown so fenced code remains readable.
-  piAsk = pkgs.applyPatches {
-    name = "pi-ask-0.1.0";
-    src = pkgs.fetchFromGitHub {
-      owner = "AlvaroRausell";
-      repo = "pi-ask";
-      rev = "0b3f1bd25eec50367885d656801bdea74d4aa990";
-      hash = "sha256-sf6HlOa8bUK/5SsCql0BDIs/SCjCCHwUgrVUluX4U+s=";
-    };
-    patches = [ ./pi/pi-ask-wrap-questions.patch ];
-  };
+  # Keep pi-ask in-tree so its behavior changes atomically with this configuration.
+  piAsk = ./pi/pi-ask;
   piSettings = {
     defaultModel = "gpt-5.6-sol";
     defaultProvider = "openai-codex";

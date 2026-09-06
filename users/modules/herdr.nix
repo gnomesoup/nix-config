@@ -27,6 +27,11 @@ in
         version_check = false;
         manifest_check = false;
       };
+      ui.toast = {
+        delivery = "herdr";
+        delay_seconds = 1;
+        herdr.position = "bottom-right";
+      };
       keys = {
         switch_workspace = lib.mkDefault "super+1..9";
 
