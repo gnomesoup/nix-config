@@ -35,7 +35,7 @@
     };
 
     herdr-src = {
-      url = "git+ssh://git@github.com/gnomesoup/herdr.git?ref=nav-colemakdh";
+      url = "git+https://github.com/gnomesoup/herdr.git?ref=nav-colemakdh";
       flake = false;
     };
 
