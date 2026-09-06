@@ -27,7 +27,7 @@ let
     patches = [ ./pi/pi-ask-wrap-questions.patch ];
   };
   piSettings = {
-    defaultModel = "sol";
+    defaultModel = "gpt-5.6-sol";
     defaultProvider = "openai-codex";
     defaultThinkingLevel = "high";
     npmCommand = [ "${piNpm}/bin/pi-npm" ];
