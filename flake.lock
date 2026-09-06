@@ -95,6 +95,23 @@
         "type": "github"
       }
     },
+    "herdr-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1788700097,
+        "narHash": "sha256-lOXuw3KBO0SqooCH7XjYlRokbHVSx5LRayxTUQL8sk8=",
+        "ref": "nav-colemakdh",
+        "rev": "c2a2281a60d50b1c234efe4084effda8944bada6",
+        "revCount": 1530,
+        "type": "git",
+        "url": "ssh://git@github.com/gnomesoup/herdr.git"
+      },
+      "original": {
+        "ref": "nav-colemakdh",
+        "type": "git",
+        "url": "ssh://git@github.com/gnomesoup/herdr.git"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -251,6 +268,7 @@
     "root": {
       "inputs": {
         "freenet-core": "freenet-core",
+        "herdr-src": "herdr-src",
         "home-manager": "home-manager",
         "kickstart-nixvim": "kickstart-nixvim",
         "nix-darwin": "nix-darwin",
