@@ -8,6 +8,7 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
+    ./home-assistant-mcp.nix
     ./silverbullet.nix
     ./zulip.nix
     ../modules/fonts.nix
