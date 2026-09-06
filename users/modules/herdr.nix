@@ -44,6 +44,29 @@ in
         navigate_pane_down = keys.down;
         navigate_pane_up = keys.up;
         navigate_pane_right = keys.right;
+
+        command = [
+          {
+            key = "ctrl+${keys.left}";
+            type = "plugin_action";
+            command = "herdr-nvim-nav.left";
+          }
+          {
+            key = "ctrl+${keys.down}";
+            type = "plugin_action";
+            command = "herdr-nvim-nav.down";
+          }
+          {
+            key = "ctrl+${keys.up}";
+            type = "plugin_action";
+            command = "herdr-nvim-nav.up";
+          }
+          {
+            key = "ctrl+${keys.right}";
+            type = "plugin_action";
+            command = "herdr-nvim-nav.right";
+          }
+        ];
       }
       // lib.optionalAttrs (config.vimBindingKeyboardLayout == "colemak-dh") {
         edit_scrollback = "prefix+shift+e";
@@ -51,6 +74,10 @@ in
       };
     };
   };
+
+  home.activation.linkHerdrNvimNav = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    $DRY_RUN_CMD ${lib.getExe pkgs.herdr} plugin link ${lib.escapeShellArg "${pkgs.herdr-nvim-nav}"}
+  '';
 
   home.file = {
     ".pi/agent/extensions/herdr-agent-state.ts".source = "${herdrPiIntegration}/herdr-agent-state.ts";

@@ -80,6 +80,8 @@
           }
         );
 
+        herdr-nvim-nav = final.callPackage ./pkgs/herdr-nvim-nav.nix { };
+
         pi-coding-agent = final.callPackage ./pkgs/pi-coding-agent.nix {
           src = pi-mono;
           version = piCodingAgentVersion;

@@ -1335,26 +1335,6 @@ let
         }
       },
       {
-        key = '${keys.left}',
-        mods = 'CTRL',
-        action = act.ActivatePaneDirection "Left"
-      },
-      {
-        key = '${keys.right}',
-        mods = 'CTRL',
-        action = act.ActivatePaneDirection "Right"
-      },
-      {
-        key = '${keys.down}',
-        mods = 'CTRL',
-        action = act.ActivatePaneDirection "Down"
-      },
-      {
-        key = '${keys.up}',
-        mods = 'CTRL',
-        action = act.ActivatePaneDirection "Up"
-      },
-      {
         key = 's',
         mods = 'CTRL|SHIFT',
         action = act.PaneSelect { mode = 'Activate' }
