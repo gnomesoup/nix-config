@@ -1039,6 +1039,24 @@ let
       "SauceCodePro Nerd Font Mono",
       "FiraCode Nerd Font Mono",
     }
+    config.font_rules = {
+      {
+        intensity = "Bold",
+        italic = false,
+        font = wezterm.font_with_fallback {
+          { family = "SauceCodePro Nerd Font Mono", weight = "Black" },
+          { family = "FiraCode Nerd Font Mono", weight = "Bold" },
+        },
+      },
+      {
+        intensity = "Bold",
+        italic = true,
+        font = wezterm.font_with_fallback {
+          { family = "SauceCodePro Nerd Font Mono", weight = "Black", style = "Italic" },
+          { family = "FiraCode Nerd Font Mono", weight = "Bold", style = "Italic" },
+        },
+      },
+    }
     config.font_size = 16.0
     config.enable_kitty_keyboard = true
     config.hide_tab_bar_if_only_one_tab = false
