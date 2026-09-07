@@ -10,6 +10,16 @@ The leader key is `Ctrl-a` with a 1000 ms timeout.
 
 After pressing `Ctrl-a`, use one of the bindings below before the leader timeout expires.
 
+## Herdr Prefix
+
+Herdr uses its own `Ctrl-b` prefix inside a terminal pane:
+
+| Keys | Description |
+| --- | --- |
+| `Ctrl-b c` | Enter Herdr copy mode |
+| `Ctrl-b Shift-e` | Open Herdr scrollback in `$EDITOR` |
+| `Ctrl-b t` | Create a Herdr tab |
+
 ## Panes
 
 These bindings use the active `vimBindingKeyboardLayout` from `users/modules/vimBindingKeyboardLayout.nix`.

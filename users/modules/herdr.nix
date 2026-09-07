@@ -34,6 +34,9 @@ in
       };
       keys = {
         switch_workspace = lib.mkDefault "super+1..9";
+        copy_mode = "prefix+c";
+        edit_scrollback = "prefix+shift+e";
+        new_tab = "prefix+t";
 
         focus_pane_left = "prefix+${keys.left}";
         focus_pane_down = "prefix+${keys.down}";
@@ -74,7 +77,6 @@ in
         ];
       }
       // lib.optionalAttrs (config.vimBindingKeyboardLayout == "colemak-dh") {
-        edit_scrollback = "prefix+shift+e";
         next_tab = "prefix+right";
       };
     };
