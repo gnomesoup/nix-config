@@ -1193,6 +1193,32 @@ in
         },
       })
 
+      local markdown_heading_sources = {
+        "DiffText",
+        "DiffAdd",
+        "DiffChange",
+        "DiffDelete",
+        "Visual",
+        "CursorColumn",
+      }
+
+      local function apply_markdown_heading_highlights()
+        local normal = vim.api.nvim_get_hl(0, { name = "Normal", link = false })
+
+        for level, source_name in ipairs(markdown_heading_sources) do
+          local source = vim.api.nvim_get_hl(0, { name = source_name, link = false })
+          local reverse = source.reverse == true
+
+          vim.api.nvim_set_hl(0, "RenderMarkdownH" .. level .. "Bg", {
+            fg = reverse and source.fg or source.bg,
+            bg = normal.bg,
+            ctermfg = reverse and source.ctermfg or source.ctermbg,
+            ctermbg = normal.ctermbg,
+            bold = true,
+          })
+        end
+      end
+
       local function apply_space_vim_dark_overrides()
         vim.api.nvim_set_hl(0, "LineNr", { fg = "#b888e2", bg = "#303030" })
         vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#d1951d", bg = "#121212", bold = true })
@@ -1205,6 +1231,7 @@ in
         vim.api.nvim_set_hl(0, "NeogitDiffDelete", { bg = "#4a0b0a" })
         vim.api.nvim_set_hl(0, "NeogitDiffAddHighlight", { bg = "#21513f" })
         vim.api.nvim_set_hl(0, "NeogitDiffDeleteHighlight", { bg = "#680f0e" })
+        apply_markdown_heading_highlights()
       end
 
       local function apply_terminal_highlights()
