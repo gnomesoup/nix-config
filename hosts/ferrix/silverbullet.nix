@@ -45,9 +45,15 @@ in
     };
   };
 
-  home-manager.users.mpfammatter.home.file.".pi/agent/extensions/silverbullet" = {
-    force = true;
-    source = piExtension;
+  home-manager.users.mpfammatter.home.file = {
+    ".pi/agent/extensions/silverbullet" = {
+      force = true;
+      source = piExtension;
+    };
+    ".pi/agent/skills/silverbullet" = {
+      force = true;
+      source = ../../users/modules/pi/skills/silverbullet;
+    };
   };
 
   # The Tailscale JSON configuration currently loses the distinction between
