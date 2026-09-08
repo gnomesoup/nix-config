@@ -95,7 +95,14 @@ in
   };
 
   home.activation.linkHerdrNvimNav = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    $DRY_RUN_CMD ${lib.getExe pkgs.herdr} plugin link ${lib.escapeShellArg "${pkgs.herdr-nvim-nav}"}
+    # Update the on-disk registry without contacting a potentially older running server.
+    (
+      herdrSocketDir="$(${lib.getExe' pkgs.coreutils "mktemp"} --directory)"
+      trap '${lib.getExe' pkgs.coreutils "rm"} --recursive --force "$herdrSocketDir"' EXIT
+      $DRY_RUN_CMD ${lib.getExe' pkgs.coreutils "env"} \
+        HERDR_SOCKET_PATH="$herdrSocketDir/herdr.sock" \
+        ${lib.getExe pkgs.herdr} plugin link ${lib.escapeShellArg "${pkgs.herdr-nvim-nav}"}
+    )
   '';
 
   home.file = {
