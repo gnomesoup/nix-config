@@ -1,4 +1,15 @@
 { pkgs, ... }:
+let
+  piExtensionConfig = pkgs.writeText "silverbullet-pi-extension.json" (
+    builtins.toJSON {
+      allowInsecureHttp = true;
+      baseUrl = "http://127.0.0.1:3000";
+    }
+  );
+  piExtension = pkgs.callPackage ../../users/modules/pi/extensions/silverbullet/package.nix {
+    configFile = piExtensionConfig;
+  };
+in
 {
   systemd.services.silverbullet = {
     description = "SilverBullet Markdown knowledge server";
@@ -32,6 +43,11 @@
       RestrictRealtime = true;
       RestrictSUIDSGID = true;
     };
+  };
+
+  home-manager.users.mpfammatter.home.file.".pi/agent/extensions/silverbullet" = {
+    force = true;
+    source = piExtension;
   };
 
   # The Tailscale JSON configuration currently loses the distinction between
