@@ -40,6 +40,7 @@ in
   ];
 
   home.file = {
+    ".pi/agent/AGENTS.md".source = ./pi/AGENTS.md;
     ".pi/agent/extensions/color-swatches.ts".source = ./pi/extensions/color-swatches.ts;
     ".pi/agent/extensions/color-swatches-parser-plan.md".source =
       ./pi/extensions/color-swatches-parser-plan.md;
