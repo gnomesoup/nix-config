@@ -30,7 +30,7 @@
       force = true;
       text = builtins.toJSON {
         agent_name = "inigo";
-        auto_start_relay = false;
+        auto_start_relay = true;
       };
     };
   };
