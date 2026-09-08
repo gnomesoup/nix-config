@@ -18,11 +18,20 @@
     ./modules/zsh.nix
   ];
 
-  home.file."inigo/.pi/remote-pi/config.json" = {
-    force = true;
-    text = builtins.toJSON {
-      agent_name = "inigo";
-      auto_start_relay = false;
+  home.file = {
+    ".pi/remote/config.json" = {
+      force = true;
+      text = builtins.toJSON {
+        relay = "https://pi.tailbb897.ts.net";
+      };
+    };
+
+    "inigo/.pi/remote-pi/config.json" = {
+      force = true;
+      text = builtins.toJSON {
+        agent_name = "inigo";
+        auto_start_relay = false;
+      };
     };
   };
 
