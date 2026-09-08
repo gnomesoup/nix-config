@@ -17,6 +17,9 @@
     ./modules/zsh.nix
   ];
 
+  # PowerToys translates Win+1..9 to this chord before WezTerm forwards it.
+  programs.herdr.settings.keys.switch_workspace = "ctrl+alt+1..9";
+
   programs.zsh.initContent = lib.mkAfter ''
     # NixOS' global /etc/zshrc initializes LS_COLORS with dircolors. On WSL,
     # Windows-mounted directories are often world-writable, so GNU ls uses the

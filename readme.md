@@ -8,7 +8,11 @@ See the [configuration wiring diagram](docs/wiring-diagram.md) for the flake inp
 
 ### Nix-Darwin
 
-Install nix from [determinate systems installer](https://github.com/DeterminateSystems/nix-installer)
+Install Nix with the [official multi-user installer](https://nixos.org/download/):
+
+```sh
+sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
+```
 
 clone repo and change into new directory
 

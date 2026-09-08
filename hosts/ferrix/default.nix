@@ -8,6 +8,8 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
+    ./home-assistant-mcp.nix
+    ./remote-pi-relay.nix
     ./silverbullet.nix
     ./zulip.nix
     ../modules/fonts.nix

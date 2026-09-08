@@ -89,7 +89,6 @@ Treat changes as infrastructure updates: prefer declarative changes and reversib
 - Hosts follow canon names (e.g., `hoth`, `Coruscant`); keep lowercase for Linux, capitalized for macOS as observed.
 - Module files use kebab-case; functions or attrsets use camelCase (e.g., `home.packages`).
 - Secrets keys mirror directory structure (`borg/borg_passphrase`); keep names stable to avoid re-encryption.
-- Git branches: `feat/<topic>`, `fix/<bug>`, or `chore/<task>`.
 - Flake outputs keep existing naming; avoid renaming hosts without updating CI references.
 
 ## Error Handling & Validation
@@ -100,7 +99,7 @@ Treat changes as infrastructure updates: prefer declarative changes and reversib
 - Check `journalctl -u <service>` after activating; summarize findings in PRs when relevant.
 
 ## Git Workflow
-- Use feature branches; keep main clean for reproducible builds.
+- Commit all work directly to `main`.
 - Run `git status` before and after formatting to ensure only intended files change.
 - Commit messages: `<verb>: <short description>` (e.g., `fix: align samba users`).
 - Never commit decrypted secrets or machine-specific cache files.

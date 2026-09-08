@@ -474,11 +474,7 @@ in
       "glg" = "git log --graph --oneline";
       "glp" =
         "git log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit";
-      "apply" =
-        if pkgs.stdenv.hostPlatform.isDarwin then
-          darwinSwitch
-        else
-          "${nixosSwitch} && ${homeManagerSwitch}";
+      "apply" = if pkgs.stdenv.hostPlatform.isDarwin then darwinSwitch else nixosSwitch;
       "drs" = darwinSwitch;
       "hms" = if pkgs.stdenv.hostPlatform.isDarwin then darwinSwitch else homeManagerSwitch;
       "nrs" = nixosSwitch;

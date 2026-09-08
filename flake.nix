@@ -34,6 +34,11 @@
       flake = false;
     };
 
+    herdr-src = {
+      url = "git+https://github.com/gnomesoup/herdr.git?ref=nav-colemakdh";
+      flake = false;
+    };
+
     # kmonad = {
     #   url = "git+https://github.com/kmonad/kmonad?submodules=1&dir=nix";
     #   inputs.nixpkgs.follows = "nixpkgs";
@@ -50,6 +55,7 @@
       kickstart-nixvim,
       nixos-wsl,
       pi-mono,
+      herdr-src,
       # kmonad,
     }:
     let
@@ -62,6 +68,20 @@
       # this repo and needs to be available consistently across hosts without
       # duplicating package wiring in each configuration.
       overlays.default = final: prev: {
+        herdr = prev.herdr.overrideAttrs (
+          _finalAttrs: previousAttrs: {
+            src = herdr-src;
+            passthru = (previousAttrs.passthru or { }) // {
+              sourceBranch = "nav-colemakdh";
+            };
+            meta = previousAttrs.meta // {
+              changelog = "https://github.com/gnomesoup/herdr/commits/nav-colemakdh";
+            };
+          }
+        );
+
+        herdr-nvim-nav = final.callPackage ./pkgs/herdr-nvim-nav.nix { };
+
         pi-coding-agent = final.callPackage ./pkgs/pi-coding-agent.nix {
           src = pi-mono;
           version = piCodingAgentVersion;

@@ -1,0 +1,12 @@
+{
+  "name": "pi-ask-local",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Locally maintained Pi extension for interactive multi-question clarification flows.",
+  "type": "module",
+  "license": "MIT",
+  "pi": {
+    "extensions": ["./extensions"],
+    "skills": ["./skills"]
+  }
+}

@@ -18,6 +18,14 @@
     ./modules/zsh.nix
   ];
 
+  home.file."inigo/.pi/remote-pi/config.json" = {
+    force = true;
+    text = builtins.toJSON {
+      agent_name = "inigo";
+      auto_start_relay = false;
+    };
+  };
+
   home.activation.exportWeztermForWindows = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
     export_dir=${lib.escapeShellArg "${config.home.homeDirectory}/.local/share/wezterm-windows"}
     source_dir=${lib.escapeShellArg "${config.xdg.configHome}/wezterm"}

@@ -1039,7 +1039,26 @@ let
       "SauceCodePro Nerd Font Mono",
       "FiraCode Nerd Font Mono",
     }
+    config.font_rules = {
+      {
+        intensity = "Bold",
+        italic = false,
+        font = wezterm.font_with_fallback {
+          { family = "SauceCodePro Nerd Font Mono", weight = "Black" },
+          { family = "FiraCode Nerd Font Mono", weight = "Bold" },
+        },
+      },
+      {
+        intensity = "Bold",
+        italic = true,
+        font = wezterm.font_with_fallback {
+          { family = "SauceCodePro Nerd Font Mono", weight = "Black", style = "Italic" },
+          { family = "FiraCode Nerd Font Mono", weight = "Bold", style = "Italic" },
+        },
+      },
+    }
     config.font_size = 16.0
+    config.enable_kitty_keyboard = true
     config.hide_tab_bar_if_only_one_tab = false
     config.window_frame = window_frame_for_border(window_border_colors.active)
     config.use_fancy_tab_bar = false
@@ -1334,26 +1353,6 @@ let
         }
       },
       {
-        key = '${keys.left}',
-        mods = 'CTRL',
-        action = act.ActivatePaneDirection "Left"
-      },
-      {
-        key = '${keys.right}',
-        mods = 'CTRL',
-        action = act.ActivatePaneDirection "Right"
-      },
-      {
-        key = '${keys.down}',
-        mods = 'CTRL',
-        action = act.ActivatePaneDirection "Down"
-      },
-      {
-        key = '${keys.up}',
-        mods = 'CTRL',
-        action = act.ActivatePaneDirection "Up"
-      },
-      {
         key = 's',
         mods = 'CTRL|SHIFT',
         action = act.PaneSelect { mode = 'Activate' }
@@ -1384,6 +1383,12 @@ let
         action = wezterm.action_callback(detach_remote_domain)
       },
     }
+
+    if is_macos then
+      for index = 1, 9 do
+        add_binding(config.keys, tostring(index), 'SUPER', act.DisableDefaultAssignment)
+      end
+    end
 
     return config
   '';
