@@ -1,0 +1,29 @@
+name: silverbullet-vim-layout
+functions:
+  selectQwerty:
+    path: ./vim-layout.ts:selectQwerty
+    command:
+      name: "Vim Layout: QWERTY"
+      requireEditor: page
+  selectColemakDh:
+    path: ./vim-layout.ts:selectColemakDh
+    command:
+      name: "Vim Layout: Colemak-DH"
+      requireEditor: page
+  toggleLayout:
+    path: ./vim-layout.ts:toggleLayout
+    command:
+      name: "Vim Layout: Toggle"
+      requireEditor: page
+  showLayout:
+    path: ./vim-layout.ts:showLayout
+    command:
+      name: "Vim Layout: Show"
+  applyOnEditorLifecycle:
+    path: ./vim-layout.ts:applyOnEditorLifecycle
+    events:
+      - plugs:loaded
+      - editor:init
+      - editor:modeswitch
+      - editor:pageLoaded
+      - editor:pageReloaded

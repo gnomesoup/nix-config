@@ -109,30 +109,59 @@
 
       formatter = forAllSystems (system: (mkPkgs system).nixfmt);
 
-      checks.x86_64-linux.silverbullet-pi-extension =
+      checks.x86_64-linux =
         let
           pkgs = mkPkgs "x86_64-linux";
-          configFile = pkgs.writeText "silverbullet-pi-extension-check.json" (
-            builtins.toJSON {
-              allowInsecureHttp = true;
-              baseUrl = "http://127.0.0.1:3000";
-              defaultSpace = "personal";
-              spaces = {
-                personal = {
-                  label = "Personal";
-                  path = "/";
-                };
-                ksp = {
-                  label = "KSP";
-                  path = "/ksp";
-                };
-              };
-              tokenFile = "/run/secrets/silverbullet/pi-api-token";
-            }
-          );
         in
-        pkgs.callPackage ./users/modules/pi/extensions/silverbullet/package.nix {
-          inherit configFile;
+        {
+          silverbullet-pi-extension =
+            let
+              configFile = pkgs.writeText "silverbullet-pi-extension-check.json" (
+                builtins.toJSON {
+                  allowInsecureHttp = true;
+                  baseUrl = "http://127.0.0.1:3000";
+                  defaultSpace = "personal";
+                  spaces = {
+                    personal = {
+                      label = "Personal";
+                      path = "/";
+                    };
+                    ksp = {
+                      label = "KSP";
+                      path = "/ksp";
+                    };
+                  };
+                  tokenFile = "/run/secrets/silverbullet/pi-api-token";
+                }
+              );
+            in
+            pkgs.callPackage ./users/modules/pi/extensions/silverbullet/package.nix {
+              inherit configFile;
+            };
+
+          silverbullet-plug-sync =
+            let
+              plug = import ./hosts/ferrix/silverbullet-vim-layout/package.nix { inherit pkgs; };
+              syncScript = pkgs.replaceVars ./hosts/ferrix/silverbullet-plug-sync.py {
+                baseUrl = "http://127.0.0.1:3000";
+                tokenFile = "/run/secrets/silverbullet/pi-api-token";
+                plugFile = "${plug}/silverbullet-vim-layout.plug.js";
+              };
+            in
+            pkgs.runCommand "silverbullet-plug-sync-check" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+              cp ${syncScript} silverbullet-plug-sync.py
+              cp ${./hosts/ferrix/silverbullet-plug-sync_test.py} silverbullet-plug-sync_test.py
+              python3 -m unittest -v silverbullet-plug-sync_test.py
+              touch $out
+            '';
+
+          silverbullet-vim-layout =
+            let
+              plug = import ./hosts/ferrix/silverbullet-vim-layout/package.nix { inherit pkgs; };
+            in
+            assert builtins.length plug.activeEntries == 16;
+            assert plug.langmap == "mh,nj,ek,il,kn,KN,li,LI,fe,FE,hm,tf,TF,jt,JT,NJ";
+            plug;
         };
 
       apps = forAllSystems (

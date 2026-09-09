@@ -1,9 +1,17 @@
 { config, pkgs, ... }:
 let
+  baseUrl = "http://127.0.0.1:3000";
+  tokenFile = config.sops.secrets."silverbullet/pi-api-token".path;
+  vimLayoutPlug = import ./silverbullet-vim-layout/package.nix { inherit pkgs; };
+  plugSync = pkgs.replaceVars ./silverbullet-plug-sync.py {
+    inherit baseUrl tokenFile;
+    plugFile = "${vimLayoutPlug}/silverbullet-vim-layout.plug.js";
+  };
+
   piExtensionConfig = pkgs.writeText "silverbullet-pi-extension.json" (
     builtins.toJSON {
       allowInsecureHttp = true;
-      baseUrl = "http://127.0.0.1:3000";
+      inherit baseUrl;
       defaultSpace = "personal";
       spaces = {
         personal = {
@@ -15,7 +23,7 @@ let
           path = "/ksp";
         };
       };
-      tokenFile = config.sops.secrets."silverbullet/pi-api-token".path;
+      inherit tokenFile;
     }
   );
   piExtension = pkgs.callPackage ../../users/modules/pi/extensions/silverbullet/package.nix {
@@ -60,6 +68,58 @@ in
       ProtectSystem = "strict";
       RestrictRealtime = true;
       RestrictSUIDSGID = true;
+    };
+  };
+
+  systemd.services.silverbullet-plug-sync = {
+    description = "Synchronize Nix-built SilverBullet plugs";
+    wantedBy = [ "multi-user.target" ];
+    requires = [ "silverbullet.service" ];
+    after = [ "silverbullet.service" ];
+    restartTriggers = [ plugSync ];
+    unitConfig = {
+      StartLimitIntervalSec = "5min";
+      StartLimitBurst = 5;
+    };
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.python3}/bin/python3 ${plugSync}";
+      User = "mpfammatter";
+      Group = "users";
+      UMask = "0077";
+      TimeoutStartSec = "120s";
+      Restart = "on-failure";
+      RestartSec = "5s";
+
+      CapabilityBoundingSet = "";
+      IPAddressAllow = "localhost";
+      IPAddressDeny = "any";
+      LimitCORE = 0;
+      LockPersonality = true;
+      MemoryDenyWriteExecute = true;
+      NoNewPrivileges = true;
+      PrivateDevices = true;
+      PrivateTmp = true;
+      ProcSubset = "pid";
+      ProtectClock = true;
+      ProtectControlGroups = true;
+      ProtectHome = true;
+      ProtectHostname = true;
+      ProtectKernelLogs = true;
+      ProtectKernelModules = true;
+      ProtectKernelTunables = true;
+      ProtectProc = "invisible";
+      ProtectSystem = "strict";
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+      ];
+      RestrictNamespaces = true;
+      RestrictRealtime = true;
+      RestrictSUIDSGID = true;
+      SystemCallArchitectures = "native";
     };
   };
 
