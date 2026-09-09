@@ -20,7 +20,10 @@ const files = {
   ksp: new Map<string, MockFile>(),
 };
 const tools = new Map<string, any>();
-const confirmations: Array<{ title: string; summary: string }> = [];
+const permissionPrompts: Array<{ title: string; options: string[] }> = [];
+const permissionChoices: Array<string | undefined> = [];
+const blockedEvents: Array<{ active: boolean; label?: string }> = [];
+const sessionStartHandlers: Array<() => void> = [];
 let tempDirectory: string;
 let tokenFile: string;
 let token: string;
@@ -144,9 +147,9 @@ function rawConfig(overrides: Record<string, unknown> = {}) {
 const context = {
   hasUI: true,
   ui: {
-    confirm: async (title: string, summary: string) => {
-      confirmations.push({ title, summary });
-      return true;
+    select: async (title: string, options: string[]) => {
+      permissionPrompts.push({ title, options });
+      return permissionChoices.length > 0 ? permissionChoices.shift() : "Allow once";
     },
   },
 };
@@ -175,7 +178,14 @@ before(async () => {
   registerSilverbullet(
     {
       registerTool: (tool: any) => tools.set(tool.name, tool),
-      on: () => undefined,
+      on: (event: string, handler: () => void) => {
+        if (event === "session_start") sessionStartHandlers.push(handler);
+      },
+      events: {
+        emit: (event: string, data: { active: boolean; label?: string }) => {
+          if (event === "herdr:blocked") blockedEvents.push(data);
+        },
+      },
     } as any,
     config,
   );
@@ -286,13 +296,50 @@ describe("MultiSpace tool integration", () => {
       find: "created-ksp",
       replacement: "updated-ksp",
     });
-    assert.match(confirmations.at(-1)?.title ?? "", /KSP/);
-    assert.match(confirmations.at(-1)?.summary ?? "", /Space: KSP \(ksp\)/);
+    assert.match(permissionPrompts.at(-1)?.title ?? "", /KSP/);
+    assert.match(permissionPrompts.at(-1)?.title ?? "", /Space: KSP \(ksp\)/);
+    assert.deepEqual(permissionPrompts.at(-1)?.options, [
+      "Allow once",
+      "Allow all SilverBullet replacements/deletions for this session",
+      "Deny",
+    ]);
+    assert.deepEqual(blockedEvents.slice(-2), [
+      { active: true, label: "Approve SilverBullet update" },
+      { active: false },
+    ]);
     assert.match(files.ksp.get("Tests/Write.md")?.content ?? "", /updated-ksp/);
     assert.match(files.personal.get("Tests/Write.md")?.content ?? "", /created-personal/);
   });
 
-  test("fails closed without UI and honors a rejected confirmation", async () => {
+  test("allows all later destructive updates only for the current session", async () => {
+    const promptCount = permissionPrompts.length;
+    permissionChoices.push("Allow all SilverBullet replacements/deletions for this session");
+    await execute("silverbullet_update", {
+      action: "replace_text",
+      page: "Tests/Write",
+      find: "created-personal",
+      replacement: "session-personal",
+    });
+    await execute("silverbullet_update", {
+      action: "replace_text",
+      page: "Tests/Write",
+      find: "session-personal",
+      replacement: "session-personal-2",
+    });
+    assert.equal(permissionPrompts.length, promptCount + 1);
+
+    for (const handler of sessionStartHandlers) handler();
+    permissionChoices.push("Allow once");
+    await execute("silverbullet_update", {
+      action: "replace_text",
+      page: "Tests/Write",
+      find: "session-personal-2",
+      replacement: "created-personal",
+    });
+    assert.equal(permissionPrompts.length, promptCount + 2);
+  });
+
+  test("fails closed without UI, on denial, and when the selector throws", async () => {
     const before = files.personal.get("Tests/Write.md")?.content;
     await assert.rejects(
       () =>
@@ -303,15 +350,27 @@ describe("MultiSpace tool integration", () => {
         ),
       /require interactive user confirmation/,
     );
+
+    permissionChoices.push("Deny");
+    await assert.rejects(
+      () => execute("silverbullet_update", { action: "delete", page: "Tests/Write" }),
+      /cancelled by user/,
+    );
+
+    const blockedCount = blockedEvents.length;
     await assert.rejects(
       () =>
         execute(
           "silverbullet_update",
           { action: "delete", page: "Tests/Write" },
-          { hasUI: true, ui: { confirm: async () => false } },
+          { hasUI: true, ui: { select: async () => { throw new Error("selector failed"); } } },
         ),
-      /cancelled by user/,
+      /selector failed/,
     );
+    assert.deepEqual(blockedEvents.slice(blockedCount), [
+      { active: true, label: "Approve SilverBullet update" },
+      { active: false },
+    ]);
     assert.equal(files.personal.get("Tests/Write.md")?.content, before);
   });
 
@@ -319,7 +378,7 @@ describe("MultiSpace tool integration", () => {
     const result = await execute("silverbullet_update", { space: "ksp", action: "delete", page: "Tests/Write" });
     assert.equal(files.ksp.has("Tests/Write.md"), false);
     assert.equal(files.personal.has("Tests/Write.md"), true);
-    assert.equal(JSON.stringify({ result, confirmations }).includes(token), false);
+    assert.equal(JSON.stringify({ result, permissionPrompts }).includes(token), false);
 
     await assert.rejects(
       () => execute("silverbullet_read", { page: "Reflect" }),

@@ -12,7 +12,7 @@ Use the native SilverBullet tools. They access the user's shared space directly;
 - `silverbullet_read`: read a complete page or a line range.
 - `silverbullet_create`: create a page without overwriting.
 - `silverbullet_append`: append to a page, creating it when absent.
-- `silverbullet_update`: replace a page, replace exact text, or delete; the extension requires user confirmation.
+- `silverbullet_update`: replace a page, replace exact text, or delete; the extension requires user approval unless the user grants SilverBullet replacements/deletions for the current Pi session.
 
 Every tool accepts an optional `space`: use `personal` for Personal or `ksp` for KSP. Personal is the default when `space` is omitted. Choose the space from the user's request or established context; if the destination is ambiguous, ask rather than guessing. Paths are relative to the selected space, never cross-space paths or URLs. A missing `.md` extension is added automatically.
 
@@ -46,4 +46,4 @@ Suggested organization, unless the existing space indicates another convention:
 - Never request deletion without explicit user approval for that exact page.
 - Never replace an existing page wholesale merely to add information; append or perform a narrow exact-text replacement.
 - Read the current page from the same selected space before requesting `silverbullet_update` unless the user explicitly says not to.
-- The extension independently asks for interactive confirmation before replacements and deletions and disables them in headless modes.
+- The extension independently asks for interactive approval before replacements and deletions and disables them in headless modes. The selector offers allow once, allow all SilverBullet replacements/deletions for this session, or deny; while it is open, Pi reports a semantic blocked state to Herdr.

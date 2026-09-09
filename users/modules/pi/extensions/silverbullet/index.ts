@@ -12,6 +12,9 @@ const MAX_LIST_BYTES = 5 * 1024 * 1024;
 const MAX_NOTE_BYTES = 2 * 1024 * 1024;
 const MAX_CACHE_BYTES = 64 * 1024 * 1024;
 const TEXT_EXTENSIONS = new Set(["md", "txt", "json", "yaml", "yml"]);
+const PERMISSION_ALLOW_ONCE = "Allow once";
+const PERMISSION_ALLOW_SESSION = "Allow all SilverBullet replacements/deletions for this session";
+const PERMISSION_DENY = "Deny";
 
 interface ExtensionConfig {
   baseUrl: string;
@@ -506,11 +509,35 @@ function mutationResult(
   };
 }
 
-async function confirmDestructive(ctx: ExtensionContext, title: string, summary: string): Promise<void> {
+async function confirmDestructive(
+  pi: ExtensionAPI,
+  ctx: ExtensionContext,
+  title: string,
+  summary: string,
+  sessionPermission: { granted: boolean },
+): Promise<void> {
+  if (sessionPermission.granted) return;
   if (!ctx.hasUI) {
     throw new Error("Destructive SilverBullet updates require interactive user confirmation in this Pi mode.");
   }
-  if (!(await ctx.ui.confirm(title, summary))) throw new Error("SilverBullet update cancelled by user.");
+
+  pi.events.emit("herdr:blocked", { active: true, label: "Approve SilverBullet update" });
+  let choice: string | undefined;
+  try {
+    choice = await ctx.ui.select(`${title}\n\n${summary}`, [
+      PERMISSION_ALLOW_ONCE,
+      PERMISSION_ALLOW_SESSION,
+      PERMISSION_DENY,
+    ]);
+  } finally {
+    pi.events.emit("herdr:blocked", { active: false });
+  }
+
+  if (choice === PERMISSION_ALLOW_SESSION) {
+    sessionPermission.granted = true;
+    return;
+  }
+  if (choice !== PERMISSION_ALLOW_ONCE) throw new Error("SilverBullet update cancelled by user.");
 }
 
 function toolSchemas(config: ResolvedConfig) {
@@ -549,7 +576,7 @@ function toolSchemas(config: ResolvedConfig) {
     update: Type.Object({
       space,
       action: StringEnum(["replace_page", "replace_text", "delete"] as const, {
-        description: "Destructive operation; every action requires interactive confirmation.",
+        description: "Destructive operation; requires interactive approval unless granted for this Pi session.",
       }),
       page: Type.String({ description: "Existing space-relative page path." }),
       content: Type.Optional(Type.String({ description: "Complete replacement content for replace_page." })),
@@ -564,6 +591,11 @@ function toolSchemas(config: ResolvedConfig) {
 
 export function registerSilverbullet(pi: ExtensionAPI, config: ResolvedConfig) {
   const schemas = toolSchemas(config);
+  const sessionPermission = { granted: false };
+
+  pi.on("session_start", () => {
+    sessionPermission.granted = false;
+  });
   pi.registerTool({
     name: "silverbullet_search",
     label: "SilverBullet Search",
@@ -730,7 +762,7 @@ export function registerSilverbullet(pi: ExtensionAPI, config: ResolvedConfig) {
     name: "silverbullet_update",
     label: "SilverBullet Update",
     description:
-      "Replace a whole page, replace exact text, or delete a SilverBullet page. Always reads the current page and requires interactive user confirmation. Managed paths are forbidden.",
+      "Replace a whole page, replace exact text, or delete a SilverBullet page. Always reads the current page and requests interactive approval, with an optional allow-for-session choice. Managed paths are forbidden.",
     parameters: schemas.update,
     executionMode: "sequential",
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -743,9 +775,11 @@ export function registerSilverbullet(pi: ExtensionAPI, config: ResolvedConfig) {
 
         if (params.action === "delete") {
           await confirmDestructive(
+            pi,
             ctx,
             `Delete SilverBullet page from ${space.label}?`,
             `Space: ${space.label} (${space.name})\nPage: ${page}\n\nThis permanently deletes the page.`,
+            sessionPermission,
           );
           await deletePage(config, space, ctx, page, existing.metadata);
           return {
@@ -776,7 +810,13 @@ export function registerSilverbullet(pi: ExtensionAPI, config: ResolvedConfig) {
           summary = `Space: ${space.label} (${space.name})\nPage: ${page}\n\nReplace ${params.replaceAll ? replacements : 1} exact occurrence${(params.replaceAll ? replacements : 1) === 1 ? "" : "s"}?`;
         }
 
-        await confirmDestructive(ctx, `Update SilverBullet page in ${space.label}?`, summary);
+        await confirmDestructive(
+          pi,
+          ctx,
+          `Update SilverBullet page in ${space.label}?`,
+          summary,
+          sessionPermission,
+        );
         const snapshot = await putPage(config, space, ctx, page, next, existing.metadata);
         return mutationResult("Updated", space, page, snapshot, replacements === undefined ? {} : { replacements });
       });

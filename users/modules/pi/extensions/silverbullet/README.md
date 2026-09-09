@@ -10,7 +10,7 @@ Tools:
 - `silverbullet_read`: read a page or line range.
 - `silverbullet_create`: create without overwriting.
 - `silverbullet_append`: append or create.
-- `silverbullet_update`: confirmed whole-page replacement, exact-text replacement, or deletion.
+- `silverbullet_update`: approved whole-page replacement, exact-text replacement, or deletion.
 
 Configuration shape:
 
@@ -42,7 +42,9 @@ The token file must be absolute, regular, non-empty, and inaccessible to group/o
 - Redirects are rejected, response and note sizes are bounded, and model-visible output is truncated.
 - The bearer token is read directly by the Pi process and is never returned in tool output.
 - `Library/`, `Repositories/`, `.client/`, and other dot-prefixed roots cannot be mutated.
-- Whole-page replacement, exact-text replacement, and deletion require interactive confirmation that names the target space, and fail closed without UI support.
+- Whole-page replacement, exact-text replacement, and deletion require interactive approval that names the target space, and fail closed without UI support.
+- The approval selector offers **Allow once**, **Allow all SilverBullet replacements/deletions for this session**, and **Deny**. The session grant is held only in memory and resets on session start or extension reload.
+- While an approval selector is open, the extension emits Herdr's semantic `blocked` state and clears it in a `finally` block on approval, denial, cancellation, or UI failure.
 - Create and append operations are serialized per page and per space within each Pi process, and writes are read back from the same space for verification.
 
 SilverBullet 2.10.0 does not return `ETag` headers or implement `If-Match` for `/.fs` writes. Therefore neither this extension nor a sidecar can guarantee atomic conflict detection against a simultaneous browser edit or another Pi process. The extension preserves metadata, serializes in-process changes, and verifies writes, but concurrent external edits remain a last-writer-wins risk.
