@@ -20,8 +20,7 @@ in
     environment.SB_SHELL_BACKEND = "off";
 
     serviceConfig = {
-      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /var/lib/silverbullet/space";
-      ExecStart = "${pkgs.silverbullet}/bin/silverbullet -L 127.0.0.1 -p 3000 /var/lib/silverbullet/space";
+      ExecStart = "${pkgs.silverbullet}/bin/silverbullet -L 127.0.0.1 -p 3000 /var/lib/silverbullet";
       DynamicUser = true;
       StateDirectory = "silverbullet";
       StateDirectoryMode = "0750";
