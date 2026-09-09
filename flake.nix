@@ -109,6 +109,32 @@
 
       formatter = forAllSystems (system: (mkPkgs system).nixfmt);
 
+      checks.x86_64-linux.silverbullet-pi-extension =
+        let
+          pkgs = mkPkgs "x86_64-linux";
+          configFile = pkgs.writeText "silverbullet-pi-extension-check.json" (
+            builtins.toJSON {
+              allowInsecureHttp = true;
+              baseUrl = "http://127.0.0.1:3000";
+              defaultSpace = "personal";
+              spaces = {
+                personal = {
+                  label = "Personal";
+                  path = "/";
+                };
+                ksp = {
+                  label = "KSP";
+                  path = "/ksp";
+                };
+              };
+              tokenFile = "/run/secrets/silverbullet/pi-api-token";
+            }
+          );
+        in
+        pkgs.callPackage ./users/modules/pi/extensions/silverbullet/package.nix {
+          inherit configFile;
+        };
+
       apps = forAllSystems (
         system:
         let

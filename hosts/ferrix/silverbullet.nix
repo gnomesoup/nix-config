@@ -1,9 +1,21 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 let
   piExtensionConfig = pkgs.writeText "silverbullet-pi-extension.json" (
     builtins.toJSON {
       allowInsecureHttp = true;
       baseUrl = "http://127.0.0.1:3000";
+      defaultSpace = "personal";
+      spaces = {
+        personal = {
+          label = "Personal";
+          path = "/";
+        };
+        ksp = {
+          label = "KSP";
+          path = "/ksp";
+        };
+      };
+      tokenFile = config.sops.secrets."silverbullet/pi-api-token".path;
     }
   );
   piExtension = pkgs.callPackage ../../users/modules/pi/extensions/silverbullet/package.nix {
@@ -11,6 +23,13 @@ let
   };
 in
 {
+  # MultiSpace API tokens are created by the account owner in /.spaces and
+  # materialized at activation time; only this runtime path enters the Nix store.
+  sops.secrets."silverbullet/pi-api-token" = {
+    owner = "mpfammatter";
+    mode = "0400";
+  };
+
   systemd.services.silverbullet = {
     description = "SilverBullet Markdown knowledge server";
     wantedBy = [ "multi-user.target" ];
