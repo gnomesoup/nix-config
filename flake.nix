@@ -146,6 +146,7 @@
                 baseUrl = "http://127.0.0.1:3000";
                 tokenFile = "/run/secrets/silverbullet/pi-api-token";
                 plugFile = "${plug}/silverbullet-vim-layout.plug.js";
+                plugPath = "_plug/silverbullet-vim-layout.plug.js";
               };
             in
             pkgs.runCommand "silverbullet-plug-sync-check" { nativeBuildInputs = [ pkgs.python3 ]; } ''

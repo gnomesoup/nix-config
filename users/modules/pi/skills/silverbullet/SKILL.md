@@ -16,6 +16,21 @@ Use the native SilverBullet tools. They access the user's shared space directly;
 
 Every tool accepts an optional `space`: use `personal` for Personal or `ksp` for KSP. Personal is the default when `space` is omitted. Choose the space from the user's request or established context; if the destination is ambiguous, ask rather than guessing. Paths are relative to the selected space, never cross-space paths or URLs. A missing `.md` extension is added automatically.
 
+## Version-aware UI guidance
+
+When recommending SilverBullet UI commands or shortcuts:
+
+1. Determine the running SilverBullet version when possible, then verify the exact command-palette label and shortcut against official documentation or source for that same version. Do not rely on remembered labels, shorten command names, or silently substitute commands from older releases.
+2. Quote the exact command name shown in the command palette. If the version cannot be established, tell the user to search the visible command palette rather than asserting an unverified label or shortcut.
+3. Distinguish Markdown pages from non-page documents such as PDFs. For SilverBullet 2.10.0, the verified commands are:
+   - `Navigate: Page Picker` — `Ctrl-k` on Windows/Linux, `Cmd-k` on macOS.
+   - `Navigate: Document Picker` — `Ctrl-o` on Windows/Linux, `Cmd-o` on macOS.
+   - `Navigate: Meta Picker` — `Ctrl-Shift-k` on Windows/Linux, `Cmd-Shift-k` on macOS.
+   - `Navigate: Anything Picker` — no default shortcut in the 2.10.0 core command registration.
+   - `Open Command Palette` — `Ctrl-/` on Windows/Linux, `Cmd-/` on macOS.
+4. To open an annotation page and then follow its PDF link, recommend `Navigate: Page Picker`. To open the PDF directly, recommend `Navigate: Document Picker`. Never call either command `Navigate: Page`, and never describe `Ctrl-o`/`Cmd-o` as the Page Picker shortcut.
+5. Treat plug-provided commands as versioned too; verify them against the installed plug release before naming them.
+
 ## Retrieve information
 
 1. Select the intended space and search it with a narrow literal query. SilverBullet-managed pages are excluded by default. Search both spaces only when the request calls for a cross-space lookup.

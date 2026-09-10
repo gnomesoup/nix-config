@@ -3,10 +3,35 @@ let
   baseUrl = "http://127.0.0.1:3000";
   tokenFile = config.sops.secrets."silverbullet/pi-api-token".path;
   vimLayoutPlug = import ./silverbullet-vim-layout/package.nix { inherit pkgs; };
-  plugSync = pkgs.replaceVars ./silverbullet-plug-sync.py {
-    inherit baseUrl tokenFile;
-    plugFile = "${vimLayoutPlug}/silverbullet-vim-layout.plug.js";
+  silverbulletPdfPlug = pkgs.fetchurl {
+    url = "https://github.com/MrMugame/silverbullet-pdf/releases/download/1.1.6/silverbullet-pdf.plug.js";
+    hash = "sha256-mXAR8i4JTN+W09NG2uroNtTBPs/070bhiri3FRzIExg=";
   };
+  mkPlugSync =
+    {
+      plugFile,
+      plugPath,
+    }:
+    pkgs.replaceVars ./silverbullet-plug-sync.py {
+      inherit
+        baseUrl
+        plugFile
+        plugPath
+        tokenFile
+        ;
+    };
+  vimLayoutPlugSync = mkPlugSync {
+    plugFile = "${vimLayoutPlug}/silverbullet-vim-layout.plug.js";
+    plugPath = "_plug/silverbullet-vim-layout.plug.js";
+  };
+  pdfPlugSync = mkPlugSync {
+    plugFile = silverbulletPdfPlug;
+    plugPath = "_plug/silverbullet-pdf.plug.js";
+  };
+  plugSyncAll = pkgs.writeShellScript "silverbullet-plug-sync-all" ''
+    ${pkgs.python3}/bin/python3 ${vimLayoutPlugSync}
+    ${pkgs.python3}/bin/python3 ${pdfPlugSync}
+  '';
 
   piExtensionConfig = pkgs.writeText "silverbullet-pi-extension.json" (
     builtins.toJSON {
@@ -76,7 +101,7 @@ in
     wantedBy = [ "multi-user.target" ];
     requires = [ "silverbullet.service" ];
     after = [ "silverbullet.service" ];
-    restartTriggers = [ plugSync ];
+    restartTriggers = [ plugSyncAll ];
     unitConfig = {
       StartLimitIntervalSec = "5min";
       StartLimitBurst = 5;
@@ -85,7 +110,7 @@ in
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      ExecStart = "${pkgs.python3}/bin/python3 ${plugSync}";
+      ExecStart = plugSyncAll;
       User = "mpfammatter";
       Group = "users";
       UMask = "0077";

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synchronize the Nix-built SilverBullet Vim layout plug into both spaces."""
+"""Synchronize one Nix-managed SilverBullet plug into both spaces."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from typing import Callable
 TOKEN_FILE = Path("@tokenFile@")
 PLUG_FILE = Path("@plugFile@")
 BASE_URL = "@baseUrl@"
-PLUG_PATH = "_plug/silverbullet-vim-layout.plug.js"
+PLUG_PATH = "@plugPath@"
 SPACE_PREFIXES = (("Personal", ""), ("KSP", "/ksp"))
 MAX_TOKEN_BYTES = 4096
 MAX_PLUG_BYTES = 5 * 1024 * 1024
@@ -110,8 +110,8 @@ def wait_until_ready(
         time.sleep(retry_seconds)
 
 
-def plug_url(base_url: str, prefix: str) -> str:
-    encoded = "/".join(urllib.parse.quote(segment, safe="") for segment in PLUG_PATH.split("/"))
+def plug_url(base_url: str, prefix: str, plug_path: str) -> str:
+    encoded = "/".join(urllib.parse.quote(segment, safe="") for segment in plug_path.split("/"))
     return f"{base_url}{prefix}/.fs/{encoded}"
 
 
@@ -171,6 +171,7 @@ def sync(
     token_file: Path = TOKEN_FILE,
     plug_file: Path = PLUG_FILE,
     base_url: str = BASE_URL,
+    plug_path: str = PLUG_PATH,
     *,
     timeout_seconds: float = 90,
     retry_seconds: float = 1,
@@ -182,10 +183,10 @@ def sync(
     wait_until_ready(opener, base_url, timeout_seconds, retry_seconds)
 
     for label, prefix in SPACE_PREFIXES:
-        url = plug_url(base_url, prefix)
+        url = plug_url(base_url, prefix, plug_path)
         current, created, permission = get_current(opener, url, token, label)
         if current == content and permission == "rw":
-            log(f"{label}: {PLUG_PATH} already synchronized")
+            log(f"{label}: {plug_path} already synchronized")
             continue
 
         if created is None or not created.isdigit():
@@ -194,7 +195,7 @@ def sync(
         verified, _, verified_permission = get_current(opener, url, token, label)
         if verified != content or verified_permission != "rw":
             raise SyncError(f"{label} verification failed")
-        log(f"{label}: synchronized {PLUG_PATH}")
+        log(f"{label}: synchronized {plug_path}")
 
 
 def main() -> int:

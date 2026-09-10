@@ -145,6 +145,7 @@ class SyncTest(unittest.TestCase):
             self.token_file,
             self.plug_file,
             self.base_url,
+            "_plug/silverbullet-vim-layout.plug.js",
             timeout_seconds=1,
             retry_seconds=0.01,
             log=messages.append,
