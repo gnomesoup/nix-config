@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Synchronize one Nix-managed SilverBullet plug into both spaces."""
+"""Synchronize one Nix-managed file into selected SilverBullet spaces."""
 
 from __future__ import annotations
 
 import http.client
+import json
 import os
 import stat
 import sys
@@ -15,12 +16,19 @@ from pathlib import Path
 from typing import Callable
 
 TOKEN_FILE = Path("@tokenFile@")
-PLUG_FILE = Path("@plugFile@")
+FILE_PATH_ON_DISK = Path("@filePathOnDisk@")
 BASE_URL = "@baseUrl@"
-PLUG_PATH = "@plugPath@"
-SPACE_PREFIXES = (("Personal", ""), ("KSP", "/ksp"))
+FILE_PATH_IN_SPACE = "@filePathInSpace@"
+_SPACE_PREFIXES_JSON = r'''@spacePrefixes@'''
+SPACE_PREFIXES = (
+    (("Personal", ""), ("KSP", "/ksp"))
+    if _SPACE_PREFIXES_JSON.startswith("@")
+    else tuple(tuple(item) for item in json.loads(_SPACE_PREFIXES_JSON))
+)
+_CONTENT_TYPE = "@contentType@"
+CONTENT_TYPE = "application/javascript" if _CONTENT_TYPE.startswith("@") else _CONTENT_TYPE
 MAX_TOKEN_BYTES = 4096
-MAX_PLUG_BYTES = 5 * 1024 * 1024
+MAX_FILE_BYTES = 5 * 1024 * 1024
 
 
 class SyncError(RuntimeError):
@@ -58,13 +66,13 @@ def read_token(path: Path) -> str:
     return token
 
 
-def read_plug(path: Path) -> bytes:
+def read_file(path: Path) -> bytes:
     try:
         content = path.read_bytes()
     except OSError as error:
-        raise SyncError("could not read the compiled plug") from error
-    if not content or len(content) > MAX_PLUG_BYTES:
-        raise SyncError("compiled plug has an invalid size")
+        raise SyncError("could not read the managed file") from error
+    if not content or len(content) > MAX_FILE_BYTES:
+        raise SyncError("managed file has an invalid size")
     return content
 
 
@@ -82,7 +90,7 @@ def request(
     req = urllib.request.Request(url, data=body, headers=request_headers, method=method)
     try:
         with opener.open(req, timeout=5) as response:
-            return response.read(MAX_PLUG_BYTES + 1), response.status, response.headers
+            return response.read(MAX_FILE_BYTES + 1), response.status, response.headers
     except urllib.error.HTTPError:
         raise
     except (OSError, urllib.error.URLError) as error:
@@ -110,8 +118,8 @@ def wait_until_ready(
         time.sleep(retry_seconds)
 
 
-def plug_url(base_url: str, prefix: str, plug_path: str) -> str:
-    encoded = "/".join(urllib.parse.quote(segment, safe="") for segment in plug_path.split("/"))
+def file_url(base_url: str, prefix: str, file_path: str) -> str:
+    encoded = "/".join(urllib.parse.quote(segment, safe="") for segment in file_path.split("/"))
     return f"{base_url}{prefix}/.fs/{encoded}"
 
 
@@ -134,23 +142,24 @@ def get_current(
         if status == 404:
             return None, None, None
         raise SyncError(f"{label} read failed with HTTP {status}") from None
-    if len(body) > MAX_PLUG_BYTES:
-        raise SyncError(f"{label} returned an oversized plug")
+    if len(body) > MAX_FILE_BYTES:
+        raise SyncError(f"{label} returned an oversized file")
     return body, response_headers.get("X-Created"), response_headers.get("X-Permission")
 
 
-def put_plug(
+def put_file(
     opener: urllib.request.OpenerDirector,
     url: str,
     token: str,
     label: str,
     content: bytes,
     created: str,
+    content_type: str,
 ) -> None:
     now = str(int(time.time() * 1000))
     headers = {
         "Accept": "application/octet-stream",
-        "Content-Type": "application/javascript",
+        "Content-Type": content_type,
         "X-Created": created,
         "X-Last-Modified": now,
         "X-Content-Length": str(len(content)),
@@ -169,33 +178,35 @@ def put_plug(
 
 def sync(
     token_file: Path = TOKEN_FILE,
-    plug_file: Path = PLUG_FILE,
+    file_path_on_disk: Path = FILE_PATH_ON_DISK,
     base_url: str = BASE_URL,
-    plug_path: str = PLUG_PATH,
+    file_path_in_space: str = FILE_PATH_IN_SPACE,
     *,
+    space_prefixes: tuple[tuple[str, str], ...] = SPACE_PREFIXES,
+    content_type: str = CONTENT_TYPE,
     timeout_seconds: float = 90,
     retry_seconds: float = 1,
     log: Callable[[str], None] = print,
 ) -> None:
     token = read_token(token_file)
-    content = read_plug(plug_file)
+    content = read_file(file_path_on_disk)
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect)
     wait_until_ready(opener, base_url, timeout_seconds, retry_seconds)
 
-    for label, prefix in SPACE_PREFIXES:
-        url = plug_url(base_url, prefix, plug_path)
+    for label, prefix in space_prefixes:
+        url = file_url(base_url, prefix, file_path_in_space)
         current, created, permission = get_current(opener, url, token, label)
         if current == content and permission == "rw":
-            log(f"{label}: {plug_path} already synchronized")
+            log(f"{label}: {file_path_in_space} already synchronized")
             continue
 
         if created is None or not created.isdigit():
             created = str(int(time.time() * 1000))
-        put_plug(opener, url, token, label, content, created)
+        put_file(opener, url, token, label, content, created, content_type)
         verified, _, verified_permission = get_current(opener, url, token, label)
         if verified != content or verified_permission != "rw":
             raise SyncError(f"{label} verification failed")
-        log(f"{label}: synchronized {plug_path}")
+        log(f"{label}: synchronized {file_path_in_space}")
 
 
 def main() -> int:

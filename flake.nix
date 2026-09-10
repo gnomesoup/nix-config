@@ -144,9 +144,20 @@
               plug = import ./hosts/ferrix/silverbullet-vim-layout/package.nix { inherit pkgs; };
               syncScript = pkgs.replaceVars ./hosts/ferrix/silverbullet-plug-sync.py {
                 baseUrl = "http://127.0.0.1:3000";
+                contentType = "application/javascript";
+                filePathOnDisk = "${plug}/silverbullet-vim-layout.plug.js";
+                filePathInSpace = "_plug/silverbullet-vim-layout.plug.js";
+                spacePrefixes = builtins.toJSON [
+                  [
+                    "Personal"
+                    ""
+                  ]
+                  [
+                    "KSP"
+                    "/ksp"
+                  ]
+                ];
                 tokenFile = "/run/secrets/silverbullet/pi-api-token";
-                plugFile = "${plug}/silverbullet-vim-layout.plug.js";
-                plugPath = "_plug/silverbullet-vim-layout.plug.js";
               };
             in
             pkgs.runCommand "silverbullet-plug-sync-check" { nativeBuildInputs = [ pkgs.python3 ]; } ''
@@ -155,6 +166,17 @@
               python3 -m unittest -v silverbullet-plug-sync_test.py
               touch $out
             '';
+
+          silverbullet-calendar-proxy =
+            pkgs.runCommand "silverbullet-calendar-proxy-check" { nativeBuildInputs = [ pkgs.python3 ]; }
+              ''
+                cp ${./hosts/ferrix/silverbullet-calendar-proxy.py} silverbullet-calendar-proxy.py
+                cp ${./hosts/ferrix/silverbullet-calendar-proxy_test.py} silverbullet-calendar-proxy_test.py
+                python3 -m unittest -v silverbullet-calendar-proxy_test.py
+                touch $out
+              '';
+
+          silverbullet-icalendar = import ./hosts/ferrix/silverbullet-icalendar/package.nix { inherit pkgs; };
 
           silverbullet-vim-layout =
             let

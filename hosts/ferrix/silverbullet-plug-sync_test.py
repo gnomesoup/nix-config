@@ -177,6 +177,25 @@ class SyncTest(unittest.TestCase):
         self.assertTrue(all("Authorization" not in headers for _, _, headers, _ in ping_requests))
         self.assertFalse(any("CONFIG" in path for _, path, _, _ in self.state.requests))
 
+    def test_can_scope_a_non_javascript_file_to_one_space(self) -> None:
+        messages: list[str] = []
+        sync_module.sync(
+            self.token_file,
+            self.plug_file,
+            self.base_url,
+            "_plug/silverbullet-vim-layout.plug.js",
+            space_prefixes=(("KSP", "/ksp"),),
+            content_type="text/markdown; charset=utf-8",
+            timeout_seconds=1,
+            retry_seconds=0.01,
+            log=messages.append,
+        )
+        self.assertEqual(set(self.state.files), {"/ksp/.fs/_plug/silverbullet-vim-layout.plug.js"})
+        put_requests = [request for request in self.state.requests if request[0] == "PUT"]
+        self.assertEqual(len(put_requests), 1)
+        self.assertEqual(put_requests[0][2].get("Content-Type"), "text/markdown; charset=utf-8")
+        self.assertEqual(messages, ["KSP: synchronized _plug/silverbullet-vim-layout.plug.js"])
+
     def test_second_run_is_idempotent_and_repairs_ro_metadata(self) -> None:
         self.run_sync()
         put_count = sum(method == "PUT" for method, _, _, _ in self.state.requests)
