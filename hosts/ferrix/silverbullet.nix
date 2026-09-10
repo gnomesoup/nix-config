@@ -117,7 +117,7 @@ let
       where e.start:startsWith(calendarJournalDate())
       order by e.start
       select {
-        Start = e.start,
+        Start = string.sub(e.start, 12, 16),
         Event = e.summary,
         Location = e.location
       }
