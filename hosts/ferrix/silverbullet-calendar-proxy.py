@@ -12,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 LISTEN_ADDRESS = "127.0.0.1"
-LISTEN_PORT = 3001
+LISTEN_PORT = 3901
 MAX_URL_BYTES = 4096
 MAX_CALENDAR_BYTES = 10 * 1024 * 1024
 FEED_CREDENTIALS = {

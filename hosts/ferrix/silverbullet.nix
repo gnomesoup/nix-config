@@ -2,7 +2,7 @@
 let
   baseUrl = "http://127.0.0.1:3000";
   tokenFile = config.sops.secrets."silverbullet/pi-api-token".path;
-  calendarProxyPort = 3001;
+  calendarProxyPort = 3901;
   vimLayoutPlug = import ./silverbullet-vim-layout/package.nix { inherit pkgs; };
   iCalendarPlug = import ./silverbullet-icalendar/package.nix { inherit pkgs; };
   silverbulletPdfPlug = pkgs.fetchurl {
