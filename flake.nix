@@ -114,6 +114,8 @@
           pkgs = mkPkgs "x86_64-linux";
         in
         {
+          pi-ask = pkgs.callPackage ./users/modules/pi/pi-ask/package.nix { };
+
           silverbullet-pi-extension =
             let
               configFile = pkgs.writeText "silverbullet-pi-extension-check.json" (
