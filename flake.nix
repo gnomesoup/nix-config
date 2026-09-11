@@ -176,6 +176,21 @@
                 touch $out
               '';
 
+          silverbullet-git-setup =
+            pkgs.runCommand "silverbullet-git-setup-check"
+              {
+                nativeBuildInputs = [
+                  pkgs.git
+                  pkgs.python3
+                ];
+              }
+              ''
+                cp ${./hosts/ferrix/silverbullet-git-setup.py} silverbullet-git-setup.py
+                cp ${./hosts/ferrix/silverbullet-git-setup_test.py} silverbullet-git-setup_test.py
+                python3 -m unittest -v silverbullet-git-setup_test.py
+                touch $out
+              '';
+
           silverbullet-icalendar = import ./hosts/ferrix/silverbullet-icalendar/package.nix { inherit pkgs; };
 
           silverbullet-vim-layout =

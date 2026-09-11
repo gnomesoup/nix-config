@@ -9,6 +9,14 @@ let
     url = "https://github.com/MrMugame/silverbullet-pdf/releases/download/1.1.6/silverbullet-pdf.plug.js";
     hash = "sha256-mXAR8i4JTN+W09NG2uroNtTBPs/070bhiri3FRzIExg=";
   };
+  silverbulletHistoryPlug = pkgs.fetchurl {
+    url = "https://github.com/ivanalejandro0/silverbullet-history/releases/download/0.1.0/history.plug.js";
+    hash = "sha256-rfkDiC5K3ZwsmTvmVzHWFP8iZmwC4hOvtkApn3IEac0=";
+  };
+  silverbulletGitLibrary = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/silverbulletmd/silverbullet-libraries/23a185ad53c18e7cc18eb4cb6ca18d5fab2f5a49/Git.md";
+    hash = "sha256-+RrwAtOgnwtXsfpWmmk5oMP6rU9YPG2NVjYgSxjlahg=";
+  };
   mkFileSync =
     {
       filePathOnDisk,
@@ -42,6 +50,15 @@ let
   pdfPlugSync = mkFileSync {
     filePathOnDisk = silverbulletPdfPlug;
     filePathInSpace = "_plug/silverbullet-pdf.plug.js";
+  };
+  historyPlugSync = mkFileSync {
+    filePathOnDisk = silverbulletHistoryPlug;
+    filePathInSpace = "_plug/history.plug.js";
+  };
+  gitLibrarySync = mkFileSync {
+    filePathOnDisk = silverbulletGitLibrary;
+    filePathInSpace = "Library/Git.md";
+    contentType = "text/markdown; charset=utf-8";
   };
   iCalendarPlugSync = mkFileSync {
     filePathOnDisk = "${iCalendarPlug}/icalendar.plug.js";
@@ -133,6 +150,8 @@ let
   managedFilesSync = pkgs.writeShellScript "silverbullet-managed-files-sync-all" ''
     ${pkgs.python3}/bin/python3 ${vimLayoutPlugSync}
     ${pkgs.python3}/bin/python3 ${pdfPlugSync}
+    ${pkgs.python3}/bin/python3 ${historyPlugSync}
+    ${pkgs.python3}/bin/python3 ${gitLibrarySync}
     ${pkgs.python3}/bin/python3 ${iCalendarPlugSync}
     ${pkgs.python3}/bin/python3 ${personalCalendarConfigSync}
     ${pkgs.python3}/bin/python3 ${kspCalendarConfigSync}
@@ -235,7 +254,17 @@ in
     wants = [ "silverbullet-calendar-proxy.service" ];
 
     # SilverBullet stays local; Tailscale Serve terminates HTTPS for Tailnet access.
-    environment.SB_SHELL_BACKEND = "off";
+    # The pre-start policy also enforces this whitelist in each MultiSpace entry.
+    environment = {
+      SB_SHELL_BACKEND = "local";
+      SB_SHELL_WHITELIST = "git";
+    };
+    path = [ pkgs.git ];
+    preStart = ''
+      ${pkgs.python3}/bin/python3 ${./silverbullet-git-setup.py} \
+        --root "$STATE_DIRECTORY" \
+        --git ${pkgs.git}/bin/git
+    '';
 
     serviceConfig = {
       ExecStart = "${pkgs.silverbullet}/bin/silverbullet -L 127.0.0.1 -p 3000 /var/lib/silverbullet";
