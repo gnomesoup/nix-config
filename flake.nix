@@ -195,6 +195,10 @@
 
           silverbullet-icalendar = import ./hosts/ferrix/silverbullet-icalendar/package.nix { inherit pkgs; };
 
+          silverbullet-journal-navigation =
+            import ./hosts/ferrix/silverbullet-journal-navigation/package.nix
+              { inherit pkgs; };
+
           silverbullet-vim-layout =
             let
               plug = import ./hosts/ferrix/silverbullet-vim-layout/package.nix { inherit pkgs; };

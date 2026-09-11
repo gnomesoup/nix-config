@@ -1,0 +1,9 @@
+name: silverbullet-journal-navigation
+functions:
+  openCalendar:
+    path: ./journal-navigation.ts:openCalendar
+    command:
+      name: "Journal: Calendar"
+      requireEditor: page
+  openDate:
+    path: ./journal-navigation.ts:openDate

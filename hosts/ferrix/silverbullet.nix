@@ -4,6 +4,7 @@ let
   tokenFile = config.sops.secrets."silverbullet/pi-api-token".path;
   calendarProxyPort = 3901;
   vimLayoutPlug = import ./silverbullet-vim-layout/package.nix { inherit pkgs; };
+  journalNavigationPlug = import ./silverbullet-journal-navigation/package.nix { inherit pkgs; };
   iCalendarPlug = import ./silverbullet-icalendar/package.nix { inherit pkgs; };
   silverbulletPdfPlug = pkgs.fetchurl {
     url = "https://github.com/MrMugame/silverbullet-pdf/releases/download/1.1.6/silverbullet-pdf.plug.js";
@@ -46,6 +47,15 @@ let
   vimLayoutPlugSync = mkFileSync {
     filePathOnDisk = "${vimLayoutPlug}/silverbullet-vim-layout.plug.js";
     filePathInSpace = "_plug/silverbullet-vim-layout.plug.js";
+  };
+  journalNavigationPlugSync = mkFileSync {
+    filePathOnDisk = "${journalNavigationPlug}/silverbullet-journal-navigation.plug.js";
+    filePathInSpace = "_plug/silverbullet-journal-navigation.plug.js";
+  };
+  journalNavigationConfigSync = mkFileSync {
+    filePathOnDisk = ./silverbullet-journal-navigation/journal-navigation.md;
+    filePathInSpace = "_config/journal-navigation.md";
+    contentType = "text/markdown; charset=utf-8";
   };
   pdfPlugSync = mkFileSync {
     filePathOnDisk = silverbulletPdfPlug;
@@ -149,6 +159,8 @@ let
   };
   managedFilesSync = pkgs.writeShellScript "silverbullet-managed-files-sync-all" ''
     ${pkgs.python3}/bin/python3 ${vimLayoutPlugSync}
+    ${pkgs.python3}/bin/python3 ${journalNavigationPlugSync}
+    ${pkgs.python3}/bin/python3 ${journalNavigationConfigSync}
     ${pkgs.python3}/bin/python3 ${pdfPlugSync}
     ${pkgs.python3}/bin/python3 ${historyPlugSync}
     ${pkgs.python3}/bin/python3 ${gitLibrarySync}
