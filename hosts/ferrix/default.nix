@@ -8,6 +8,7 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
+    ./hermes-agent.nix
     ./home-assistant-mcp.nix
     ./remote-pi-relay.nix
     ./silverbullet.nix

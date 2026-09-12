@@ -34,6 +34,12 @@
       flake = false;
     };
 
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
+
     herdr-src = {
       url = "git+https://github.com/gnomesoup/herdr.git?ref=nav-colemakdh";
       flake = false;
@@ -55,6 +61,7 @@
       kickstart-nixvim,
       nixos-wsl,
       pi-mono,
+      hermes-agent,
       herdr-src,
       # kmonad,
     }:
@@ -260,6 +267,7 @@
           system = "x86_64-linux";
           modules = [
             ./hosts/ferrix
+            hermes-agent.nixosModules.default
             sops-nix.nixosModules.sops
             home-manager.nixosModules.home-manager
             {
