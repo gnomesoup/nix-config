@@ -27,16 +27,9 @@ The full package is large, but the build can reuse the paths already produced du
 
 ## Authenticate OpenAI Codex
 
-The model is pinned declaratively to `openai-codex/gpt-5.6-sol`. After the first activation, complete the one-time device-code login as the service account:
+The model is pinned declaratively to `openai-codex/gpt-5.6-sol`. OpenAI workspace policy disables the device-code flow implemented by Hermes, while Pi's browser OAuth flow remains allowed. The initial Hermes credential was therefore imported locally from Pi's OAuth store without printing or committing token material.
 
-```bash
-sudo -u hermes \
-  HOME=/var/lib/hermes \
-  HERMES_HOME=/var/lib/hermes/.hermes \
-  /run/current-system/sw/bin/hermes auth add openai-codex
-```
-
-Hermes stores and refreshes the resulting OAuth credentials in `/var/lib/hermes/.hermes/auth.json`; NixOS rebuilds preserve this file.
+Hermes stores and refreshes its imported credential in `/var/lib/hermes/.hermes/auth.json`; NixOS rebuilds preserve this mutable file. If it needs reauthorization, first refresh Pi's login and repeat the controlled import, or ask the OpenAI workspace administrator to enable Codex device-code authentication. Never place the OAuth token in Nix configuration or SOPS because Hermes must rotate it at runtime.
 
 The `mpfammatter` account is added to the `hermes` group. Start a new login session after activation before using the system `hermes` CLI directly.
 
