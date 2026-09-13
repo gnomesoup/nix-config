@@ -57,7 +57,7 @@ colors:
   syntax_comment: "#686868"
 
 branding:
-  agent_name: Hermes Agent
+  agent_name: Inigo
   prompt_symbol: "❯"
   help_header: "SPC h d — Available Commands"
 

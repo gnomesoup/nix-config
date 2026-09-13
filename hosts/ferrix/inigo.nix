@@ -35,25 +35,40 @@ in
 {
   sops.secrets = {
     "hermes/api-server-key" = {
-      owner = "hermes";
-      group = "hermes";
+      owner = "inigo";
+      group = "inigo";
       mode = "0400";
     };
     "hermes/dashboard-password" = {
-      owner = "hermes";
-      group = "hermes";
+      owner = "inigo";
+      group = "inigo";
       mode = "0400";
     };
     "hermes/dashboard-secret" = {
-      owner = "hermes";
-      group = "hermes";
+      owner = "inigo";
+      group = "inigo";
+      mode = "0400";
+    };
+    "inigo/protonmail-bridge-email" = {
+      owner = "inigo";
+      group = "inigo";
+      mode = "0400";
+    };
+    "inigo/protonmail-bridge-password" = {
+      owner = "inigo";
+      group = "inigo";
+      mode = "0400";
+    };
+    "inigo/protonmail-bridge-username" = {
+      owner = "inigo";
+      group = "inigo";
       mode = "0400";
     };
   };
 
-  sops.templates."hermes-env" = {
-    owner = "hermes";
-    group = "hermes";
+  sops.templates."inigo-env" = {
+    owner = "inigo";
+    group = "inigo";
     mode = "0400";
     restartUnits = [
       "hermes-agent.service"
@@ -61,7 +76,7 @@ in
     ];
     content = ''
       API_SERVER_KEY=${config.sops.placeholder."hermes/api-server-key"}
-      HASS_TOKEN=${config.sops.placeholder."home-assistant/pi-token"}
+      HASS_TOKEN=${config.sops.placeholder."inigo/home-assistant-token"}
       HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${config.sops.placeholder."hermes/dashboard-password"}
       HERMES_DASHBOARD_BASIC_AUTH_SECRET=${config.sops.placeholder."hermes/dashboard-secret"}
     '';
@@ -71,14 +86,17 @@ in
     enable = true;
     addToSystemPackages = true;
     package = patchedHermesPackage;
+    user = "inigo";
+    group = "inigo";
+    stateDir = "/var/lib/inigo";
 
-    hermesHomeFiles."skins/spacemacs-dark.yaml" = ./hermes-spacemacs-dark.yaml;
+    hermesHomeFiles."skins/spacemacs-dark.yaml" = ./inigo-spacemacs-dark.yaml;
 
     # The upstream default is its full package. Native mode keeps the runtime
     # reproducible; capability-gated tools activate when their backend exists.
     container.enable = false;
-    workingDirectory = "/var/lib/hermes/workspace";
-    environmentFiles = [ config.sops.templates."hermes-env".path ];
+    workingDirectory = "/var/lib/inigo/workspace";
+    environmentFiles = [ config.sops.templates."inigo-env".path ];
     environment = {
       API_SERVER_ENABLED = "true";
       API_SERVER_HOST = "0.0.0.0";
@@ -136,6 +154,7 @@ in
       git
       gnugrep
       gnused
+      himalaya
       jq
       nix
       nixfmt
@@ -149,7 +168,7 @@ in
 
   # Let the local administrator use the CLI against the service's persistent
   # sessions and state rather than accidentally creating a second profile.
-  users.users.mpfammatter.extraGroups = [ "hermes" ];
+  users.users.mpfammatter.extraGroups = [ "inigo" ];
 
   # Both endpoints are reachable only over the tailnet. The API has bearer
   # authentication and the dashboard has its own username/password gate.
@@ -158,9 +177,41 @@ in
     9119
   ];
 
+  # Preserve the current assistant state when adopting the platform-neutral
+  # service identity. The old directory remains as a reversible backup.
+  systemd.services.inigo-state-migration = {
+    description = "Migrate Inigo state from the Hermes service identity";
+    before = [
+      "hermes-agent.service"
+      "hermes-backend.service"
+    ];
+    requiredBy = [
+      "hermes-agent.service"
+      "hermes-backend.service"
+    ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      if [ ! -e /var/lib/inigo/.migrated-from-hermes ]; then
+        if [ -d /var/lib/hermes ]; then
+          ${pkgs.rsync}/bin/rsync -a --ignore-existing \
+            --exclude '/.hermes/.env' \
+            --exclude '/.hermes/.managed' \
+            --exclude '/.hermes/config.yaml' \
+            /var/lib/hermes/ /var/lib/inigo/
+        fi
+        ${pkgs.coreutils}/bin/chown -R inigo:inigo /var/lib/inigo
+        ${pkgs.coreutils}/bin/install -o inigo -g inigo -m 0640 /dev/null \
+          /var/lib/inigo/.migrated-from-hermes
+      fi
+    '';
+  };
+
   # Apply one aggregate resource budget to the gateway and dashboard/TUI.
-  systemd.slices.hermes = {
-    description = "Hermes Agent resource limits";
+  systemd.slices.inigo = {
+    description = "Inigo resource limits";
     sliceConfig = {
       CPUQuota = "200%";
       CPUWeight = 50;
@@ -171,11 +222,11 @@ in
   };
 
   systemd.services.hermes-agent.serviceConfig = {
-    Slice = "hermes.slice";
+    Slice = "inigo.slice";
     TasksMax = 1024;
   };
   systemd.services.hermes-backend.serviceConfig = {
-    Slice = "hermes.slice";
+    Slice = "inigo.slice";
     TasksMax = 1024;
   };
 }
