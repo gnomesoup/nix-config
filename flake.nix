@@ -265,6 +265,7 @@
         };
         "ferrix" = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
+          specialArgs.hermesAgent = hermes-agent;
           modules = [
             ./hosts/ferrix
             hermes-agent.nixosModules.default

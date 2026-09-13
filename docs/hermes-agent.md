@@ -42,6 +42,12 @@ hermes status
 hermes doctor
 ```
 
+## Chat appearance
+
+The agent-created `spacemacs-dark` skin is preserved declaratively in `hosts/ferrix/hermes-spacemacs-dark.yaml` and selected through `display.skin`. It is the default for the embedded dashboard Chat TUI and other Hermes terminal surfaces.
+
+Hermes 0.21.2 hard-codes the dashboard Chat terminal font and responsive sizes in its web frontend rather than exposing configuration keys. `hosts/ferrix/hermes-chat-source-code-pro.patch` therefore changes only the embedded Chat terminal to locally served Source Code Pro and uses 12 px on phones, 14 px on tablets, and 16 px on desktop widths. The upstream frontend is patched before Vite creates content-hashed assets, so browsers receive the correct files without stale immutable-cache collisions. An incompatible future Hermes update will fail the patch during the Nix build rather than silently reverting the customization.
+
 Hermes uses an isolated writable workspace at `/var/lib/hermes/workspace`; it cannot modify `/home/mpfammatter/nix-config` in this initial deployment.
 
 Configuration is managed in `hosts/ferrix/hermes-agent.nix`. Values declared there override dashboard edits after a rebuild, and the SOPS template recreates `.env`; make durable configuration changes in Nix rather than only through the dashboard.

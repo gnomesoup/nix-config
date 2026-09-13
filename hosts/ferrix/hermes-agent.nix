@@ -1,7 +1,36 @@
-{ config, pkgs, ... }:
+{
+  config,
+  hermesAgent,
+  pkgs,
+  ...
+}:
 
 let
   tailnetHost = "ferrix.tailbb897.ts.net";
+  system = pkgs.stdenv.hostPlatform.system;
+
+  # The web dashboard hard-codes both its xterm.js font stack and responsive
+  # sizes. Patch its source before Vite hashes the assets, and ship the font
+  # locally so remote browsers do not depend on Google Fonts.
+  patchedHermesWeb = hermesAgent.packages.${system}.web.overrideAttrs (previousAttrs: {
+    patches = (previousAttrs.patches or [ ]) ++ [ ./hermes-chat-source-code-pro.patch ];
+    postPatch = (previousAttrs.postPatch or "") + ''
+      cp ${pkgs.source-code-pro}/share/fonts/opentype/SourceCodePro-Regular.otf \
+        web/public/fonts-terminal/
+      cp ${pkgs.source-code-pro}/share/fonts/opentype/SourceCodePro-Bold.otf \
+        web/public/fonts-terminal/
+    '';
+  });
+
+  patchedHermesPackage = hermesAgent.packages.${system}.default.overrideAttrs (previousAttrs: {
+    postInstall = (previousAttrs.postInstall or "") + ''
+      rm $out/share/hermes-agent/web_dist
+      ln -s ${patchedHermesWeb} $out/share/hermes-agent/web_dist
+    '';
+    passthru = previousAttrs.passthru // {
+      hermesWeb = patchedHermesWeb;
+    };
+  });
 in
 {
   sops.secrets = {
@@ -41,6 +70,9 @@ in
   services.hermes-agent = {
     enable = true;
     addToSystemPackages = true;
+    package = patchedHermesPackage;
+
+    hermesHomeFiles."skins/spacemacs-dark.yaml" = ./hermes-spacemacs-dark.yaml;
 
     # The upstream default is its full package. Native mode keeps the runtime
     # reproducible; capability-gated tools activate when their backend exists.
@@ -63,6 +95,7 @@ in
       };
       toolsets = [ "all" ];
       timezone = "America/New_York";
+      display.skin = "spacemacs-dark";
 
       # Bound concurrency keeps the full profile responsive on ferrix's
       # dual-core CPU while retaining delegation and background work.
@@ -78,6 +111,7 @@ in
       };
       terminal = {
         backend = "local";
+        font_family = "'Source Code Pro', monospace";
         timeout = 600;
       };
       telemetry.shared_metrics = {
