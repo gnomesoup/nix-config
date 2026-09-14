@@ -15,9 +15,12 @@ explicitly names it.
 - Start with `test "${HERDR_ENV:-}" = 1`. If it fails, stop: Herdr must not be
   controlled from outside a managed pane.
 - Read the installed Herdr CLI syntax with `herdr --help`, `herdr worktree`,
-  `herdr workspace`, and `herdr pane` before control operations.
+  `herdr workspace`, `herdr pane`, and `herdr notification` before control
+  operations.
 - Resolve workspace IDs, checkout paths, and branch names from Herdr/Git output.
-  Never guess IDs or derive them from sidebar positions.
+  Never guess IDs or derive them from sidebar positions. Store resolved values
+  in shell variables and use quoted expansions such as `"$target_checkout"`;
+  never splice raw values into shell command text.
 - Operate only on the current linked feature worktree. Reject a detached HEAD,
   the primary checkout, and protected target branches such as `main` or
   `master` as the feature branch.
@@ -56,7 +59,7 @@ If the target checkout has no open Herdr workspace, open it without stealing
 focus and read its returned workspace/root-pane IDs:
 
 ```bash
-herdr worktree open --path <target-checkout> --no-focus
+herdr worktree open --path "$target_checkout" --no-focus
 ```
 
 ## 2. Finish and verify feature work
@@ -81,7 +84,11 @@ continuing.
 First determine whether cleanup is already merged:
 
 ```bash
-git merge-base --is-ancestor <feature-tip> <target-branch>
+feature_tip=$(git rev-parse HEAD)
+target_tip=$(git -C "$target_checkout" rev-parse --verify \
+  "refs/heads/${target_branch}^{commit}")
+git -C "$target_checkout" merge-base --is-ancestor \
+  "$feature_tip" "$target_tip"
 ```
 
 If this succeeds, skip the merge. This makes repeated cleanup requests safe.
@@ -93,7 +100,8 @@ If a merge is required:
 2. Merge from the target checkout, preserving feature history:
 
    ```bash
-   git -C <target-checkout> merge --no-ff <feature-branch>
+   git -C "$target_checkout" merge --no-ff \
+     "refs/heads/$feature_branch"
    ```
 
 3. If conflicts occur, stop without removing the worktree or branch. Report the
@@ -109,42 +117,56 @@ report the failure.
 ## 4. Remove the worktree and branch from a surviving pane
 
 Deleting the current Herdr workspace can terminate this agent before a
-following branch-delete command runs. Therefore, perform the final two actions
-as one command in a **temporary shell pane in the target workspace**.
+following branch-delete command runs. Therefore, perform the final actions in a
+**temporary shell pane in the target workspace**.
 
-List target panes and select an explicit live pane only as a split anchor:
+Do not pass a compound command through `herdr pane run`, `sh -c`, or `sh -lc`.
+Herdr's command transport does not preserve nested shell quoting as an argv
+boundary, so an inline `if ...; then ...; fi` can be reparsed incorrectly.
+Instead use the bundled `scripts/remove-worktree.sh`, which takes all dynamic
+values from its environment and quotes them at their point of use.
+
+Resolve the helper relative to this `SKILL.md`, store its absolute path in
+`cleanup_helper`, then copy it to a unique, space-free launcher path that
+remains available after the feature worktree is removed:
 
 ```bash
-herdr pane list --workspace <target-workspace-id>
-herdr pane split --pane <anchor-pane-id> --direction down --ratio 0.20 \
-  --cwd <target-checkout> --no-focus
+cleanup_dir=$(mktemp -d /tmp/herdr-worktree-cleanup.XXXXXX)
+cleanup_script="$cleanup_dir/run"
+cp -- "$cleanup_helper" "$cleanup_script"
+chmod 700 "$cleanup_script"
+```
+
+List target panes and select an explicit live pane only as a split anchor. Pass
+each dynamic value as one `--env` argument; do not concatenate it into command
+text:
+
+```bash
+herdr pane list --workspace "$target_workspace_id"
+herdr pane split --pane "$anchor_pane_id" --direction down --ratio 0.20 \
+  --cwd "$target_checkout" \
+  --env "WORKTREE_CLEANUP_FEATURE_WORKSPACE_ID=$feature_workspace_id" \
+  --env "WORKTREE_CLEANUP_TARGET_CHECKOUT=$target_checkout" \
+  --env "WORKTREE_CLEANUP_TARGET_BRANCH=$target_branch" \
+  --env "WORKTREE_CLEANUP_FEATURE_BRANCH=$feature_branch" \
+  --no-focus
 ```
 
 Read the new pane ID from `.result.pane.pane_id`. Before launching the final
-command, tell the user that the merge is complete and this workspace is about
-to close.
-
-Run a carefully shell-quoted equivalent of the following in the new pane:
+script, tell the user that the merge is complete and this workspace is about to
+close. Then run only the space-free launcher path, with no shell wrapper and no
+additional command arguments:
 
 ```bash
-if herdr worktree remove --workspace <feature-workspace-id> && \
-   git -C <target-checkout> branch -d -- <feature-branch>; then
-    herdr notification show "Worktree cleaned" \
-      --body "Merged and removed <feature-branch>" --sound done
-    exit
-else
-    herdr notification show "Worktree cleanup needs attention" \
-      --body "Inspect the temporary cleanup pane" --sound request
-fi
+herdr pane run "$new_pane_id" "$cleanup_script"
 ```
 
-Use `herdr pane run <new-pane-id> <command>` to start it. Shell-quote every
-substituted ID, path, and branch name; do not paste placeholders literally.
+The helper rechecks that the target checkout is clean, remains on the expected
+target branch, and contains the feature tip. It then uses
+`herdr worktree remove` to remove the linked checkout and close its workspace,
+followed by `git branch -d --` to safely delete only a merged branch. On success
+it removes its temporary launcher and exits the temporary pane. On failure it
+leaves the pane and launcher in place so diagnostics remain visible.
 
-`herdr worktree remove` removes the linked checkout and closes its Herdr
-workspace, but does not delete the branch. `git branch -d` then safely deletes
-only a branch Git recognizes as merged. The temporary pane exits on success and
-stays open on failure so its diagnostics remain visible.
-
-Do not attempt further tool calls after launching the final command: successful
+Do not attempt further tool calls after launching the final script: successful
 cleanup intentionally closes the workspace hosting this agent.
