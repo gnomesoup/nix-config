@@ -17,7 +17,41 @@ sops decrypt --extract '["hermes"]["dashboard-password"]' secrets/secrets.yaml
 sops decrypt --extract '["hermes"]["api-server-key"]' secrets/secrets.yaml
 ```
 
+## Repository access
+
+Inigo has a separate SSH deploy key scoped to `gnomesoup/nix-config`. Before
+activating this configuration, add the following public key under the GitHub
+repository's **Settings → Deploy keys**, and select **Allow write access**:
+
+```text
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFo+8xZSogeIKuV/caK08MV+EK2f4Yi3XwXUj+mqKdL2 inigo@nix-config
+```
+
+The private key is encrypted at `inigo/github-deploy-key` in
+`secrets/secrets.yaml`. On activation, `inigo-nix-config.service` clones `main`
+to `/var/lib/inigo/nix-config`, configures Inigo's commit identity, and makes the
+checkout the Hermes working directory. It never resets or automatically pulls
+an existing checkout. Inigo is expected to commit and push directly to `main`.
+
+Inigo's separate Age identity is encrypted at `inigo/age-key`. Its public
+recipient is:
+
+```text
+age1ekuda2zpkys5vhzucpkgehfj6cf3asqvlu9tn8m30uemdd4gtgpsd97dk2
+```
+
+That recipient is included in `.sops.yaml` and every current SOPS file. The
+Hermes environment points `SOPS_AGE_KEY_FILE` at the runtime secret, so Inigo
+can decrypt, edit, re-encrypt, and rotate any repository secret. The Git and Age
+private keys never enter the Nix store.
+
+Inigo remains a system user without `wheel` membership or sudo rules. It can
+edit and push a configuration that requests additional privileges, but it
+cannot activate that configuration; inspect its commits before rebuilding.
+
 ## Activate
+
+After registering the deploy key:
 
 ```bash
 sudo nixos-rebuild switch --flake ~/nix-config#ferrix
@@ -44,8 +78,8 @@ The `mpfammatter` account is added to the `inigo` group. Start a new login sessi
 ## Operations
 
 ```bash
-systemctl status hermes-agent hermes-backend
-journalctl -u hermes-agent -u hermes-backend -f
+systemctl status inigo-nix-config hermes-agent hermes-backend
+journalctl -u inigo-nix-config -u hermes-agent -u hermes-backend -f
 hermes status
 hermes doctor
 ```
@@ -56,6 +90,6 @@ Inigo's `spacemacs-dark` skin is preserved declaratively in `hosts/ferrix/inigo-
 
 Hermes 0.21.2 hard-codes the dashboard Chat terminal font and responsive sizes in its web frontend rather than exposing configuration keys. `hosts/ferrix/hermes-chat-source-code-pro.patch` therefore changes only the embedded Chat terminal to locally served Source Code Pro and uses 12 px on phones, 14 px on tablets, and 16 px on desktop widths. The upstream frontend is patched before Vite creates content-hashed assets, so browsers receive the correct files without stale immutable-cache collisions. An incompatible future Hermes update will fail the patch during the Nix build rather than silently reverting the customization.
 
-Inigo uses an isolated writable workspace at `/var/lib/inigo/workspace`; it cannot modify `/home/mpfammatter/nix-config` in this initial deployment.
+Inigo uses its own writable checkout at `/var/lib/inigo/nix-config`; the administrator's `/home/mpfammatter/nix-config` checkout remains separate.
 
 Configuration is managed in `hosts/ferrix/inigo.nix`. Values declared there override dashboard edits after a rebuild, and the SOPS template recreates `.env`; make durable configuration changes in Nix rather than only through the dashboard.

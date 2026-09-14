@@ -9,6 +9,11 @@
 let
   tailnetHost = "ferrix.tailbb897.ts.net";
   system = pkgs.stdenv.hostPlatform.system;
+  nixConfigRoot = "/var/lib/inigo/nix-config";
+  nixConfigUrl = "git@github.com:gnomesoup/nix-config.git";
+  gitSshCommand = "${pkgs.openssh}/bin/ssh -i ${
+    config.sops.secrets."inigo/github-deploy-key".path
+  } -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/ssh/ssh_known_hosts";
 
   # The web dashboard hard-codes both its xterm.js font stack and responsive
   # sizes. Patch its source before Vite hashes the assets, and ship the font
@@ -36,6 +41,16 @@ let
 in
 {
   sops.secrets = {
+    "inigo/age-key" = {
+      owner = "inigo";
+      group = "inigo";
+      mode = "0400";
+    };
+    "inigo/github-deploy-key" = {
+      owner = "inigo";
+      group = "inigo";
+      mode = "0400";
+    };
     "hermes/api-server-key" = {
       owner = "inigo";
       group = "inigo";
@@ -106,7 +121,7 @@ in
     # The upstream default is its full package. Native mode keeps the runtime
     # reproducible; capability-gated tools activate when their backend exists.
     container.enable = false;
-    workingDirectory = "/var/lib/inigo/workspace";
+    workingDirectory = nixConfigRoot;
     environmentFiles = [ config.sops.templates."inigo-env".path ];
     extraPlugins = [ inigoSilverbulletPlugin ];
     environment = {
@@ -116,6 +131,8 @@ in
       HASS_URL = "http://onderon:8123";
       HERMES_DASHBOARD_BASIC_AUTH_USERNAME = "mpfammatter";
       HERMES_DASHBOARD_BASIC_AUTH_TTL_SECONDS = "43200";
+      GIT_SSH_COMMAND = gitSshCommand;
+      SOPS_AGE_KEY_FILE = config.sops.secrets."inigo/age-key".path;
     };
 
     settings = {
@@ -182,6 +199,7 @@ in
     };
 
     extraPackages = with pkgs; [
+      age
       bashInteractive
       coreutils
       curl
@@ -198,8 +216,16 @@ in
       openssh
       python3
       ripgrep
+      sops
       which
     ];
+  };
+
+  # Pin GitHub's published Ed25519 host key so repository access never accepts
+  # a host key learned from the network at runtime.
+  programs.ssh.knownHosts.github = {
+    hostNames = [ "github.com" ];
+    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
   };
 
   # Let the local administrator use the CLI against the service's persistent
@@ -212,6 +238,64 @@ in
     8642
     9119
   ];
+
+  # Clone once and leave the checkout mutable. Inigo owns its repository and
+  # pushes directly to main with a write-enabled, repository-scoped deploy key.
+  # Updating or activating the running NixOS configuration remains an explicit
+  # administrator action because the inigo account has no sudo privileges.
+  systemd.services.inigo-nix-config = {
+    description = "Provision Inigo's nix-config checkout";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    before = [
+      "hermes-agent.service"
+      "hermes-backend.service"
+    ];
+    environment.GIT_SSH_COMMAND = gitSshCommand;
+    path = [
+      pkgs.coreutils
+      pkgs.findutils
+      pkgs.git
+      pkgs.openssh
+    ];
+    script = ''
+      if [ ! -e ${nixConfigRoot}/.git ]; then
+        if [ -e ${nixConfigRoot} ] && [ ! -d ${nixConfigRoot} ]; then
+          echo "Refusing to replace non-directory path ${nixConfigRoot}" >&2
+          exit 1
+        fi
+        if [ -d ${nixConfigRoot} ] \
+          && [ -n "$(find ${nixConfigRoot} -mindepth 1 -maxdepth 1 -print -quit)" ]; then
+          echo "Refusing to replace non-empty, non-Git directory ${nixConfigRoot}" >&2
+          exit 1
+        fi
+        git clone ${lib.escapeShellArg nixConfigUrl} ${lib.escapeShellArg nixConfigRoot}
+      fi
+
+      if [ ! -d ${nixConfigRoot}/.git ]; then
+        echo "${nixConfigRoot} is not a Git checkout" >&2
+        exit 1
+      fi
+
+      git -C ${nixConfigRoot} remote set-url origin ${lib.escapeShellArg nixConfigUrl}
+      git -C ${nixConfigRoot} config user.name "Inigo"
+      git -C ${nixConfigRoot} config user.email "inigo@ferrix"
+      git -C ${nixConfigRoot} config push.default current
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      User = "inigo";
+      Group = "inigo";
+      UMask = "0077";
+      WorkingDirectory = "/var/lib/inigo";
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      ProtectHome = true;
+      ProtectSystem = "strict";
+      ReadWritePaths = [ "/var/lib/inigo" ];
+    };
+  };
 
   # Preserve the current assistant state when adopting the platform-neutral
   # service identity. Keep the old tree as a backup and leave a compatibility
@@ -264,18 +348,34 @@ in
     };
   };
 
-  systemd.services.hermes-agent.serviceConfig = {
-    LoadCredential = [
-      "silverbullet-api-token:${config.sops.secrets."inigo/silverbullet-api-token".path}"
-    ];
-    Slice = "inigo.slice";
-    TasksMax = 1024;
+  systemd.services.hermes-agent = {
+    after = [ "inigo-nix-config.service" ];
+    requires = [ "inigo-nix-config.service" ];
+    environment = {
+      GIT_SSH_COMMAND = gitSshCommand;
+      SOPS_AGE_KEY_FILE = config.sops.secrets."inigo/age-key".path;
+    };
+    serviceConfig = {
+      LoadCredential = [
+        "silverbullet-api-token:${config.sops.secrets."inigo/silverbullet-api-token".path}"
+      ];
+      Slice = "inigo.slice";
+      TasksMax = 1024;
+    };
   };
-  systemd.services.hermes-backend.serviceConfig = {
-    LoadCredential = [
-      "silverbullet-api-token:${config.sops.secrets."inigo/silverbullet-api-token".path}"
-    ];
-    Slice = "inigo.slice";
-    TasksMax = 1024;
+  systemd.services.hermes-backend = {
+    after = [ "inigo-nix-config.service" ];
+    requires = [ "inigo-nix-config.service" ];
+    environment = {
+      GIT_SSH_COMMAND = gitSshCommand;
+      SOPS_AGE_KEY_FILE = config.sops.secrets."inigo/age-key".path;
+    };
+    serviceConfig = {
+      LoadCredential = [
+        "silverbullet-api-token:${config.sops.secrets."inigo/silverbullet-api-token".path}"
+      ];
+      Slice = "inigo.slice";
+      TasksMax = 1024;
+    };
   };
 }

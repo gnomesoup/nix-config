@@ -1,0 +1,23 @@
+creation_rules:
+  - path_regex: secrets/mpfammatter-espanso\.yaml$
+    age: >-
+      age1pv0pzjgafacjv9adpss764dajs5pz3lspx4urzfv5h5w3mfskgvspyycpm,
+      age1lxvd73pd0l7pxehwcemlwsw6dttce9tsh3fh9vymapr2t3u59chslaqxvy,
+      age1fec3x6tcm7645f8e4pxak0uu0fvrwg8kdu50lmxe36vmdpe5p5us8ukzw9,
+      age10hagkkqjnp3mdqgtj9zunkxn52mh2dt6pdhfhzgew48pkv49dvgs47hqmn,
+      age1zl6825zynep3z4d7rlqhwlk7a3qy2l4796e6rzcmrl9kxcfx0uvqjj6ml3,
+      age1ekuda2zpkys5vhzucpkgehfj6cf3asqvlu9tn8m30uemdd4gtgpsd97dk2
+  - path_regex: .*\.sops$
+    age: >-
+      age1pv0pzjgafacjv9adpss764dajs5pz3lspx4urzfv5h5w3mfskgvspyycpm,
+      age1lxvd73pd0l7pxehwcemlwsw6dttce9tsh3fh9vymapr2t3u59chslaqxvy,
+      age1fec3x6tcm7645f8e4pxak0uu0fvrwg8kdu50lmxe36vmdpe5p5us8ukzw9,
+      age1zl6825zynep3z4d7rlqhwlk7a3qy2l4796e6rzcmrl9kxcfx0uvqjj6ml3,
+      age1ekuda2zpkys5vhzucpkgehfj6cf3asqvlu9tn8m30uemdd4gtgpsd97dk2
+  - path_regex: secrets/.*\.yaml$
+    age: >-
+      age1pv0pzjgafacjv9adpss764dajs5pz3lspx4urzfv5h5w3mfskgvspyycpm,
+      age1lxvd73pd0l7pxehwcemlwsw6dttce9tsh3fh9vymapr2t3u59chslaqxvy,
+      age1fec3x6tcm7645f8e4pxak0uu0fvrwg8kdu50lmxe36vmdpe5p5us8ukzw9,
+      age1zl6825zynep3z4d7rlqhwlk7a3qy2l4796e6rzcmrl9kxcfx0uvqjj6ml3,
+      age1ekuda2zpkys5vhzucpkgehfj6cf3asqvlu9tn8m30uemdd4gtgpsd97dk2
