@@ -127,6 +127,7 @@ in
       timezone = "America/New_York";
       display.skin = "spacemacs-dark";
 
+      plugins.enabled = [ "inigo-silverbullet" ];
       plugins.entries."inigo-silverbullet".settings = {
         base_url = "http://127.0.0.1:3000";
         allow_insecure_http = true;
