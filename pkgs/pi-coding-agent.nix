@@ -139,6 +139,7 @@ buildNpmPackage (finalAttrs: {
     runHook preBuild
 
     npx tsgo -p packages/telemetry/tsconfig.build.json
+    npx tsgo -p packages/chord/tsconfig.build.json
     npx tsgo -p packages/ai/tsconfig.build.json
     rm -rf packages/ai/dist/providers/data
     cp -R packages/ai/src/providers/data packages/ai/dist/providers/data
@@ -158,7 +159,8 @@ buildNpmPackage (finalAttrs: {
     local nm="$out/lib/node_modules/pi-monorepo/node_modules"
 
     # Replace workspace deps needed at runtime with real copies
-    for ws in @earendil-works/pi-ai:packages/ai \
+    for ws in @earendil-works/chord:packages/chord \
+              @earendil-works/pi-ai:packages/ai \
               @earendil-works/pi-telemetry:packages/telemetry \
               @earendil-works/pi-agent-core:packages/agent \
               @earendil-works/pi-client:packages/client \
