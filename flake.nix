@@ -123,6 +123,8 @@
         {
           pi-ask = pkgs.callPackage ./users/modules/pi/pi-ask/package.nix { };
 
+          inigo-silverbullet-plugin = pkgs.callPackage ./hosts/ferrix/inigo-silverbullet/package.nix { };
+
           silverbullet-pi-extension =
             let
               configFile = pkgs.writeText "silverbullet-pi-extension-check.json" (

@@ -3,3 +3,5 @@
 result
 .pi/npm/
 .nvim*
+__pycache__/
+*.pyc

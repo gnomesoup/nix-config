@@ -27,7 +27,11 @@ The full package is large, but the build can reuse the paths already produced du
 
 ## Assistant capabilities
 
-Reusable credentials live under the platform-neutral `inigo` SOPS namespace. This includes the Home Assistant token and the Proton Mail Bridge email, username, and password. Hermes-specific dashboard and API credentials remain under `hermes` because their format belongs to the current runtime.
+Reusable credentials live under the platform-neutral `inigo` SOPS namespace. This includes the Home Assistant token, the dedicated SilverBullet MultiSpace API token, and the Proton Mail Bridge email, username, and password. Hermes-specific dashboard and API credentials remain under `hermes` because their format belongs to the current runtime.
+
+The Nix-packaged plugin in `hosts/ferrix/inigo-silverbullet/` registers native page-list, search, read, create, update, append, move, and soft-delete tools. It calls the loopback-only SilverBullet `/.fs` API from the existing Hermes processes with Python's standard library. The `inigo/silverbullet-api-token` SOPS secret is loaded into both Hermes units as a private systemd credential rather than copied into the Nix store or `.env`.
+
+Create a dedicated SilverBullet account token authorized for Personal and KSP, then add the encrypted key with `sops secrets/secrets.yaml` before activation. Existing-page mutations require the `last_modified` value from a prior read; soft deletion moves pages below `Trash/` unless irreversible deletion was explicitly requested. See `hosts/ferrix/inigo-silverbullet/README.md` for the API and concurrency limitations.
 
 ## Authenticate OpenAI Codex
 

@@ -32,6 +32,7 @@ let
       hermesWeb = patchedHermesWeb;
     };
   });
+  inigoSilverbulletPlugin = pkgs.callPackage ./inigo-silverbullet/package.nix { };
 in
 {
   sops.secrets = {
@@ -64,6 +65,15 @@ in
       owner = "inigo";
       group = "inigo";
       mode = "0400";
+    };
+    # A dedicated MultiSpace account token is exposed to Hermes only through
+    # each unit's private systemd credential directory.
+    "inigo/silverbullet-api-token" = {
+      mode = "0400";
+      restartUnits = [
+        "hermes-agent.service"
+        "hermes-backend.service"
+      ];
     };
   };
 
@@ -98,6 +108,7 @@ in
     container.enable = false;
     workingDirectory = "/var/lib/inigo/workspace";
     environmentFiles = [ config.sops.templates."inigo-env".path ];
+    extraPlugins = [ inigoSilverbulletPlugin ];
     environment = {
       API_SERVER_ENABLED = "true";
       API_SERVER_HOST = "0.0.0.0";
@@ -115,6 +126,29 @@ in
       toolsets = [ "all" ];
       timezone = "America/New_York";
       display.skin = "spacemacs-dark";
+
+      plugins.entries."inigo-silverbullet".settings = {
+        base_url = "http://127.0.0.1:3000";
+        allow_insecure_http = true;
+        default_space = "personal";
+        spaces = {
+          personal = {
+            label = "Personal";
+            path = "/";
+            allowed_read_paths = [ "" ];
+            allowed_write_paths = [ "" ];
+          };
+          ksp = {
+            label = "KSP";
+            path = "/ksp";
+            allowed_read_paths = [ "" ];
+            allowed_write_paths = [ "" ];
+          };
+        };
+        max_content_bytes = 2097152;
+        max_search_bytes = 67108864;
+        max_result_chars = 50000;
+      };
 
       # Bound concurrency keeps the full profile responsive on ferrix's
       # dual-core CPU while retaining delegation and background work.
@@ -230,10 +264,16 @@ in
   };
 
   systemd.services.hermes-agent.serviceConfig = {
+    LoadCredential = [
+      "silverbullet-api-token:${config.sops.secrets."inigo/silverbullet-api-token".path}"
+    ];
     Slice = "inigo.slice";
     TasksMax = 1024;
   };
   systemd.services.hermes-backend.serviceConfig = {
+    LoadCredential = [
+      "silverbullet-api-token:${config.sops.secrets."inigo/silverbullet-api-token".path}"
+    ];
     Slice = "inigo.slice";
     TasksMax = 1024;
   };
