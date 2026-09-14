@@ -1,6 +1,7 @@
 {
   config,
   hermesAgent,
+  lib,
   pkgs,
   ...
 }:
@@ -178,36 +179,43 @@ in
   ];
 
   # Preserve the current assistant state when adopting the platform-neutral
-  # service identity. The old directory remains as a reversible backup.
-  systemd.services.inigo-state-migration = {
-    description = "Migrate Inigo state from the Hermes service identity";
-    before = [
-      "hermes-agent.service"
-      "hermes-backend.service"
-    ];
-    requiredBy = [
-      "hermes-agent.service"
-      "hermes-backend.service"
-    ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      if [ ! -e /var/lib/inigo/.migrated-from-hermes ]; then
-        if [ -d /var/lib/hermes ]; then
-          ${pkgs.rsync}/bin/rsync -a --ignore-existing \
-            --exclude '/.hermes/.env' \
-            --exclude '/.hermes/.managed' \
-            --exclude '/.hermes/config.yaml' \
-            /var/lib/hermes/ /var/lib/inigo/
-        fi
-        ${pkgs.coreutils}/bin/chown -R inigo:inigo /var/lib/inigo
-        ${pkgs.coreutils}/bin/install -o inigo -g inigo -m 0640 /dev/null \
-          /var/lib/inigo/.migrated-from-hermes
+  # service identity. Keep the old tree as a backup and leave a compatibility
+  # symlink so persisted Hermes sessions with the former cwd remain usable.
+  system.activationScripts."inigo-state-migration" = lib.stringAfter [ "hermes-agent-setup" ] ''
+    if [ -d /var/lib/hermes ] && [ ! -L /var/lib/hermes ]; then
+      ${pkgs.rsync}/bin/rsync -a --ignore-existing \
+        --exclude '/.hermes/.env' \
+        --exclude '/.hermes/.managed' \
+        --exclude '/.hermes/config.yaml' \
+        /var/lib/hermes/ /var/lib/inigo/
+
+      _backup=/var/lib/hermes.pre-inigo
+      if [ -e "$_backup" ]; then
+        _backup="$_backup.$(${pkgs.coreutils}/bin/date +%s)"
       fi
-    '';
-  };
+      ${pkgs.coreutils}/bin/mv /var/lib/hermes "$_backup"
+      ${pkgs.coreutils}/bin/chown -R inigo:inigo /var/lib/inigo
+    fi
+
+    if [ -L /var/lib/hermes ]; then
+      ${pkgs.coreutils}/bin/ln -sfn /var/lib/inigo /var/lib/hermes
+    elif [ ! -e /var/lib/hermes ]; then
+      ${pkgs.coreutils}/bin/ln -s /var/lib/inigo /var/lib/hermes
+    fi
+
+    # rsync preserves the old restrictive directory modes, so restore the
+    # group access promised by services.hermes-agent.addToSystemPackages.
+    ${pkgs.coreutils}/bin/chmod 2770 \
+      /var/lib/inigo \
+      /var/lib/inigo/.hermes \
+      /var/lib/inigo/workspace
+    ${pkgs.coreutils}/bin/chmod 0750 /var/lib/inigo/home
+    ${pkgs.findutils}/bin/find /var/lib/inigo/.hermes \
+      -mindepth 1 -maxdepth 1 -type d \
+      -exec ${pkgs.coreutils}/bin/chmod 2770 {} +
+    ${pkgs.coreutils}/bin/install -o inigo -g inigo -m 0640 /dev/null \
+      /var/lib/inigo/.migrated-from-hermes
+  '';
 
   # Apply one aggregate resource budget to the gateway and dashboard/TUI.
   systemd.slices.inigo = {

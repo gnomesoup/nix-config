@@ -23,7 +23,7 @@ sops decrypt --extract '["hermes"]["api-server-key"]' secrets/secrets.yaml
 sudo nixos-rebuild switch --flake ~/nix-config#ferrix
 ```
 
-The full package is large, but the build can reuse the paths already produced during configuration validation. On the first activation after adopting the Inigo identity, `inigo-state-migration.service` copies missing mutable state from `/var/lib/hermes` into `/var/lib/inigo` and retains the old directory as a reversible backup.
+The full package is large, but the build can reuse the paths already produced during configuration validation. On the first activation after adopting the Inigo identity, the activation script copies missing mutable state into `/var/lib/inigo`, retains the old tree at `/var/lib/hermes.pre-inigo`, and makes `/var/lib/hermes` a compatibility symlink. The symlink lets existing sessions with a persisted pre-migration working directory resume safely.
 
 ## Assistant capabilities
 
