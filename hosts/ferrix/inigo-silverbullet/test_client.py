@@ -252,6 +252,21 @@ class SilverBulletPluginTest(unittest.TestCase):
             self.token_file.chmod(0o600)
         self.assertTrue(self.client.available())
 
+    def test_systemd_credential_with_acl_mask_mode_is_accepted(self):
+        credential_directory = Path(self.temp.name) / "credentials"
+        credential_directory.mkdir()
+        token_file = credential_directory / "silverbullet-api-token"
+        token_file.write_text(f"{State.token}\n")
+        token_file.chmod(0o440)
+        settings = {key: value for key, value in self.settings.items() if key != "token_file"}
+
+        config = parse_config(
+            settings,
+            environ={"CREDENTIALS_DIRECTORY": str(credential_directory)},
+        )
+
+        self.assertTrue(SilverBulletClient(config).available())
+
     def test_lists_reads_and_searches_spaces_independently(self):
         personal = self.client.space()
         ksp = self.client.space("ksp")

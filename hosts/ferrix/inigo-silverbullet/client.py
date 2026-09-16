@@ -72,6 +72,7 @@ class Space:
 class ClientConfig:
     base_url: str
     token_file: Path
+    systemd_credential: bool
     default_space: str
     spaces: dict[str, Space]
     max_content_bytes: int
@@ -184,10 +185,13 @@ def parse_config(settings: Any, environ: dict[str, str] | None = None) -> Client
     base_url = base_url.rstrip("/")
 
     configured_token_file = settings.get("token_file")
+    systemd_credential = False
     if configured_token_file is None:
         credential_directory = environ.get("CREDENTIALS_DIRECTORY", "")
         if not credential_directory:
             credential_directory = "/run/credentials/hermes-agent.service"
+        else:
+            systemd_credential = True
         token_file = Path(credential_directory) / "silverbullet-api-token"
     elif isinstance(configured_token_file, str) and Path(configured_token_file).is_absolute():
         token_file = Path(configured_token_file)
@@ -240,6 +244,7 @@ def parse_config(settings: Any, environ: dict[str, str] | None = None) -> Client
     return ClientConfig(
         base_url=base_url,
         token_file=token_file,
+        systemd_credential=systemd_credential,
         default_space=default_space,
         spaces=spaces,
         max_content_bytes=_integer(
@@ -281,7 +286,9 @@ class SilverBulletClient:
             info = self.config.token_file.stat()
             if not stat.S_ISREG(info.st_mode):
                 raise SilverBulletError("SilverBullet credential is not a regular file.")
-            if info.st_mode & 0o077:
+            insecure_permissions = info.st_mode & (stat.S_IWGRP | stat.S_IXGRP | stat.S_IRWXO)
+            acl_mask_read = info.st_mode & stat.S_IRGRP
+            if insecure_permissions or (acl_mask_read and not self.config.systemd_credential):
                 raise SilverBulletError("SilverBullet credential must not be accessible by group or other users.")
             token = self.config.token_file.read_text(encoding="utf-8").strip()
         except SilverBulletError:
