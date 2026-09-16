@@ -77,7 +77,14 @@
       overlays.default = final: prev: {
         herdr = prev.herdr.overrideAttrs (
           _finalAttrs: previousAttrs: {
+            version = "0.8.2";
             src = herdr-src;
+            cargoDeps = final.rustPlatform.fetchCargoVendor {
+              pname = "herdr";
+              version = "0.8.2";
+              src = herdr-src;
+              hash = "sha256-4VThqPwYYEsGvaOKjBeL6XAC5bnNWB6oUMWP/uXc/UQ=";
+            };
             passthru = (previousAttrs.passthru or { }) // {
               sourceBranch = "nav-colemakdh";
             };
