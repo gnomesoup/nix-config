@@ -176,8 +176,8 @@
   };
 
   services.jellyfin = {
-    enable = true;
-    openFirewall = true;
+    enable = false;
+    openFirewall = false;
   };
 
   # Enable touchpad support (enabled default in most desktopManager).
