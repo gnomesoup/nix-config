@@ -1,0 +1,35 @@
+--- a/web/src/pages/ChatPage.tsx
++++ b/web/src/pages/ChatPage.tsx
+@@ -165,7 +165,3 @@
+-  if (layoutWidthPx < 300) return 7;
+-  if (layoutWidthPx < 360) return 8;
+-  if (layoutWidthPx < 420) return 9;
+-  if (layoutWidthPx < 520) return 10;
+-  if (layoutWidthPx < 720) return 11;
+-  if (layoutWidthPx < 1024) return 12;
+-  return 14;
++  if (layoutWidthPx < 520) return 12;
++  if (layoutWidthPx < 1024) return 14;
++  return 16;
+@@ -546 +542 @@
+-        "'JetBrains Mono', 'Cascadia Mono', 'Fira Code', 'MesloLGS NF', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
++        "'Source Code Pro', 'JetBrains Mono', 'Cascadia Mono', 'Fira Code', 'MesloLGS NF', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
+--- a/web/src/index.css
++++ b/web/src/index.css
+@@ -10,0 +11,16 @@
++/* Source Code Pro — locally bundled for the embedded TUI. SIL OFL 1.1. */
++@font-face {
++  font-family: 'Source Code Pro';
++  font-style: normal;
++  font-weight: 400;
++  font-display: swap;
++  src: url('/fonts-terminal/SourceCodePro-Regular.otf') format('opentype');
++}
++@font-face {
++  font-family: 'Source Code Pro';
++  font-style: normal;
++  font-weight: 700;
++  font-display: swap;
++  src: url('/fonts-terminal/SourceCodePro-Bold.otf') format('opentype');
++}
++

@@ -13,6 +13,8 @@ import {
   SettingsList,
   Text,
   truncateToWidth,
+  visibleWidth,
+  wrapTextWithAnsi,
 } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 
@@ -48,6 +50,8 @@ interface Answer {
   type: "single" | "multi" | "checkbox";
 }
 
+type AnyModel = Model<any>;
+
 interface AskSettings {
   model?: string;
 }
@@ -63,15 +67,15 @@ interface MessageEntryLike {
 interface AskCommandContext {
   hasUI: boolean;
   signal?: AbortSignal;
-  model?: Model;
+  model?: AnyModel;
   ui: {
     notify(message: string, level: "info" | "success" | "warning" | "error"): void;
     setEditorText(text: string): void;
     custom<T>(factory: any): Promise<T>;
   };
   modelRegistry: {
-    find(provider: string, id: string): Model | undefined;
-    getApiKeyAndHeaders(model: Model): Promise<{
+    find(provider: string, id: string): AnyModel | undefined;
+    getApiKeyAndHeaders(model: AnyModel): Promise<{
       ok: boolean;
       apiKey?: string;
       headers?: Record<string, string>;
@@ -108,8 +112,8 @@ Schema:
 
 Question types (set the "type" field):
 - "single" — default. Pick one option from a list.
-- "multi" — Pick multiple options. Use when the user can select several items ("which of", "select all that apply", "which features"). Provide 3-7 options. Set allowOther to false.
-- "checkbox" — Yes/no toggle. Use for binary enable/disable or yes/no questions ("do you want", "should I", "is it"). Set options to [{ "value": "yes", "label": "Yes" }, { "value": "no", "label": "No" }] and allowOther to false.
+- "multi" — Pick multiple options. Use when the user can select several items ("which of", "select all that apply", "which features"). Provide 3-7 options. Set allowOther to true.
+- "checkbox" — Yes/no toggle. Use for binary enable/disable or yes/no questions ("do you want", "should I", "is it"). Set options to [{ "value": "yes", "label": "Yes" }, { "value": "no", "label": "No" }] and allowOther to true.
 
 Rules:
 - Extract 1-7 distinct questions.
@@ -117,7 +121,7 @@ Rules:
 - Use short labels like Q1, Q2, Q3 unless a stronger short label is obvious.
 - Infer 2-5 sensible options only when they are explicit or strongly implied.
 - If no clear options exist, use an empty options array and set allowOther to true.
-- Always set allowOther to true unless the question is strictly binary and fully covered by options.
+- Always set allowOther to true so the user can enter their own answer for every question.
 - Keep prompts concise.
 - Set "type" to "multi" when the user can select multiple items from a list.
 - Set "type" to "checkbox" for yes/no or enable/disable questions.
@@ -292,7 +296,7 @@ export default function piAsk(pi: ExtensionAPI) {
         .filter((part) => part.type === "text")
         .map((part) => part.text)
         .join("\n");
-      return new Text(result.isError ? theme.fg("error", text) : text, 0, 0);
+      return new Text((result as { isError?: boolean }).isError ? theme.fg("error", text) : text, 0, 0);
     },
   });
 
@@ -369,7 +373,7 @@ async function runAskFlow(
   return answers;
 }
 
-async function showPreparationLoader(ctx: AskCommandContext, model: Model, raw: string): Promise<ParsedQuestionSet | null> {
+async function showPreparationLoader(ctx: AskCommandContext, model: AnyModel, raw: string): Promise<ParsedQuestionSet | null> {
   return ctx.ui.custom<ParsedQuestionSet | null>((tui: any, theme: any, _kb: unknown, done: (value: ParsedQuestionSet | null) => void) => {
     let cancelled = false;
     let spinnerIndex = 0;
@@ -456,7 +460,7 @@ async function getConfiguredModelString(): Promise<string | undefined> {
   return undefined;
 }
 
-async function resolveAskModel(ctx: AskCommandContext): Promise<Model | undefined> {
+async function resolveAskModel(ctx: AskCommandContext): Promise<AnyModel | undefined> {
   const envConfigured = process.env.PI_ASK_MODEL?.trim();
   const settings = await loadSettings();
   const configured = envConfigured || settings.model?.trim();
@@ -524,7 +528,7 @@ async function promptForCustomModel(ctx: AskCommandContext): Promise<string | nu
   });
 }
 
-async function parseQuestions(ctx: AskCommandContext, model: Model, raw: string): Promise<ParsedQuestionSet> {
+async function parseQuestions(ctx: AskCommandContext, model: AnyModel, raw: string): Promise<ParsedQuestionSet> {
   const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
   if (!auth.ok || !auth.apiKey) {
     throw new Error(auth.ok ? `No API key for ${model.provider}` : auth.error);
@@ -571,7 +575,7 @@ function normalizeQuestionSet(input: ParsedQuestionSet): ParsedQuestionSet {
   };
 }
 
-function normalizeQuestion(question: Partial<ParsedQuestion>, index: number): ParsedQuestion {
+export function normalizeQuestion(question: Partial<ParsedQuestion>, index: number): ParsedQuestion {
   const prompt = String(question.prompt ?? "").trim();
   const label = String(question.label ?? `${index + 1}`).trim() || `${index + 1}`;
   const id = slugify(question.id || label || `q${index + 1}`) || `q${index + 1}`;
@@ -588,14 +592,14 @@ function normalizeQuestion(question: Partial<ParsedQuestion>, index: number): Pa
         .slice(0, type === "multi" ? 7 : 5)
     : [];
 
-  // Checkbox: force Yes/No options, no allowOther
+  // Checkbox: force Yes/No options while still offering a custom answer.
   if (type === "checkbox") {
     return {
       id,
       label,
       prompt,
       options: options.length >= 2 ? options.slice(0, 2) : [{ value: "yes", label: "Yes" }, { value: "no", label: "No" }],
-      allowOther: false,
+      allowOther: true,
       type: "checkbox",
     };
   }
@@ -610,7 +614,7 @@ function normalizeQuestion(question: Partial<ParsedQuestion>, index: number): Pa
     label,
     prompt,
     options,
-    allowOther: type === "multi" ? false : question.allowOther !== false,
+    allowOther: true,
     type,
   };
 }
@@ -644,7 +648,7 @@ function fallbackParseQuestions(raw: string): ParsedQuestionSet {
       label: `${index + 1}`,
       prompt,
       options,
-      allowOther: type !== "checkbox",
+      allowOther: true,
       type,
     } as ParsedQuestion;
   });
@@ -677,6 +681,30 @@ function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .replace(/-{2,}/g, "-");
+}
+
+export function getQuestionOptions(question: ParsedQuestion): Array<ParsedOption & { isOther?: boolean }> {
+  const options: Array<ParsedOption & { isOther?: boolean }> = question.type === "checkbox"
+    ? [
+        { value: "yes", label: "Yes" },
+        { value: "no", label: "No" },
+      ]
+    : question.options.filter((option) => option.value !== "__other__");
+
+  options.push({ value: "__other__", label: "Write my own answer", isOther: true });
+  return options;
+}
+
+export function wrapWithPrefix(prefix: string, text: string, width: number): string[] {
+  const renderWidth = Math.max(1, width);
+  const prefixWidth = visibleWidth(prefix);
+  if (prefixWidth >= renderWidth) {
+    return wrapTextWithAnsi(prefix + text, renderWidth);
+  }
+
+  const wrapped = wrapTextWithAnsi(text, Math.max(1, renderWidth - prefixWidth));
+  const continuationPrefix = " ".repeat(prefixWidth);
+  return wrapped.map((line, index) => `${index === 0 ? prefix : continuationPrefix}${line}`);
 }
 
 function stripJsonFence(text: string): string {
@@ -718,6 +746,7 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
     let scrollOffset = 0;
     let maxScrollOffset = 0;
     let promptViewportHeight = 1;
+    let cachedWidth: number | undefined;
     let cachedLines: string[] | undefined;
     const answers = new Map<string, Answer>();
     const multiSelectedIndices = new Map<string, Set<number>>();
@@ -736,22 +765,9 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
     const editor = new Editor(tui, editorTheme);
 
     const refresh = () => {
+      cachedWidth = undefined;
       cachedLines = undefined;
       tui.requestRender();
-    };
-
-    const getOptions = (question: ParsedQuestion): Array<ParsedOption & { isOther?: boolean }> => {
-      if (question.type === "checkbox") {
-        return [
-          { value: "yes", label: "Yes" },
-          { value: "no", label: "No" },
-        ];
-      }
-      const options = [...question.options];
-      if (question.type !== "multi" && (question.allowOther || options.length === 0)) {
-        options.push({ value: "__other__", label: "Write my own answer", isOther: true } as ParsedOption & { isOther: boolean });
-      }
-      return options;
     };
 
     const getMultiSelectedSet = (question: ParsedQuestion): Set<number> => {
@@ -788,7 +804,8 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
       const question = questions[currentTab];
       const trimmed = value.trim();
       if (!question || !trimmed) return;
-      saveAnswer(question, { value: trimmed, label: trimmed, wasCustom: true, type: "single" });
+      saveAnswer(question, { value: trimmed, label: trimmed, wasCustom: true, type: question.type });
+      multiSelectedIndices.delete(question.id);
       inputMode = false;
       editor.setText("");
       currentTab = currentTab < questions.length - 1 ? currentTab + 1 : submitTabIndex;
@@ -798,17 +815,19 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
 
     return {
       render(width: number): string[] {
-        if (cachedLines) return cachedLines;
+        if (cachedLines && cachedWidth === width) return cachedLines;
 
         const lines: string[] = [];
-        const add = (value: string) => lines.push(truncateToWidth(value, width));
+        const renderWidth = Math.max(1, width);
+        const add = (value: string) => lines.push(...wrapWithPrefix("", value, renderWidth));
+        const addPrefixed = (prefix: string, value: string) => lines.push(...wrapWithPrefix(prefix, value, renderWidth));
         let promptRange: { start: number; end: number } | undefined;
         const question = currentTab < questions.length ? questions[currentTab] : undefined;
-        const options = question ? getOptions(question) : [];
+        const options = question ? getQuestionOptions(question) : [];
         const answeredCount = answers.size;
         const allAnswered = answeredCount === questions.length;
 
-        add(theme.fg("accent", "─".repeat(width)));
+        add(theme.fg("accent", "─".repeat(renderWidth)));
         add(
           ` ${[
             ...questions.map((item, index) => {
@@ -834,7 +853,7 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
         if (question) {
           const promptStart = lines.length;
           const prompt = new Markdown(question.prompt, 1, 0, getMarkdownTheme());
-          lines.push(...prompt.render(width));
+          lines.push(...prompt.render(renderWidth));
           promptRange = { start: promptStart, end: lines.length };
           if (question.type === "multi") {
             add(theme.fg("dim", ` (select multiple)`));
@@ -849,7 +868,7 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
               const marker = selected ? "●" : "○";
               const prefix = selected ? theme.fg("accent", "> ") : "  ";
               const text = `[${marker}] ${option.label}`;
-              add(prefix + (selected ? theme.fg("accent", text) : theme.fg("text", text)));
+              addPrefixed(prefix, selected ? theme.fg("accent", text) : theme.fg("text", text));
             });
           } else if (question.type === "multi") {
             const selectedSet = getMultiSelectedSet(question);
@@ -859,8 +878,8 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
               const marker = checked ? "■" : "□";
               const prefix = selected ? theme.fg("accent", "> ") : "  ";
               const text = `[${marker}] ${option.label}`;
-              add(prefix + (selected ? theme.fg("accent", text) : theme.fg("text", text)));
-              if (option.description) add(`     ${theme.fg("muted", option.description)}`);
+              addPrefixed(prefix, selected ? theme.fg("accent", text) : theme.fg("text", text));
+              if (option.description) addPrefixed("     ", theme.fg("muted", option.description));
             });
             if (selectedSet.size > 0) {
               lines.push("");
@@ -871,15 +890,15 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
               const selected = index === optionIndex;
               const prefix = selected ? theme.fg("accent", "> ") : "  ";
               const text = `${index + 1}. ${option.label}`;
-              add(prefix + (selected ? theme.fg("accent", text) : theme.fg("text", text)));
-              if (option.description) add(`     ${theme.fg("muted", option.description)}`);
+              addPrefixed(prefix, selected ? theme.fg("accent", text) : theme.fg("text", text));
+              if (option.description) addPrefixed("     ", theme.fg("muted", option.description));
             });
           }
 
           const answered = answers.get(question.id);
-          if (answered && !inputMode && question.type !== "multi") {
+          if (answered && !inputMode && (question.type !== "multi" || answered.wasCustom)) {
             lines.push("");
-            add(theme.fg("success", ` Current answer: ${answered.label}`));
+            addPrefixed(theme.fg("success", " Current answer: "), theme.fg("success", answered.label));
           }
         } else {
           add(theme.fg("accent", theme.bold(" Submit answers")));
@@ -889,9 +908,9 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
               const answer = answers.get(item.id);
               if (answer) {
                 if (answer.type === "multi" && answer.labels && answer.labels.length > 1) {
-                  add(theme.fg("text", ` ${index + 1}. ${answer.labels.join(", ")}`));
+                  addPrefixed(` ${index + 1}. `, theme.fg("text", answer.labels.join(", ")));
                 } else {
-                  add(theme.fg("text", ` ${index + 1}. ${answer.label}`));
+                  addPrefixed(` ${index + 1}. `, theme.fg("text", answer.label));
                 }
               }
             });
@@ -911,7 +930,7 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
         lines.push("");
         if (inputMode) {
           add(theme.fg("muted", " Your answer:"));
-          for (const line of editor.render(Math.max(10, width - 2))) {
+          for (const line of editor.render(Math.max(10, renderWidth - 2))) {
             add(` ${line}`);
           }
           lines.push("");
@@ -922,7 +941,7 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
           add(theme.fg("dim", " Tab/←→ switch tabs • ↑↓ select • Enter confirm • Esc cancel"));
         }
 
-        add(theme.fg("accent", "─".repeat(width)));
+        add(theme.fg("accent", "─".repeat(renderWidth)));
 
         if (promptRange) {
           const terminalHeight = tui.terminal?.rows ?? 24;
@@ -950,6 +969,7 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
               ...(showScrollStatus ? [truncateToWidth(scrollStatus, width)] : []),
               ...lines.slice(promptRange.end),
             ];
+            cachedWidth = width;
             cachedLines = visibleLines;
             return visibleLines;
           }
@@ -958,15 +978,17 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
         scrollOffset = 0;
         maxScrollOffset = 0;
         promptViewportHeight = 1;
+        cachedWidth = width;
         cachedLines = lines;
         return lines;
       },
       invalidate() {
+        cachedWidth = undefined;
         cachedLines = undefined;
       },
       handleInput(data: string) {
         const question = currentTab < questions.length ? questions[currentTab] : undefined;
-        const options = question ? getOptions(question) : [];
+        const options = question ? getQuestionOptions(question) : [];
         const allAnswered = answers.size === questions.length;
 
         if (inputMode) {
@@ -1022,8 +1044,15 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
           return;
         }
 
-        // Space key — toggle multi-select option
+        // Space toggles normal multi-select options; the custom option opens the editor.
         if (data === " " && question?.type === "multi") {
+          const selected = options[optionIndex];
+          if (selected?.isOther) {
+            inputMode = true;
+            editor.setText(answers.get(question.id)?.wasCustom ? answers.get(question.id)!.label : "");
+            refresh();
+            return;
+          }
           const set = getMultiSelectedSet(question);
           if (set.has(optionIndex)) {
             set.delete(optionIndex);
@@ -1042,9 +1071,16 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
             return;
           }
 
+          const selected = options[optionIndex];
+          if (!selected) return;
+          if (selected.isOther) {
+            inputMode = true;
+            editor.setText(answers.get(question.id)?.wasCustom ? answers.get(question.id)!.label : "");
+            refresh();
+            return;
+          }
+
           if (question.type === "checkbox") {
-            const selected = options[optionIndex];
-            if (!selected) return;
             saveAnswer(question, {
               value: selected.value,
               label: selected.label,
@@ -1090,14 +1126,6 @@ async function showQuestionnaire(ctx: AskCommandContext, questions: ParsedQuesti
           }
 
           // Single select (default)
-          const selected = options[optionIndex];
-          if (!selected) return;
-          if (selected.isOther) {
-            inputMode = true;
-            editor.setText("");
-            refresh();
-            return;
-          }
           saveAnswer(question, {
             value: selected.value,
             label: selected.label,

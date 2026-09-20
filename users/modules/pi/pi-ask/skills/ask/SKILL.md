@@ -56,7 +56,8 @@ Yes/no or enable/disable toggle. Use for binary questions.
 ```
 
 Questions phrased as "Do you want", "Should I", "Would you like", "Is it" will be automatically
-inferred as checkbox questions with Yes/No toggles.
+inferred as checkbox questions with Yes/No toggles. A **Write my own answer** option is also always
+available.
 
 ### Multi-select
 Pick multiple options from a list. Use when the user can select several items.
@@ -68,13 +69,14 @@ Pick multiple options from a list. Use when the user can select several items.
 
 Questions phrased as "Which of the following", "Select all that apply", "Which features" will be
 automatically inferred as multi-select questions. Users navigate with arrows and toggle options
-with Space, then confirm with Enter.
+with Space, then confirm with Enter. They can instead choose **Write my own answer** and enter freeform text.
 
 ## Authoring guidance
 
 - Aim for 2-7 questions.
 - Avoid compound questions.
 - If a question has obvious options, mention them explicitly.
+- Every question type automatically includes a freeform **Write my own answer** option.
 - For binary yes/no questions, phrase them naturally ("Do you want...?") so they become checkbox toggles.
 - For questions where multiple selections make sense, use "Select all that apply" or "Which of the following" phrasing.
 - Do not ask unnecessary questions just to use this workflow.

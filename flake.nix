@@ -34,6 +34,12 @@
       flake = false;
     };
 
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
+
     herdr-src = {
       url = "git+https://github.com/gnomesoup/herdr.git?ref=nav-colemakdh";
       flake = false;
@@ -55,6 +61,7 @@
       kickstart-nixvim,
       nixos-wsl,
       pi-mono,
+      hermes-agent,
       herdr-src,
       # kmonad,
     }:
@@ -70,7 +77,14 @@
       overlays.default = final: prev: {
         herdr = prev.herdr.overrideAttrs (
           _finalAttrs: previousAttrs: {
+            version = "0.8.2";
             src = herdr-src;
+            cargoDeps = final.rustPlatform.fetchCargoVendor {
+              pname = "herdr";
+              version = "0.8.2";
+              src = herdr-src;
+              hash = "sha256-4VThqPwYYEsGvaOKjBeL6XAC5bnNWB6oUMWP/uXc/UQ=";
+            };
             passthru = (previousAttrs.passthru or { }) // {
               sourceBranch = "nav-colemakdh";
             };
@@ -108,6 +122,107 @@
       inherit overlays;
 
       formatter = forAllSystems (system: (mkPkgs system).nixfmt);
+
+      checks.x86_64-linux =
+        let
+          pkgs = mkPkgs "x86_64-linux";
+        in
+        {
+          pi-ask = pkgs.callPackage ./users/modules/pi/pi-ask/package.nix { };
+
+          inigo-silverbullet-plugin = pkgs.callPackage ./hosts/ferrix/inigo-silverbullet/package.nix { };
+
+          silverbullet-pi-extension =
+            let
+              configFile = pkgs.writeText "silverbullet-pi-extension-check.json" (
+                builtins.toJSON {
+                  allowInsecureHttp = true;
+                  baseUrl = "http://127.0.0.1:3000";
+                  defaultSpace = "personal";
+                  spaces = {
+                    personal = {
+                      label = "Personal";
+                      path = "/";
+                    };
+                    ksp = {
+                      label = "KSP";
+                      path = "/ksp";
+                    };
+                  };
+                  tokenFile = "/run/secrets/silverbullet/pi-api-token";
+                }
+              );
+            in
+            pkgs.callPackage ./users/modules/pi/extensions/silverbullet/package.nix {
+              inherit configFile;
+            };
+
+          silverbullet-plug-sync =
+            let
+              plug = import ./hosts/ferrix/silverbullet-vim-layout/package.nix { inherit pkgs; };
+              syncScript = pkgs.replaceVars ./hosts/ferrix/silverbullet-plug-sync.py {
+                baseUrl = "http://127.0.0.1:3000";
+                contentType = "application/javascript";
+                filePathOnDisk = "${plug}/silverbullet-vim-layout.plug.js";
+                filePathInSpace = "_plug/silverbullet-vim-layout.plug.js";
+                spacePrefixes = builtins.toJSON [
+                  [
+                    "Personal"
+                    ""
+                  ]
+                  [
+                    "KSP"
+                    "/ksp"
+                  ]
+                ];
+                tokenFile = "/run/secrets/silverbullet/pi-api-token";
+              };
+            in
+            pkgs.runCommand "silverbullet-plug-sync-check" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+              cp ${syncScript} silverbullet-plug-sync.py
+              cp ${./hosts/ferrix/silverbullet-plug-sync_test.py} silverbullet-plug-sync_test.py
+              python3 -m unittest -v silverbullet-plug-sync_test.py
+              touch $out
+            '';
+
+          silverbullet-calendar-proxy =
+            pkgs.runCommand "silverbullet-calendar-proxy-check" { nativeBuildInputs = [ pkgs.python3 ]; }
+              ''
+                cp ${./hosts/ferrix/silverbullet-calendar-proxy.py} silverbullet-calendar-proxy.py
+                cp ${./hosts/ferrix/silverbullet-calendar-proxy_test.py} silverbullet-calendar-proxy_test.py
+                python3 -m unittest -v silverbullet-calendar-proxy_test.py
+                touch $out
+              '';
+
+          silverbullet-git-setup =
+            pkgs.runCommand "silverbullet-git-setup-check"
+              {
+                nativeBuildInputs = [
+                  pkgs.git
+                  pkgs.python3
+                ];
+              }
+              ''
+                cp ${./hosts/ferrix/silverbullet-git-setup.py} silverbullet-git-setup.py
+                cp ${./hosts/ferrix/silverbullet-git-setup_test.py} silverbullet-git-setup_test.py
+                python3 -m unittest -v silverbullet-git-setup_test.py
+                touch $out
+              '';
+
+          silverbullet-icalendar = import ./hosts/ferrix/silverbullet-icalendar/package.nix { inherit pkgs; };
+
+          silverbullet-journal-navigation =
+            import ./hosts/ferrix/silverbullet-journal-navigation/package.nix
+              { inherit pkgs; };
+
+          silverbullet-vim-layout =
+            let
+              plug = import ./hosts/ferrix/silverbullet-vim-layout/package.nix { inherit pkgs; };
+            in
+            assert builtins.length plug.activeEntries == 16;
+            assert plug.langmap == "mh,nj,ek,il,kn,KN,li,LI,fe,FE,hm,tf,TF,jt,JT,NJ";
+            plug;
+        };
 
       apps = forAllSystems (
         system:
@@ -159,8 +274,10 @@
         };
         "ferrix" = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
+          specialArgs.hermesAgent = hermes-agent;
           modules = [
             ./hosts/ferrix
+            hermes-agent.nixosModules.default
             sops-nix.nixosModules.sops
             home-manager.nixosModules.home-manager
             {

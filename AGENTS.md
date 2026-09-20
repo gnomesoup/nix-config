@@ -90,6 +90,7 @@ Treat changes as infrastructure updates: prefer declarative changes and reversib
 - Module files use kebab-case; functions or attrsets use camelCase (e.g., `home.packages`).
 - Secrets keys mirror directory structure (`borg/borg_passphrase`); keep names stable to avoid re-encryption.
 - Flake outputs keep existing naming; avoid renaming hosts without updating CI references.
+- Refer to the platform-neutral personal assistant as **Inigo**. Name assistant-owned resources and credentials `inigo` so they survive a future platform replacement; reserve `hermes` for upstream Hermes Agent implementation identifiers such as its flake input, NixOS module options, package/binary names, environment variables, and unavoidable runtime paths.
 
 ## Error Handling & Validation
 - Fail fast: if an option might be unset, guard with `lib.mkDefault` or `lib.mkIf config.services...`.

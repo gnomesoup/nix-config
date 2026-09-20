@@ -1,16 +1,285 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
+let
+  baseUrl = "http://127.0.0.1:3000";
+  tokenFile = config.sops.secrets."silverbullet/pi-api-token".path;
+  calendarProxyPort = 3901;
+  vimLayoutPlug = import ./silverbullet-vim-layout/package.nix { inherit pkgs; };
+  journalNavigationPlug = import ./silverbullet-journal-navigation/package.nix { inherit pkgs; };
+  iCalendarPlug = import ./silverbullet-icalendar/package.nix { inherit pkgs; };
+  silverbulletPdfPlug = pkgs.fetchurl {
+    url = "https://github.com/MrMugame/silverbullet-pdf/releases/download/1.1.6/silverbullet-pdf.plug.js";
+    hash = "sha256-mXAR8i4JTN+W09NG2uroNtTBPs/070bhiri3FRzIExg=";
+  };
+  silverbulletHistoryPlug = pkgs.fetchurl {
+    url = "https://github.com/ivanalejandro0/silverbullet-history/releases/download/0.1.0/history.plug.js";
+    hash = "sha256-rfkDiC5K3ZwsmTvmVzHWFP8iZmwC4hOvtkApn3IEac0=";
+  };
+  silverbulletGitLibrary = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/silverbulletmd/silverbullet-libraries/23a185ad53c18e7cc18eb4cb6ca18d5fab2f5a49/Git.md";
+    hash = "sha256-+RrwAtOgnwtXsfpWmmk5oMP6rU9YPG2NVjYgSxjlahg=";
+  };
+  mkFileSync =
+    {
+      filePathOnDisk,
+      filePathInSpace,
+      contentType ? "application/javascript",
+      spacePrefixes ? [
+        [
+          "Personal"
+          ""
+        ]
+        [
+          "KSP"
+          "/ksp"
+        ]
+      ],
+    }:
+    pkgs.replaceVars ./silverbullet-plug-sync.py {
+      inherit
+        baseUrl
+        contentType
+        filePathInSpace
+        filePathOnDisk
+        tokenFile
+        ;
+      spacePrefixes = builtins.toJSON spacePrefixes;
+    };
+  vimLayoutPlugSync = mkFileSync {
+    filePathOnDisk = "${vimLayoutPlug}/silverbullet-vim-layout.plug.js";
+    filePathInSpace = "_plug/silverbullet-vim-layout.plug.js";
+  };
+  journalNavigationPlugSync = mkFileSync {
+    filePathOnDisk = "${journalNavigationPlug}/silverbullet-journal-navigation.plug.js";
+    filePathInSpace = "_plug/silverbullet-journal-navigation.plug.js";
+  };
+  journalNavigationConfigSync = mkFileSync {
+    filePathOnDisk = ./silverbullet-journal-navigation/journal-navigation.md;
+    filePathInSpace = "_config/journal-navigation.md";
+    contentType = "text/markdown; charset=utf-8";
+  };
+  pdfPlugSync = mkFileSync {
+    filePathOnDisk = silverbulletPdfPlug;
+    filePathInSpace = "_plug/silverbullet-pdf.plug.js";
+  };
+  historyPlugSync = mkFileSync {
+    filePathOnDisk = silverbulletHistoryPlug;
+    filePathInSpace = "_plug/history.plug.js";
+  };
+  gitLibrarySync = mkFileSync {
+    filePathOnDisk = silverbulletGitLibrary;
+    filePathInSpace = "Library/Git.md";
+    contentType = "text/markdown; charset=utf-8";
+  };
+  iCalendarPlugSync = mkFileSync {
+    filePathOnDisk = "${iCalendarPlug}/icalendar.plug.js";
+    filePathInSpace = "_plug/icalendar.plug.js";
+  };
+  personalCalendarConfig = pkgs.writeText "silverbullet-personal-calendar-config.md" ''
+    ```space-lua
+    config.set("icalendar", {
+      sources = {
+        {
+          url = "http://127.0.0.1:${toString calendarProxyPort}/personal.ics",
+          name = "iCloud",
+        },
+      },
+      cacheDuration = 21600,
+    })
+
+    function calendarJournalDate()
+      return string.match(editor.getCurrentPage() or "", "(%d%d%d%d%-%d%d%-%d%d)$")
+    end
+    ```
+  '';
+  kspCalendarConfig = pkgs.writeText "silverbullet-ksp-calendar-config.md" ''
+    ```space-lua
+    config.set("icalendar", {
+      sources = {
+        {
+          url = "http://127.0.0.1:${toString calendarProxyPort}/ksp.ics",
+          name = "Outlook",
+        },
+      },
+      cacheDuration = 21600,
+    })
+
+    function calendarJournalDate()
+      return string.match(editor.getCurrentPage() or "", "(%d%d%d%d%-%d%d%-%d%d)$")
+    end
+    ```
+  '';
+  personalCalendarConfigSync = mkFileSync {
+    filePathOnDisk = personalCalendarConfig;
+    filePathInSpace = "_config/icalendar.md";
+    contentType = "text/markdown; charset=utf-8";
+    spacePrefixes = [
+      [
+        "Personal"
+        ""
+      ]
+    ];
+  };
+  kspCalendarConfigSync = mkFileSync {
+    filePathOnDisk = kspCalendarConfig;
+    filePathInSpace = "_config/icalendar.md";
+    contentType = "text/markdown; charset=utf-8";
+    spacePrefixes = [
+      [
+        "KSP"
+        "/ksp"
+      ]
+    ];
+  };
+  journalTemplate = pkgs.writeText "silverbullet-journal-template.md" ''
+    ---
+    tags: meta/template
+    frontmatter: |
+      tags: journal
+      date: ''${date.today()}
+    ---
+    ## Calendar
+
+    ''${"$"}{query[[
+      from e = index.objects("ical-event")
+      where e.start:startsWith(calendarJournalDate())
+      order by e.start
+      select {
+        Start = string.sub(e.start, 12, 16),
+        Event = e.summary,
+        Location = e.location
+      }
+    ]]}
+
+    - |^|
+  '';
+  journalTemplateSync = mkFileSync {
+    filePathOnDisk = journalTemplate;
+    filePathInSpace = "Journal/Template.md";
+    contentType = "text/markdown; charset=utf-8";
+  };
+  managedFilesSync = pkgs.writeShellScript "silverbullet-managed-files-sync-all" ''
+    ${pkgs.python3}/bin/python3 ${vimLayoutPlugSync}
+    ${pkgs.python3}/bin/python3 ${journalNavigationPlugSync}
+    ${pkgs.python3}/bin/python3 ${journalNavigationConfigSync}
+    ${pkgs.python3}/bin/python3 ${pdfPlugSync}
+    ${pkgs.python3}/bin/python3 ${historyPlugSync}
+    ${pkgs.python3}/bin/python3 ${gitLibrarySync}
+    ${pkgs.python3}/bin/python3 ${iCalendarPlugSync}
+    ${pkgs.python3}/bin/python3 ${personalCalendarConfigSync}
+    ${pkgs.python3}/bin/python3 ${kspCalendarConfigSync}
+    ${pkgs.python3}/bin/python3 ${journalTemplateSync}
+  '';
+
+  piExtensionConfig = pkgs.writeText "silverbullet-pi-extension.json" (
+    builtins.toJSON {
+      allowInsecureHttp = true;
+      inherit baseUrl;
+      defaultSpace = "personal";
+      spaces = {
+        personal = {
+          label = "Personal";
+          path = "/";
+        };
+        ksp = {
+          label = "KSP";
+          path = "/ksp";
+        };
+      };
+      inherit tokenFile;
+    }
+  );
+  piExtension = pkgs.callPackage ../../users/modules/pi/extensions/silverbullet/package.nix {
+    configFile = piExtensionConfig;
+  };
+in
 {
+  # MultiSpace API tokens are created by the account owner in /.spaces and
+  # materialized at activation time; only this runtime path enters the Nix store.
+  sops.secrets."silverbullet/pi-api-token" = {
+    owner = "mpfammatter";
+    mode = "0400";
+  };
+  # Calendar subscription URLs are bearer-like secrets. The browser-visible
+  # plug configuration contains only fixed loopback endpoints; systemd passes
+  # the real URLs to the proxy without placing them in the Nix store.
+  sops.secrets."silverbullet/calendar/personal-icloud-url" = {
+    mode = "0400";
+    restartUnits = [ "silverbullet-calendar-proxy.service" ];
+  };
+  sops.secrets."silverbullet/calendar/ksp-outlook-url" = {
+    mode = "0400";
+    restartUnits = [ "silverbullet-calendar-proxy.service" ];
+  };
+
+  systemd.services.silverbullet-calendar-proxy = {
+    description = "Private calendar feed proxy for SilverBullet";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+
+    serviceConfig = {
+      ExecStart = "${pkgs.python3}/bin/python3 ${./silverbullet-calendar-proxy.py}";
+      DynamicUser = true;
+      LoadCredential = [
+        "personal-icloud-url:${config.sops.secrets."silverbullet/calendar/personal-icloud-url".path}"
+        "ksp-outlook-url:${config.sops.secrets."silverbullet/calendar/ksp-outlook-url".path}"
+      ];
+      Restart = "on-failure";
+      RestartSec = "5s";
+      UMask = "0077";
+
+      CapabilityBoundingSet = "";
+      LimitCORE = 0;
+      LockPersonality = true;
+      MemoryDenyWriteExecute = true;
+      NoNewPrivileges = true;
+      PrivateDevices = true;
+      PrivateTmp = true;
+      ProcSubset = "pid";
+      ProtectClock = true;
+      ProtectControlGroups = true;
+      ProtectHome = true;
+      ProtectHostname = true;
+      ProtectKernelLogs = true;
+      ProtectKernelModules = true;
+      ProtectKernelTunables = true;
+      ProtectProc = "invisible";
+      ProtectSystem = "strict";
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+      ];
+      RestrictNamespaces = true;
+      RestrictRealtime = true;
+      RestrictSUIDSGID = true;
+      SystemCallArchitectures = "native";
+    };
+  };
+
   systemd.services.silverbullet = {
     description = "SilverBullet Markdown knowledge server";
     wantedBy = [ "multi-user.target" ];
-    after = [ "network.target" ];
+    after = [
+      "network.target"
+      "silverbullet-calendar-proxy.service"
+    ];
+    wants = [ "silverbullet-calendar-proxy.service" ];
 
     # SilverBullet stays local; Tailscale Serve terminates HTTPS for Tailnet access.
-    environment.SB_SHELL_BACKEND = "off";
+    # The pre-start policy also enforces this whitelist in each MultiSpace entry.
+    environment = {
+      SB_SHELL_BACKEND = "local";
+      SB_SHELL_WHITELIST = "git";
+    };
+    path = [ pkgs.git ];
+    preStart = ''
+      ${pkgs.python3}/bin/python3 ${./silverbullet-git-setup.py} \
+        --root "$STATE_DIRECTORY" \
+        --git ${pkgs.git}/bin/git
+    '';
 
     serviceConfig = {
-      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /var/lib/silverbullet/space";
-      ExecStart = "${pkgs.silverbullet}/bin/silverbullet -L 127.0.0.1 -p 3000 /var/lib/silverbullet/space";
+      ExecStart = "${pkgs.silverbullet}/bin/silverbullet -L 127.0.0.1 -p 3000 /var/lib/silverbullet";
       DynamicUser = true;
       StateDirectory = "silverbullet";
       StateDirectoryMode = "0750";
@@ -31,6 +300,69 @@
       ProtectSystem = "strict";
       RestrictRealtime = true;
       RestrictSUIDSGID = true;
+    };
+  };
+
+  systemd.services.silverbullet-plug-sync = {
+    description = "Synchronize Nix-managed SilverBullet files";
+    wantedBy = [ "multi-user.target" ];
+    requires = [ "silverbullet.service" ];
+    after = [ "silverbullet.service" ];
+    restartTriggers = [ managedFilesSync ];
+    unitConfig = {
+      StartLimitIntervalSec = "5min";
+      StartLimitBurst = 5;
+    };
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = managedFilesSync;
+      User = "mpfammatter";
+      Group = "users";
+      UMask = "0077";
+      TimeoutStartSec = "120s";
+      Restart = "on-failure";
+      RestartSec = "5s";
+
+      CapabilityBoundingSet = "";
+      IPAddressAllow = "localhost";
+      IPAddressDeny = "any";
+      LimitCORE = 0;
+      LockPersonality = true;
+      MemoryDenyWriteExecute = true;
+      NoNewPrivileges = true;
+      PrivateDevices = true;
+      PrivateTmp = true;
+      ProcSubset = "pid";
+      ProtectClock = true;
+      ProtectControlGroups = true;
+      ProtectHome = true;
+      ProtectHostname = true;
+      ProtectKernelLogs = true;
+      ProtectKernelModules = true;
+      ProtectKernelTunables = true;
+      ProtectProc = "invisible";
+      ProtectSystem = "strict";
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+      ];
+      RestrictNamespaces = true;
+      RestrictRealtime = true;
+      RestrictSUIDSGID = true;
+      SystemCallArchitectures = "native";
+    };
+  };
+
+  home-manager.users.mpfammatter.home.file = {
+    ".pi/agent/extensions/silverbullet" = {
+      force = true;
+      source = piExtension;
+    };
+    ".pi/agent/skills/silverbullet" = {
+      force = true;
+      source = ../../users/modules/pi/skills/silverbullet;
     };
   };
 

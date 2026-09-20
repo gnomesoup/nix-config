@@ -59,6 +59,10 @@ let
       url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.4.tgz";
       hash = "sha512-AClAZxf5+c4RRu44NJPS6wyQy+Nmq+Mzyyrdvm4ZVMNuixelO02RZX4G4Aq1F145Yzp43wnM5S+hLlSI7ypfVw==";
     };
+    "0.85.1" = fetchurl {
+      url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.85.1.tgz";
+      hash = "sha512-+VgVIJDkDO2efYJKEEqvPTH4zmnIaXdAppGbO+vKFA9qy5PdhFiAenuFAkU+oiCSfOC4dMHDyrjdQeL4ZoC5CQ==";
+    };
   };
   aiModelDataTarball = aiModelDataTarballs.${version} or null;
   updateScript = writeShellApplication {
@@ -135,6 +139,7 @@ buildNpmPackage (finalAttrs: {
     runHook preBuild
 
     npx tsgo -p packages/telemetry/tsconfig.build.json
+    npx tsgo -p packages/chord/tsconfig.build.json
     npx tsgo -p packages/ai/tsconfig.build.json
     rm -rf packages/ai/dist/providers/data
     cp -R packages/ai/src/providers/data packages/ai/dist/providers/data
@@ -154,7 +159,8 @@ buildNpmPackage (finalAttrs: {
     local nm="$out/lib/node_modules/pi-monorepo/node_modules"
 
     # Replace workspace deps needed at runtime with real copies
-    for ws in @earendil-works/pi-ai:packages/ai \
+    for ws in @earendil-works/chord:packages/chord \
+              @earendil-works/pi-ai:packages/ai \
               @earendil-works/pi-telemetry:packages/telemetry \
               @earendil-works/pi-agent-core:packages/agent \
               @earendil-works/pi-client:packages/client \

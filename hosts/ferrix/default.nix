@@ -8,6 +8,7 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
+    ./inigo.nix
     ./home-assistant-mcp.nix
     ./remote-pi-relay.nix
     ./silverbullet.nix
@@ -175,8 +176,8 @@
   };
 
   services.jellyfin = {
-    enable = true;
-    openFirewall = true;
+    enable = false;
+    openFirewall = false;
   };
 
   # Enable touchpad support (enabled default in most desktopManager).

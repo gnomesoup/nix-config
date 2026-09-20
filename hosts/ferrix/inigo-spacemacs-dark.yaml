@@ -1,0 +1,64 @@
+name: spacemacs-dark
+description: Spacemacs dark — violet and blue on graphite
+
+colors:
+  # Core Spacemacs dark palette.
+  background: "#292B2E"
+  ui_text: "#B2B2B2"
+  ui_label: "#CBC1D5"
+  ui_accent: "#A45BAD"
+  ui_tool: "#4F97D7"
+  ui_thinking: "#686868"
+
+  # Banner and conversation chrome.
+  banner_border: "#5D4D7A"
+  banner_title: "#BC6EC5"
+  banner_accent: "#A45BAD"
+  banner_dim: "#686868"
+  banner_text: "#B2B2B2"
+  prompt: "#BC6EC5"
+  input_rule: "#5D4D7A"
+  response_border: "#4F97D7"
+
+  # Semantic colors.
+  ui_ok: "#67B11D"
+  ui_warn: "#B1951D"
+  ui_error: "#F2241F"
+
+  # Status and session chrome.
+  status_bar_bg: "#212026"
+  status_bar_text: "#B2B2B2"
+  status_bar_strong: "#BC6EC5"
+  status_bar_dim: "#686868"
+  status_bar_good: "#B1951D"
+  status_bar_warn: "#B1951D"
+  status_bar_bad: "#F2241F"
+  status_bar_critical: "#F2241F"
+  session_label: "#4F97D7"
+  session_border: "#5D4D7A"
+  voice_status_bg: "#212026"
+
+  # Menus and selection.
+  completion_menu_bg: "#212026"
+  completion_menu_current_bg: "#444155"
+  completion_menu_meta_bg: "#292B2E"
+  completion_menu_meta_current_bg: "#5D4D7A"
+  selection_bg: "#444155"
+
+  # Shell, diffs, and syntax.
+  shell_dollar: "#2D9574"
+  diff_added: "#67B11D"
+  diff_removed: "#F2241F"
+  diff_added_word: "#86DC2F"
+  diff_removed_word: "#FF5D58"
+  syntax_string: "#2D9574"
+  syntax_number: "#A45BAD"
+  syntax_keyword: "#4F97D7"
+  syntax_comment: "#686868"
+
+branding:
+  agent_name: Inigo
+  prompt_symbol: "❯"
+  help_header: "SPC h d — Available Commands"
+
+tool_prefix: "┊"

@@ -12,6 +12,8 @@ repository rather than fetched and patched during a Nix build.
 Local behavior includes:
 
 - scrollable Markdown question prompts;
+- wrapped option labels, descriptions, and answer summaries without truncation;
+- a **Write my own answer** choice for single-select, multi-select, and checkbox questions;
 - direct delivery of tool answers to the main model;
 - semantic `blocked` state reporting through Herdr while awaiting questionnaire input.
 

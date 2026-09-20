@@ -4,7 +4,7 @@ let
     builtins.toJSON {
       allowInsecureHttp = true;
       baseUrl = "http://onderon:8123";
-      tokenFile = config.sops.secrets."home-assistant/pi-token".path;
+      tokenFile = config.sops.secrets."inigo/home-assistant-token".path;
     }
   );
   extension = pkgs.callPackage ../../users/modules/pi/extensions/home-assistant-mcp/package.nix {
@@ -12,7 +12,7 @@ let
   };
 in
 {
-  sops.secrets."home-assistant/pi-token" = {
+  sops.secrets."inigo/home-assistant-token" = {
     owner = "mpfammatter";
     mode = "0400";
   };

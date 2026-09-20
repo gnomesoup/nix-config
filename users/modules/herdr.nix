@@ -27,6 +27,18 @@ in
         version_check = false;
         manifest_check = false;
       };
+      theme = {
+        name = "terminal";
+        custom = {
+          sidebar_bg = "#212026";
+          active_row_bg = "#444155";
+          selection_bg = "#34363b";
+          panel_bg = "reset";
+          accent = "#4f97d7";
+          red = "#e0211d";
+          green = "#52AD70";
+        };
+      };
       ui.toast = {
         delivery = "herdr";
         delay_seconds = 1;
@@ -83,7 +95,14 @@ in
   };
 
   home.activation.linkHerdrNvimNav = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    $DRY_RUN_CMD ${lib.getExe pkgs.herdr} plugin link ${lib.escapeShellArg "${pkgs.herdr-nvim-nav}"}
+    # Update the on-disk registry without contacting a potentially older running server.
+    (
+      herdrSocketDir="$(${lib.getExe' pkgs.coreutils "mktemp"} --directory)"
+      trap '${lib.getExe' pkgs.coreutils "rm"} --recursive --force "$herdrSocketDir"' EXIT
+      $DRY_RUN_CMD ${lib.getExe' pkgs.coreutils "env"} \
+        HERDR_SOCKET_PATH="$herdrSocketDir/herdr.sock" \
+        ${lib.getExe pkgs.herdr} plugin link ${lib.escapeShellArg "${pkgs.herdr-nvim-nav}"}
+    )
   '';
 
   home.file = {
