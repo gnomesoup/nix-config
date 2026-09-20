@@ -9,6 +9,7 @@ let
 in
 {
   home.packages = [
+    pkgs.hermes-desktop
     # pkgs.plover.dev
     pkgs.input-leap
     pkgs.keymapp

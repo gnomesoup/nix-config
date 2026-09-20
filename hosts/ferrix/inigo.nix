@@ -2,6 +2,7 @@
   config,
   hermesAgent,
   lib,
+  mcpNixos,
   pkgs,
   ...
 }:
@@ -38,6 +39,7 @@ let
     };
   });
   inigoSilverbulletPlugin = pkgs.callPackage ./inigo-silverbullet/package.nix { };
+  mcpNixosPackage = mcpNixos.lib.mkMcpNixos { inherit pkgs; };
 in
 {
   sops.secrets = {
@@ -117,6 +119,7 @@ in
     stateDir = "/var/lib/inigo";
 
     hermesHomeFiles."skins/spacemacs-dark.yaml" = ./inigo-spacemacs-dark.yaml;
+    hermesHomeFiles."skills/nix-config-management/SKILL.md" = ./nix-config-management/SKILL.md;
 
     # The upstream default is its full package. Native mode keeps the runtime
     # reproducible; capability-gated tools activate when their backend exists.
@@ -143,6 +146,14 @@ in
       toolsets = [ "all" ];
       timezone = "America/New_York";
       display.skin = "spacemacs-dark";
+
+      mcp_servers.nixos = {
+        command = lib.getExe mcpNixosPackage;
+        args = [ ];
+        timeout = 120;
+        connect_timeout = 60;
+        sampling.enabled = false;
+      };
 
       plugins.enabled = [ "inigo-silverbullet" ];
       plugins.entries."inigo-silverbullet".settings = {
@@ -210,6 +221,7 @@ in
       gnused
       himalaya
       jq
+      mcpNixosPackage
       nix
       nixfmt
       nodejs

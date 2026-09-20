@@ -40,6 +40,11 @@
       inputs.home-manager.follows = "home-manager";
     };
 
+    mcp-nixos = {
+      url = "github:utensils/mcp-nixos";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     herdr-src = {
       url = "git+https://github.com/gnomesoup/herdr.git?ref=nav-colemakdh";
       flake = false;
@@ -62,6 +67,7 @@
       nixos-wsl,
       pi-mono,
       hermes-agent,
+      mcp-nixos,
       herdr-src,
       # kmonad,
     }:
@@ -75,6 +81,8 @@
       # this repo and needs to be available consistently across hosts without
       # duplicating package wiring in each configuration.
       overlays.default = final: prev: {
+        hermes-desktop = hermes-agent.packages.${final.stdenv.hostPlatform.system}.desktop;
+
         herdr = prev.herdr.overrideAttrs (
           _finalAttrs: previousAttrs: {
             version = "0.8.2";
@@ -274,7 +282,10 @@
         };
         "ferrix" = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          specialArgs.hermesAgent = hermes-agent;
+          specialArgs = {
+            hermesAgent = hermes-agent;
+            mcpNixos = mcp-nixos;
+          };
           modules = [
             ./hosts/ferrix
             hermes-agent.nixosModules.default

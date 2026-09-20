@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Interactive and entertaining resources for the algebra concepts in a Math 119 Unit 1 review.">
+  <title>Math 119 · Interactive Learning Resources</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1c1e;
+      --muted: #555a6a;
+      --canvas: #f7f8fc;
+      --surface: #fff;
+      --blue: #4f68ed;
+      --blue-dark: #2a41b6;
+      --border: #e0e2e8;
+      --coral: #ffcaca;
+      --teal: #c3faf5;
+      --rose: #ffd8f4;
+      --orange: #ffe6cd;
+      --yellow: #fff1ad;
+      --green: #d8f5d2;
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    a { color: inherit; }
+
+    .page {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 64px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(32px, 6vw, 72px);
+      border: 1px solid var(--border);
+      border-radius: 32px;
+      background: var(--surface);
+    }
+
+    .hero::after {
+      position: absolute;
+      right: -55px;
+      top: -65px;
+      width: 250px;
+      height: 250px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--rose), var(--teal));
+      content: "";
+      opacity: .75;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--blue-dark);
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      margin: 0;
+      font-size: clamp(2.2rem, 6vw, 4.6rem);
+      line-height: 1.04;
+      letter-spacing: -.055em;
+    }
+
+    .lede {
+      position: relative;
+      z-index: 1;
+      max-width: 690px;
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 2vw, 1.2rem);
+    }
+
+    .concepts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 24px;
+    }
+
+    .concepts span {
+      padding: 7px 11px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fff;
+      font-size: .86rem;
+      font-weight: 600;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 48px 0 18px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-size: clamp(1.65rem, 3vw, 2.35rem);
+      letter-spacing: -.035em;
+    }
+
+    .section-heading p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      min-height: 330px;
+      padding: 26px;
+      border: 1px solid rgba(28, 28, 30, .08);
+      border-radius: var(--radius);
+    }
+
+    .card:nth-child(1) { background: var(--coral); }
+    .card:nth-child(2) { background: var(--teal); }
+    .card:nth-child(3) { background: var(--rose); }
+    .card:nth-child(4) { background: var(--orange); }
+    .card:nth-child(5) { background: var(--yellow); }
+    .card:nth-child(6) { background: var(--green); }
+
+    .number {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 50%;
+      background: rgba(255,255,255,.75);
+      font-size: .9rem;
+      font-weight: 700;
+    }
+
+    .card h3 {
+      margin: 18px 0 6px;
+      font-size: 1.35rem;
+      line-height: 1.2;
+      letter-spacing: -.025em;
+    }
+
+    .matches {
+      margin: 0 0 13px;
+      color: rgba(28,28,30,.68);
+      font-size: .82rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .tip {
+      margin: 0 0 18px;
+      font-size: .95rem;
+    }
+
+    .links {
+      display: grid;
+      gap: 9px;
+      margin-top: auto;
+    }
+
+    .resource {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(28,28,30,.14);
+      border-radius: 10px;
+      background: rgba(255,255,255,.72);
+      font-size: .9rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform .16s ease, background .16s ease;
+    }
+
+    .resource:hover,
+    .resource:focus-visible {
+      background: #fff;
+      outline: none;
+      transform: translateY(-2px);
+    }
+
+    .resource span { color: var(--blue-dark); }
+
+    .plan {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      padding: clamp(25px, 5vw, 48px);
+      border-radius: 28px;
+      background: #17181d;
+      color: #fff;
+    }
+
+    .plan h2 {
+      margin: 0 0 12px;
+      font-size: clamp(1.75rem, 4vw, 2.7rem);
+      line-height: 1.1;
+      letter-spacing: -.04em;
+    }
+
+    .plan p { margin: 0; color: #b9bdc9; }
+
+    .steps {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .steps label {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 12px 14px;
+      border: 1px solid #353741;
+      border-radius: 12px;
+      background: #202127;
+      cursor: pointer;
+    }
+
+    .steps input {
+      width: 18px;
+      height: 18px;
+      margin-top: 3px;
+      accent-color: #7f93ff;
+    }
+
+    .steps label:has(input:checked) span {
+      color: #8f94a3;
+      text-decoration: line-through;
+    }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 24px 4px 0;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+
+    .print-button {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      background: var(--blue);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .print-button:hover { background: var(--blue-dark); }
+
+    @media (max-width: 760px) {
+      .grid, .plan { grid-template-columns: 1fr; }
+      .hero::after { right: -115px; top: -110px; }
+      .section-heading { align-items: start; flex-direction: column; }
+      footer { flex-direction: column; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .page { width: 100%; padding: 0; }
+      .hero, .card, .plan { break-inside: avoid; }
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      .card { min-height: 0; }
+      .resource { padding: 6px 0; border: 0; background: transparent; }
+      .resource::after { content: " — " attr(href); font-size: .62rem; font-weight: 400; overflow-wrap: anywhere; }
+      .resource span, .print-button { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Math 119 · Unit 1 Review</p>
+      <h1>Make the algebra click.</h1>
+      <p class="lede">A curated set of visual lessons, interactive practice, and games for the concepts shown in worksheet questions 5–10.</p>
+      <div class="concepts" aria-label="Topics covered">
+        <span>Factoring</span><span>Polynomials</span><span>Radicals</span><span>Rational exponents</span><span>Algebraic properties</span><span>Number sets</span>
+      </div>
+    </header>
+
+    <div class="section-heading">
+      <h2>Choose a concept</h2>
+      <p>Start with the resource marked “best match.”</p>
+    </div>
+
+    <section class="grid" aria-label="Learning resources">
+      <article class="card">
+        <div class="number">01</div>
+        <h3>Factoring completely</h3>
+        <p class="matches">Worksheet question 5</p>
+        <p class="tip"><strong>Watch for:</strong> common binomial factors and reversed signs. In the worksheet, <em>2 − x = −(x − 2)</em>.</p>
+        <div class="links">
+          <a class="resource" href="https://www.khanacademy.org/math/algebra-basics/alg-basics-quadratics-and-polynomials/alg-basics-factoring-polynomials-1-common-factors/v/factoring-a-common-binomial-factor" target="_blank" rel="noopener">Khan Academy · 1:41 video <span>Best match ↗</span></a>
+          <a class="resource" href="https://mathigon.org/polypad" target="_blank" rel="noopener">Mathigon · visual algebra tiles <span>Explore ↗</span></a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="number">02</div>
+        <h3>Polynomial or not?</h3>
+        <p class="matches">Worksheet question 6</p>
+        <p class="tip"><strong>Core rule:</strong> variable exponents in a polynomial must be nonnegative integers. Then arrange terms from highest to lowest degree.</p>
+        <div class="links">
+          <a class="resource" href="https://www.khanacademy.org/e/polynomials-intro" target="_blank" rel="noopener">Khan Academy · self-checking practice <span>Practice ↗</span></a>
+          <a class="resource" href="https://www.youtube.com/watch?v=XwloximjjlA" target="_blank" rel="noopener">Mario’s Math Tutoring · examples <span>Watch ↗</span></a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="number">03</div>
+        <h3>Radicals ⇄ rational exponents</h3>
+        <p class="matches">Worksheet questions 7–8</p>
+        <p class="tip"><strong>Memory device:</strong> in <em>x<sup>m/n</sup></em>, the denominator is the root and the numerator is the power.</p>
+        <div class="links">
+          <a class="resource" href="https://beta.geogebra.org/m/kdszbtub" target="_blank" rel="noopener">GeoGebra · interactive conversion <span>Best match ↗</span></a>
+          <a class="resource" href="https://www.khanacademy.org/math/algebra2/x2ec2f6f830c9fb89:exp" target="_blank" rel="noopener">Khan Academy · complete unit <span>Learn ↗</span></a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="number">04</div>
+        <h3>Properties of algebra</h3>
+        <p class="matches">Worksheet question 9</p>
+        <p class="tip"><strong>Ask what changed:</strong> order means commutative; grouping means associative; multiplication spread over a sum means distributive.</p>
+        <div class="links">
+          <a class="resource" href="https://view.genially.com/64fba5feb6366100110c3689/interactive-content-math-properties-quiz" target="_blank" rel="noopener">Genially · survive-the-quiz game <span>Play ↗</span></a>
+          <a class="resource" href="https://www.math-play.com/math-basketball-properties-of-multiplication/math-basketball-properties-of-multiplication.html" target="_blank" rel="noopener">Math Play · basketball game <span>Shoot ↗</span></a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="number">05</div>
+        <h3>Rational numbers and integers</h3>
+        <p class="matches">Worksheet question 10</p>
+        <p class="tip"><strong>Target:</strong> choose a fraction or a terminating/repeating decimal that is rational but not a whole integer.</p>
+        <div class="links">
+          <a class="resource" href="https://www.onlinemathlearning.com/classify-numbers-game.html" target="_blank" rel="noopener">Classify Numbers · ten-stage challenge <span>Best match ↗</span></a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="number">★</div>
+        <h3>Recommended mix</h3>
+        <p class="matches">Fastest route through the page</p>
+        <p class="tip">Use one short explanation followed immediately by interactive practice. Return to the worksheet only after you can explain the rule aloud.</p>
+        <div class="links">
+          <a class="resource" href="#study-plan">Open the study plan <span>Go ↓</span></a>
+        </div>
+      </article>
+    </section>
+
+    <div class="section-heading" id="study-plan">
+      <h2>35-minute study sprint</h2>
+      <p>Check off each step as you go.</p>
+    </div>
+
+    <section class="plan">
+      <div>
+        <h2>Learn, play, then retry.</h2>
+        <p>Keep the worksheet closed while using the resources. Reopen it for the final step and solve questions 5–10 without notes.</p>
+      </div>
+      <ol class="steps">
+        <li><label><input type="checkbox"><span><strong>5 min:</strong> Watch the common-binomial video.</span></label></li>
+        <li><label><input type="checkbox"><span><strong>7 min:</strong> Complete polynomial classification practice.</span></label></li>
+        <li><label><input type="checkbox"><span><strong>10 min:</strong> Work through GeoGebra’s exponent conversion.</span></label></li>
+        <li><label><input type="checkbox"><span><strong>5 min:</strong> Play one algebra-properties quiz.</span></label></li>
+        <li><label><input type="checkbox"><span><strong>8 min:</strong> Retry worksheet questions 5–10 unaided.</span></label></li>
+      </ol>
+    </section>
+
+    <footer>
+      <span>Curated for the Math 119 Unit 1 review shown in the supplied image.</span>
+      <button class="print-button" type="button" onclick="window.print()">Print or save as PDF</button>
+    </footer>
+  </main>
+</body>
+</html>
