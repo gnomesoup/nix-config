@@ -37,6 +37,7 @@ in
   home.packages = [
     pkgs.mcp-nixos
     pkgs.pi-coding-agent
+    pkgs.prettier
   ];
 
   home.file = {
@@ -48,6 +49,10 @@ in
     ".pi/agent/extensions/think.ts".source = ./pi/extensions/think.ts;
     ".pi/agent/prompts/cleanup.md" = {
       source = ./pi/prompts/cleanup.md;
+      force = true;
+    };
+    ".pi/agent/skills/markdown-formatting" = {
+      source = ./pi/skills/markdown-formatting;
       force = true;
     };
     ".pi/agent/skills/worktree-cleanup" = {
