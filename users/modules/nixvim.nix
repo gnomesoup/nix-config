@@ -467,6 +467,7 @@ in
       relativenumber = true;
       statuscolumn = "%s%=%{v:relnum ? v:relnum : v:lnum} ";
       tabstop = 4;
+      textwidth = 88;
       shiftwidth = 4;
       softtabstop = 4;
     };
@@ -571,10 +572,19 @@ in
           ];
         };
       };
-      conform-nvim.settings.formatters_by_ft.python = [
-        "isort"
-        "black"
-      ];
+      conform-nvim.settings = {
+        formatters.prettier.prepend_args = [
+          "--prose-wrap"
+          "always"
+          "--print-width"
+          "88"
+        ];
+        formatters_by_ft.markdown = [ "prettier" ];
+        formatters_by_ft.python = [
+          "isort"
+          "black"
+        ];
+      };
       lsp.servers.pyright = {
         enable = true;
         extraOptions.before_init.__raw = ''
@@ -1141,6 +1151,7 @@ in
     extraPackages = [
       pkgs.black
       pkgs.isort
+      pkgs.prettier
     ];
     # neocodeium: AI completion powered by Windsurf/Codeium
     # https://github.com/monkoose/neocodeium
