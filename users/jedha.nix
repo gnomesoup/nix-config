@@ -4,7 +4,30 @@
   config,
   ...
 }:
+let
+  azureOpenAIBaseUrlFile = "/run/secrets/jedha/azure-openai-base-url";
+  piPackage = pkgs.writeShellApplication {
+    name = "pi";
+    text = ''
+      if [[ ! -r ${lib.escapeShellArg azureOpenAIBaseUrlFile} ]]; then
+        echo "Pi's Azure OpenAI base URL secret is unavailable" >&2
+        exit 1
+      fi
+
+      AZURE_OPENAI_BASE_URL="$(<${lib.escapeShellArg azureOpenAIBaseUrlFile})"
+      if [[ -z "$AZURE_OPENAI_BASE_URL" ]]; then
+        echo "Pi's Azure OpenAI base URL secret is empty" >&2
+        exit 1
+      fi
+
+      export AZURE_OPENAI_BASE_URL
+      exec ${lib.getExe pkgs.pi-coding-agent} "$@"
+    '';
+  };
+in
 {
+  _module.args = { inherit piPackage; };
+
   imports = [
     ./modules/herdr.nix
     ./modules/mpfammatter-base.nix

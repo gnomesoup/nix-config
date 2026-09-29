@@ -34,12 +34,16 @@ in
   sops.defaultSopsFile = ../../secrets/secrets.yaml;
   sops.defaultSopsFormat = "yaml";
   sops.age.keyFile = "/home/mpfammatter/.config/sops/age/keys.txt";
-  sops.secrets = builtins.listToAttrs (
-    map (secretName: {
-      name = secretName;
-      value = { };
-    }) (builtins.attrValues networkShareSecrets)
-  );
+  sops.secrets =
+    builtins.listToAttrs (
+      map (secretName: {
+        name = secretName;
+        value = { };
+      }) (builtins.attrValues networkShareSecrets)
+    )
+    // {
+      "jedha/azure-openai-base-url".owner = "mpfammatter";
+    };
 
   wsl.enable = true;
   wsl.defaultUser = "mpfammatter";

@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  piPackage ? pkgs.pi-coding-agent,
   ...
 }:
 let
@@ -36,7 +37,7 @@ in
 {
   home.packages = [
     pkgs.mcp-nixos
-    pkgs.pi-coding-agent
+    piPackage
     pkgs.prettier
   ];
 
