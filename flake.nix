@@ -107,13 +107,13 @@
 
           herdr = prev.herdr.overrideAttrs (
             _finalAttrs: previousAttrs: {
-              version = "0.8.2";
+              version = "0.9.0";
               src = herdr-src;
               cargoDeps = final.rustPlatform.fetchCargoVendor {
                 pname = "herdr";
-                version = "0.8.2";
+                version = "0.9.0";
                 src = herdr-src;
-                hash = "sha256-4VThqPwYYEsGvaOKjBeL6XAC5bnNWB6oUMWP/uXc/UQ=";
+                hash = "sha256-W4+In8pEdfN22Kl940v3ng+YZmr84Qu5prF6y0h0Zm8=";
               };
               passthru = (previousAttrs.passthru or { }) // {
                 sourceBranch = "nav-colemakdh";

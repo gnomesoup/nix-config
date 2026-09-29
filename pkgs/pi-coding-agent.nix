@@ -63,6 +63,10 @@ let
       url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.85.1.tgz";
       hash = "sha512-+VgVIJDkDO2efYJKEEqvPTH4zmnIaXdAppGbO+vKFA9qy5PdhFiAenuFAkU+oiCSfOC4dMHDyrjdQeL4ZoC5CQ==";
     };
+    "0.99.1" = fetchurl {
+      url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.99.1.tgz";
+      hash = "sha512-4nV9JKc94iPX8bwdGPc2nTuVPKIPsffhnp3WoN9NYCNqbtoOF8LhYcIs/+Sn/alroqJK/5QRu6/Z6Ck+n0hyBA==";
+    };
   };
   aiModelDataTarball = aiModelDataTarballs.${version} or null;
   updateScript = writeShellApplication {
@@ -132,21 +136,22 @@ buildNpmPackage (finalAttrs: {
   ];
 
   # Build workspace dependencies in order, then the coding-agent.
-  # We invoke tsgo directly for workspace deps to skip pi-ai's
-  # generate-models script which requires network access
-  # (models.generated.ts is committed to the repo).
+  # Invoke the locked TypeScript compiler directly to avoid network access
+  # from pi-ai's generate-models script and npx's package resolution.
   buildPhase = ''
     runHook preBuild
 
-    npx tsgo -p packages/telemetry/tsconfig.build.json
-    npx tsgo -p packages/chord/tsconfig.build.json
-    npx tsgo -p packages/ai/tsconfig.build.json
+    ./node_modules/.bin/tsc -p packages/telemetry/tsconfig.build.json
+    ./node_modules/.bin/tsc -p packages/chord/tsconfig.build.json
+    ./node_modules/.bin/tsc -p packages/codemode/tsconfig.build.json
+    ./node_modules/.bin/tsc -p packages/mcp/tsconfig.build.json
+    ./node_modules/.bin/tsc -p packages/ai/tsconfig.build.json
     rm -rf packages/ai/dist/providers/data
     cp -R packages/ai/src/providers/data packages/ai/dist/providers/data
-    npx tsgo -p packages/tui/tsconfig.build.json
-    npx tsgo -p packages/agent/tsconfig.build.json
-    npx tsgo -p packages/protocol/tsconfig.build.json
-    npx tsgo -p packages/client/tsconfig.build.json
+    ./node_modules/.bin/tsc -p packages/tui/tsconfig.build.json
+    ./node_modules/.bin/tsc -p packages/agent/tsconfig.build.json
+    ./node_modules/.bin/tsc -p packages/protocol/tsconfig.build.json
+    ./node_modules/.bin/tsc -p packages/client/tsconfig.build.json
     npm run build --workspace=packages/coding-agent
 
     runHook postBuild
@@ -160,6 +165,8 @@ buildNpmPackage (finalAttrs: {
 
     # Replace workspace deps needed at runtime with real copies
     for ws in @earendil-works/chord:packages/chord \
+              @earendil-works/pi-codemode:packages/codemode \
+              @earendil-works/pi-mcp:packages/mcp \
               @earendil-works/pi-ai:packages/ai \
               @earendil-works/pi-telemetry:packages/telemetry \
               @earendil-works/pi-agent-core:packages/agent \
