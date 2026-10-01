@@ -473,7 +473,7 @@ in
       "gl" = "git log --oneline";
       "glg" = "git log --graph --oneline";
       "glp" =
-        "git log --date=short --pretty=format:'%C(yellow)%h %Cgreen%ad%Creset %Cred%d%Creset %s %C(bold blue)<%an>%Creset' --abbrev-commit";
+        "git log --pretty=format:'%C(yellow)%h %Cgreen%ad%Creset%Cred%d%Creset %s %C(bold blue)<%an>%Creset' --abbrev-commit --date=short";
       "apply" = if pkgs.stdenv.hostPlatform.isDarwin then darwinSwitch else nixosSwitch;
       "drs" = darwinSwitch;
       "hms" = if pkgs.stdenv.hostPlatform.isDarwin then darwinSwitch else homeManagerSwitch;
