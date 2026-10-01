@@ -487,9 +487,7 @@ in
       "ilr" = "input-leap-restart";
       "venv" = "__activate_git_root_venv";
       "doco" = "docker compose";
-        "git log --date=short --pretty=format:'%Cyellow%h %Cgreen%cr%Creset -%C(yellow)%d%Creset %s %C(bold blue)<%an>%Creset' --abbrev-commit";
       "wz" = "wezterm";
-        "git log --date=short --pretty=format:'%Cyellow%h %Cgreen%cr%Creset -%C(yellow)%d%Creset %s %C(bold blue)<%an>%Creset' --abbrev-commit";
       "wzc" = "wezterm cli";
     };
   };
