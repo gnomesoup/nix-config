@@ -473,7 +473,7 @@ in
       "gl" = "git log --oneline";
       "glg" = "git log --graph --oneline";
       "glp" =
-        "git log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit";
+        "git log --date=short --pretty=format:'%C(yellow)%h %Cgreen%ad%Creset %Cred%d%Creset %s %C(bold blue)<%an>%Creset' --abbrev-commit";
       "apply" = if pkgs.stdenv.hostPlatform.isDarwin then darwinSwitch else nixosSwitch;
       "drs" = darwinSwitch;
       "hms" = if pkgs.stdenv.hostPlatform.isDarwin then darwinSwitch else homeManagerSwitch;
@@ -487,7 +487,9 @@ in
       "ilr" = "input-leap-restart";
       "venv" = "__activate_git_root_venv";
       "doco" = "docker compose";
+        "git log --date=short --pretty=format:'%Cyellow%h %Cgreen%cr%Creset -%C(yellow)%d%Creset %s %C(bold blue)<%an>%Creset' --abbrev-commit";
       "wz" = "wezterm";
+        "git log --date=short --pretty=format:'%Cyellow%h %Cgreen%cr%Creset -%C(yellow)%d%Creset %s %C(bold blue)<%an>%Creset' --abbrev-commit";
       "wzc" = "wezterm cli";
     };
   };
