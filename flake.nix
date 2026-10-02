@@ -257,12 +257,27 @@
       apps = forAllSystems (
         system:
         let
-          package = (mkPkgs system).pi-coding-agent;
+          pkgsFor = mkPkgs system;
+          package = pkgsFor.pi-coding-agent;
+
+          # hermes-agent publishes no `desktop` package for x86_64-darwin, so
+          # the app is exposed only where the upstream flake actually builds.
+          hermesDesktopSystems = [
+            "x86_64-linux"
+            "aarch64-linux"
+            "aarch64-darwin"
+          ];
         in
         {
           update-pi-coding-agent = {
             type = "app";
             program = package.passthru.updateScript;
+          };
+        }
+        // nixpkgs.lib.optionalAttrs (builtins.elem system hermesDesktopSystems) {
+          hermes-desktop = {
+            type = "app";
+            program = nixpkgs.lib.getExe pkgsFor.hermes-desktop;
           };
         }
       );
