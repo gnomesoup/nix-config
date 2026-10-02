@@ -80,57 +80,35 @@
       # package set. We use this for pi-coding-agent because it is packaged in
       # this repo and needs to be available consistently across hosts without
       # duplicating package wiring in each configuration.
-      overlays.default =
-        final: prev:
-        let
-          electronHeadersUrl = "https://artifacts.electronjs.org/headers/dist/v${prev.electron.version}/node-v${prev.electron.version}-headers.tar.gz";
-          hermesDesktopPkgs = prev // {
-            fetchurl =
-              args:
-              prev.fetchurl (
-                if args.url == electronHeadersUrl then
-                  (builtins.removeAttrs args [ "sha256" ])
-                  // {
-                    hash = "sha256-xDgc5PpkcLpWHnlqVcjBD3SxJKtkUoSGLnJaSSrxJtI=";
-                  }
-                else
-                  args
-              );
-          };
-        in
-        {
-          # Hermes Desktop 0.17.6 pins a stale hash for Electron 43.6.0's
-          # headers. Override that fetch only until upstream corrects it.
-          hermes-desktop = hermes-agent.packages.${final.stdenv.hostPlatform.system}.desktop.override {
-            pkgs = hermesDesktopPkgs;
-          };
+      overlays.default = final: prev: {
+        hermes-desktop = hermes-agent.packages.${final.stdenv.hostPlatform.system}.desktop;
 
-          herdr = prev.herdr.overrideAttrs (
-            _finalAttrs: previousAttrs: {
+        herdr = prev.herdr.overrideAttrs (
+          _finalAttrs: previousAttrs: {
+            version = "0.9.0";
+            src = herdr-src;
+            cargoDeps = final.rustPlatform.fetchCargoVendor {
+              pname = "herdr";
               version = "0.9.0";
               src = herdr-src;
-              cargoDeps = final.rustPlatform.fetchCargoVendor {
-                pname = "herdr";
-                version = "0.9.0";
-                src = herdr-src;
-                hash = "sha256-W4+In8pEdfN22Kl940v3ng+YZmr84Qu5prF6y0h0Zm8=";
-              };
-              passthru = (previousAttrs.passthru or { }) // {
-                sourceBranch = "nav-colemakdh";
-              };
-              meta = previousAttrs.meta // {
-                changelog = "https://github.com/gnomesoup/herdr/commits/nav-colemakdh";
-              };
-            }
-          );
+              hash = "sha256-W4+In8pEdfN22Kl940v3ng+YZmr84Qu5prF6y0h0Zm8=";
+            };
+            passthru = (previousAttrs.passthru or { }) // {
+              sourceBranch = "nav-colemakdh";
+            };
+            meta = previousAttrs.meta // {
+              changelog = "https://github.com/gnomesoup/herdr/commits/nav-colemakdh";
+            };
+          }
+        );
 
-          herdr-nvim-nav = final.callPackage ./pkgs/herdr-nvim-nav.nix { };
+        herdr-nvim-nav = final.callPackage ./pkgs/herdr-nvim-nav.nix { };
 
-          pi-coding-agent = final.callPackage ./pkgs/pi-coding-agent.nix {
-            src = pi-mono;
-            version = piCodingAgentVersion;
-          };
+        pi-coding-agent = final.callPackage ./pkgs/pi-coding-agent.nix {
+          src = pi-mono;
+          version = piCodingAgentVersion;
         };
+      };
 
       supportedSystems = [
         "aarch64-darwin"
