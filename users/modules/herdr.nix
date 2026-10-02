@@ -107,6 +107,6 @@ in
 
   home.file = {
     ".pi/agent/extensions/herdr-agent-state.ts".source = "${herdrPiIntegration}/herdr-agent-state.ts";
-    ".pi/agent/skills/herdr".source = "${pkgs.herdr}/share/herdr/skills/herdr";
+    ".pi/agent/skills/herdr".source = "${pkgs.herdr}/share/skills/herdr/herdr";
   };
 }
