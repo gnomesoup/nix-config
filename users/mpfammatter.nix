@@ -5,6 +5,13 @@
   ...
 }:
 {
+  # users/modules/pi.nix declares piPackage as a module argument. The Nix module
+  # system ignores defaults written in a module's signature (it forces a value
+  # from config._module.args for every declared argument), so the importer must
+  # supply it. mkDefault lets an importer override it, as users/jedha.nix does
+  # with its Azure OpenAI wrapper.
+  _module.args.piPackage = lib.mkDefault pkgs.pi-coding-agent;
+
   imports = [
     ./modules/espanso.nix
     ./modules/herdr.nix
