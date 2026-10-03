@@ -1,22 +1,8 @@
---- a/web/src/pages/ChatPage.tsx
-+++ b/web/src/pages/ChatPage.tsx
-@@ -165,7 +165,3 @@
--  if (layoutWidthPx < 300) return 7;
--  if (layoutWidthPx < 360) return 8;
--  if (layoutWidthPx < 420) return 9;
--  if (layoutWidthPx < 520) return 10;
--  if (layoutWidthPx < 720) return 11;
--  if (layoutWidthPx < 1024) return 12;
--  return 14;
-+  if (layoutWidthPx < 520) return 12;
-+  if (layoutWidthPx < 1024) return 14;
-+  return 16;
-@@ -546 +542 @@
--        "'JetBrains Mono', 'Cascadia Mono', 'Fira Code', 'MesloLGS NF', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
-+        "'Source Code Pro', 'JetBrains Mono', 'Cascadia Mono', 'Fira Code', 'MesloLGS NF', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
+diff --git a/web/src/index.css b/web/src/index.css
+index e4b5e27..d440de5 100644
 --- a/web/src/index.css
 +++ b/web/src/index.css
-@@ -10,0 +11,16 @@
+@@ -14,0 +15,16 @@
 +/* Source Code Pro — locally bundled for the embedded TUI. SIL OFL 1.1. */
 +@font-face {
 +  font-family: 'Source Code Pro';
@@ -33,3 +19,33 @@
 +  src: url('/fonts-terminal/SourceCodePro-Bold.otf') format('opentype');
 +}
 +
+diff --git a/web/src/lib/terminal-font-refit.ts b/web/src/lib/terminal-font-refit.ts
+index 2e63c13..8ae5a30 100644
+--- a/web/src/lib/terminal-font-refit.ts
++++ b/web/src/lib/terminal-font-refit.ts
+@@ -2 +2 @@
+- * Dashboard xterm font stack. 'JetBrains Mono' is bundled via @font-face in
++ * Dashboard xterm font stack. 'Source Code Pro' is bundled via @font-face in
+@@ -7 +7 @@ export const TERMINAL_FONT_FAMILY =
+-  "'JetBrains Mono', 'Cascadia Mono', 'Fira Code', 'MesloLGS NF', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace";
++  "'Source Code Pro', 'JetBrains Mono', 'Cascadia Mono', 'Fira Code', 'MesloLGS NF', Menlo, Consolas, 'DejaVu Sans Mono', monospace";
+@@ -9,2 +9,2 @@ export const TERMINAL_FONT_FAMILY =
+-const BUNDLED_FACES = ["400", "700", "italic 400"].map(
+-  (descriptor) => `${descriptor} 1em 'JetBrains Mono'`,
++const BUNDLED_FACES = ["400", "700"].map(
++  (descriptor) => `${descriptor} 1em 'Source Code Pro'`,
+diff --git a/web/src/pages/ChatPage.tsx b/web/src/pages/ChatPage.tsx
+index 27ec31b..4052bf0 100644
+--- a/web/src/pages/ChatPage.tsx
++++ b/web/src/pages/ChatPage.tsx
+@@ -163,7 +163,3 @@ function terminalFontSizeForWidth(layoutWidthPx: number): number {
+-  if (layoutWidthPx < 300) return 7;
+-  if (layoutWidthPx < 360) return 8;
+-  if (layoutWidthPx < 420) return 9;
+-  if (layoutWidthPx < 520) return 10;
+-  if (layoutWidthPx < 720) return 11;
+-  if (layoutWidthPx < 1024) return 12;
+-  return 14;
++  if (layoutWidthPx < 520) return 12;
++  if (layoutWidthPx < 1024) return 14;
++  return 16;
