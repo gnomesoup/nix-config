@@ -4,6 +4,8 @@
   nodejs,
   pi-coding-agent,
   stdenvNoCC,
+  tsx,
+  typescript,
 }:
 stdenvNoCC.mkDerivation {
   pname = "silverbullet-pi-extension";
@@ -24,7 +26,11 @@ stdenvNoCC.mkDerivation {
       --replace-fail '@configFile@' '${configFile}'
   '';
 
-  nativeCheckInputs = [ nodejs ];
+  nativeCheckInputs = [
+    nodejs
+    tsx
+    typescript
+  ];
   doCheck = true;
   checkPhase = ''
     runHook preCheck
@@ -37,7 +43,7 @@ stdenvNoCC.mkDerivation {
     ln -s "$piRoot" node_modules/@earendil-works/pi-coding-agent
     ln -s "$piRoot/node_modules/@types" node_modules/@types
     ln -s "$piRoot/node_modules/typebox" node_modules/typebox
-    "$piRoot/node_modules/.bin/tsc" \
+    tsc \
       --allowImportingTsExtensions \
       --module NodeNext \
       --moduleResolution NodeNext \
@@ -46,7 +52,7 @@ stdenvNoCC.mkDerivation {
       --target ES2023 \
       --types node \
       index.ts test.ts
-    "$piRoot/node_modules/.bin/tsx" --test test.ts
+    tsx --test test.ts
 
     runHook postCheck
   '';

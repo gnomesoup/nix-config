@@ -3,6 +3,8 @@
   nodejs,
   pi-coding-agent,
   stdenvNoCC,
+  tsx,
+  typescript,
 }:
 stdenvNoCC.mkDerivation {
   pname = "pi-ask-local";
@@ -20,7 +22,11 @@ stdenvNoCC.mkDerivation {
     ];
   };
 
-  nativeCheckInputs = [ nodejs ];
+  nativeCheckInputs = [
+    nodejs
+    tsx
+    typescript
+  ];
   doCheck = true;
   checkPhase = ''
     runHook preCheck
@@ -33,7 +39,7 @@ stdenvNoCC.mkDerivation {
     ln -s "$piRoot" node_modules/@earendil-works/pi-coding-agent
     ln -s "$piRoot/node_modules/@types" node_modules/@types
     ln -s "$piRoot/node_modules/typebox" node_modules/typebox
-    "$piRoot/node_modules/.bin/tsc" \
+    tsc \
       --allowImportingTsExtensions \
       --module NodeNext \
       --moduleResolution NodeNext \
@@ -42,7 +48,7 @@ stdenvNoCC.mkDerivation {
       --target ES2023 \
       --types node \
       extensions/pi-ask/index.ts extensions/pi-ask/index.test.ts
-    "$piRoot/node_modules/.bin/tsx" --test extensions/pi-ask/index.test.ts
+    tsx --test extensions/pi-ask/index.test.ts
 
     runHook postCheck
   '';
