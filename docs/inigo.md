@@ -88,7 +88,7 @@ below `Trash/` unless irreversible deletion was explicitly requested. See
 
 ## Authenticate OpenAI Codex
 
-The model is pinned declaratively to `openai-codex/gpt-5.6-sol`. OpenAI workspace policy
+The model is pinned declaratively to `openai-codex/gpt-6.1-sol`. OpenAI workspace policy
 disables the device-code flow implemented by Hermes, while Pi's browser OAuth flow
 remains allowed. The initial Hermes credential was therefore imported locally from Pi's
 OAuth store without printing or committing token material.

@@ -141,7 +141,7 @@ in
     settings = {
       model = {
         provider = "openai-codex";
-        default = "gpt-5.6-sol";
+        default = "gpt-6.1-sol";
       };
       toolsets = [ "all" ];
       timezone = "America/New_York";
