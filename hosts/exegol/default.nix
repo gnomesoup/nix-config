@@ -24,6 +24,11 @@ in
     nixpkgs-fmt
     raycast
     utm
+    # nix-darwin rsyncs /Applications subpaths of systemPackages into
+    # "/Applications/Nix Apps", which is the only app location LaunchServices
+    # surfaces here; home-manager's "Applications/Home Manager Apps" is not
+    # indexed on this system. Upstream hermes-desktop ships no .app bundle.
+    hermes-desktop-app
     borgbackup
     sops
     age
