@@ -11,7 +11,7 @@ let
     hash = "sha256-cep7cO+43jasLHA32AsPNyfhBtx8Dt8mQBHjDDl7HLs=";
   };
 in
-assert pkgs.silverbullet.version == "2.10.0";
+assert pkgs.silverbullet.version == "2.11.0";
 pkgs.buildNpmPackage {
   pname = "silverbullet-icalendar-plug";
   version = "0.2.1-unstable-2025-10-18";

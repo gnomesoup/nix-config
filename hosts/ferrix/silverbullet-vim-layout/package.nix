@@ -8,7 +8,7 @@ let
     colemakLangmap = generated.langmap;
   };
 in
-assert pkgs.silverbullet.version == "2.10.0";
+assert pkgs.silverbullet.version == "2.11.0";
 assert builtins.length generated.activeEntries == 16;
 pkgs.buildNpmPackage {
   pname = "silverbullet-vim-layout-plug";

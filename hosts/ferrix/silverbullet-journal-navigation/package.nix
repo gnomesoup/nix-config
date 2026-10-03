@@ -1,5 +1,5 @@
 { pkgs }:
-assert pkgs.silverbullet.version == "2.10.0";
+assert pkgs.silverbullet.version == "2.11.0";
 pkgs.buildNpmPackage {
   pname = "silverbullet-journal-navigation-plug";
   inherit (pkgs.silverbullet.frontend)
