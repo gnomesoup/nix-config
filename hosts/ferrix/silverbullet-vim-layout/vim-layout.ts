@@ -51,7 +51,7 @@ function isRetryableVimError(error: unknown): boolean {
 }
 
 export function normalizeStoredLayout(value: unknown): VimLayout {
-  return value === "colemak-dh" ? "colemak-dh" : "qwerty";
+  return value === "qwerty" ? "qwerty" : "colemak-dh";
 }
 
 export function langmapCommand(layout: VimLayout): string {
@@ -163,6 +163,12 @@ export function applyOnEditorLifecycle(): Promise<void> {
 
   const run = (async () => {
     try {
+      // Persist the default so the built-in Vim toggle starts from enabled.
+      // An explicit false remains a browser-local opt-out for this space.
+      if ((await clientStore.get("vimMode")) == null) {
+        await clientStore.set("vimMode", true);
+        await editor.setUiOption("vimMode", true);
+      }
       const { layout, result } = await queueSelectedLayout();
       if (result.status === "failed") {
         console.error(

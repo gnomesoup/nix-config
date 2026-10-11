@@ -94,12 +94,13 @@ describe("native codemirror-vim langmap behavior", () => {
 });
 
 describe("layout and retry policy", () => {
-  test("uses the generated Colemak-DH langmap and defaults invalid storage to QWERTY", () => {
+  test("uses the generated Colemak-DH langmap and defaults invalid storage to Colemak-DH", () => {
     expect(COLEMAK_DH_LANGMAP).toBe(
       "mh,nj,ek,il,kn,KN,li,LI,fe,FE,hm,tf,TF,jt,JT,NJ",
     );
-    expect(normalizeStoredLayout(undefined)).toBe("qwerty");
-    expect(normalizeStoredLayout("unexpected")).toBe("qwerty");
+    expect(normalizeStoredLayout(undefined)).toBe("colemak-dh");
+    expect(normalizeStoredLayout("unexpected")).toBe("colemak-dh");
+    expect(normalizeStoredLayout("qwerty")).toBe("qwerty");
     expect(langmapCommand("qwerty")).toBe("set langmap=");
   });
 
@@ -177,6 +178,8 @@ describe("browser-local command persistence", () => {
   let notifications: string[];
   let vimError: Error | undefined;
   let vimGate: Promise<void> | undefined;
+  let vimMode: boolean;
+  let uiOptionWrites: unknown[][];
 
   beforeEach(() => {
     store = new Map();
@@ -184,13 +187,20 @@ describe("browser-local command persistence", () => {
     notifications = [];
     vimError = undefined;
     vimGate = undefined;
+    vimMode = true;
+    uiOptionWrites = [];
     (globalThis as any).syscall = async (name: string, ...args: any[]) => {
       if (name === "clientStore.get") return store.get(args[0]);
       if (name === "clientStore.set") {
         store.set(args[0], args[1]);
         return;
       }
-      if (name === "editor.getUiOption") return true;
+      if (name === "editor.getUiOption") return vimMode;
+      if (name === "editor.setUiOption") {
+        uiOptionWrites.push(args);
+        vimMode = args[1];
+        return;
+      }
       if (name === "editor.vimEx") {
         vimExCommands.push(args[0]);
         if (vimGate) await vimGate;
@@ -206,6 +216,7 @@ describe("browser-local command persistence", () => {
   });
 
   test("toggle persists independently and returns to a cleared QWERTY langmap", async () => {
+    store.set(STORE_KEY, "qwerty");
     await toggleLayout();
     expect(store.get(STORE_KEY)).toBe("colemak-dh");
     expect(vimExCommands.at(-1)).toBe(langmapCommand("colemak-dh"));
@@ -215,12 +226,12 @@ describe("browser-local command persistence", () => {
     expect(vimExCommands.at(-1)).toBe("set langmap=");
   });
 
-  test("lifecycle and Show default to QWERTY when storage is unset", async () => {
+  test("lifecycle and Show default to Colemak-DH when storage is unset", async () => {
     await applyOnEditorLifecycle();
-    expect(vimExCommands.at(-1)).toBe("set langmap=");
+    expect(vimExCommands.at(-1)).toBe(langmapCommand("colemak-dh"));
 
     await showLayout();
-    expect(notifications.at(-1)).toContain("QWERTY");
+    expect(notifications.at(-1)).toContain("Colemak-DH");
   });
 
   test("coalesces overlapping lifecycle applications", async () => {
@@ -234,6 +245,33 @@ describe("browser-local command persistence", () => {
     expect(second).toBe(first);
     release();
     await first;
+    expect(vimExCommands).toEqual([langmapCommand("colemak-dh")]);
+  });
+
+  test("lifecycle enables and persists Vim on first use only", async () => {
+    vimMode = false;
+    await applyOnEditorLifecycle();
+    expect(store.get("vimMode")).toBe(true);
+    expect(uiOptionWrites).toEqual([["vimMode", true]]);
+    expect(vimExCommands).toEqual([langmapCommand("colemak-dh")]);
+
+    await applyOnEditorLifecycle();
+    expect(uiOptionWrites).toEqual([["vimMode", true]]);
+  });
+
+  test("lifecycle preserves an explicit disabled Vim preference", async () => {
+    vimMode = false;
+    store.set("vimMode", false);
+    await applyOnEditorLifecycle();
+    expect(store.get("vimMode")).toBe(false);
+    expect(uiOptionWrites).toEqual([]);
+    expect(vimExCommands).toEqual([]);
+  });
+
+  test("lifecycle preserves an explicit QWERTY preference", async () => {
+    store.set(STORE_KEY, "qwerty");
+    await applyOnEditorLifecycle();
+    expect(store.get(STORE_KEY)).toBe("qwerty");
     expect(vimExCommands).toEqual(["set langmap="]);
   });
 
