@@ -385,7 +385,21 @@ in
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      ExecStartPre = "-${pkgs.tailscale}/bin/tailscale serve clear svc:silverbullet";
+      Restart = "on-failure";
+      RestartSec = "10s";
+      ExecStartPre = [
+        (pkgs.writeShellScript "wait-for-tailscale-silverbullet" ''
+          for attempt in {1..60}; do
+            if ${pkgs.tailscale}/bin/tailscale status --json 2>/dev/null | ${pkgs.jq}/bin/jq -e '.BackendState == "Running"' >/dev/null 2>&1; then
+              exit 0
+            fi
+            ${pkgs.coreutils}/bin/sleep 1
+          done
+          echo "Tailscale did not reach Running state within 60 seconds" >&2
+          exit 1
+        '')
+        "-${pkgs.tailscale}/bin/tailscale serve clear svc:silverbullet"
+      ];
       ExecStart = "${pkgs.tailscale}/bin/tailscale serve --service=svc:silverbullet --https=443 --bg http://127.0.0.1:3000";
       ExecStop = pkgs.writeShellScript "tailscale-serve-silverbullet-stop" ''
         ${pkgs.tailscale}/bin/tailscale serve drain svc:silverbullet || true
