@@ -36,6 +36,8 @@ def _settings(ctx) -> dict[str, Any]:
         "default_space": "personal",
         "spaces": _DEFAULT_SPACES,
         "max_content_bytes": 2 * 1024 * 1024,
+        "max_upload_bytes": 20 * 1024 * 1024,
+        "allowed_upload_roots": [],
         "max_search_bytes": 64 * 1024 * 1024,
         "max_result_chars": 50_000,
     }
@@ -231,6 +233,12 @@ def _snapshot_result(action: str, space, snapshot, **extra):
     }
 
 
+def _upload_handler(client: SilverBulletClient, args: dict[str, Any]) -> dict[str, Any]:
+    return client.upload_file(
+        client.space(args.get("space")), args.get("source_path"), args.get("destination"),
+    )
+
+
 def _create_handler(client: SilverBulletClient, args: dict[str, Any]) -> dict[str, Any]:
     space = client.space(args.get("space"))
     page = normalize_page(args.get("page"))
@@ -299,6 +307,7 @@ def register(ctx):
         "silverbullet_search": _search_handler,
         "silverbullet_read": _read_handler,
         "silverbullet_create": _create_handler,
+        "silverbullet_upload_file": _upload_handler,
         "silverbullet_update": _update_handler,
         "silverbullet_append": _append_handler,
         "silverbullet_move": _move_handler,

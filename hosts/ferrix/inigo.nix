@@ -175,6 +175,11 @@ in
           };
         };
         max_content_bytes = 2097152;
+        max_upload_bytes = 20971520;
+        allowed_upload_roots = [
+          "/var/lib/inigo/.hermes/images"
+          "/var/lib/inigo/.hermes/cache/scratch"
+        ];
         max_search_bytes = 67108864;
         max_result_chars = 50000;
       };

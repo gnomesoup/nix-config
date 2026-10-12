@@ -143,4 +143,17 @@ SOFT_DELETE = schema(
     ["page", "expected_last_modified"],
 )
 
-ALL = [LIST_PAGES, SEARCH, READ, CREATE, UPDATE, APPEND, MOVE, SOFT_DELETE]
+UPLOAD_FILE = schema(
+    "silverbullet_upload_file",
+    "Upload a local file, including images, below assets/ in a configured space. "
+    "Verify bytes by reading back. Refuse different-content overwrites. "
+    "Sources must be in configured upload roots; maximum 20 MiB.",
+    {
+        "space": SPACE,
+        "source_path": {"type": "string", "description": "Absolute local path of the file to upload."},
+        "destination": {"type": "string", "description": "Exact space-relative asset path including extension, e.g. assets/desk-label.png."},
+    },
+    ["source_path", "destination"],
+)
+
+ALL = [LIST_PAGES, SEARCH, READ, CREATE, UPDATE, APPEND, MOVE, SOFT_DELETE, UPLOAD_FILE]

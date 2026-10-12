@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import tempfile
 import threading
@@ -9,6 +10,7 @@ import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import ClassVar
+from unittest.mock import patch
 from urllib.parse import unquote, urlsplit
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -25,6 +27,7 @@ from client import (
 class State:
     token = "test-secret-token"
     spaces: ClassVar = {"personal": {}, "ksp": {}}
+    corrupt_upload = False
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -71,8 +74,8 @@ class Handler(BaseHTTPRequestHandler):
                         "name": name,
                         "created": item["created"],
                         "lastModified": item["last_modified"],
-                        "contentType": "text/markdown",
-                        "size": len(item["content"].encode()),
+                        "contentType": item.get("content_type", "text/markdown"),
+                        "size": len(item.get("body", item["content"].encode())),
                         "perm": item["permission"],
                     }
                     for name, item in files.items()
@@ -84,13 +87,13 @@ class Handler(BaseHTTPRequestHandler):
         if item is None:
             self._send(404, b"not found")
             return
-        body = item["content"].encode()
+        body = item.get("body", item["content"].encode())
         self._send(
             200,
             body,
             {
                 "Content-Type": "application/octet-stream",
-                "X-Content-Type": "text/markdown",
+                "X-Content-Type": item.get("content_type", "text/markdown"),
                 "X-Created": item["created"],
                 "X-Last-Modified": item["last_modified"],
                 "X-Content-Length": len(body),
@@ -108,9 +111,17 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get("X-Sync-Mode") != "true":
             self._send(400, b"missing sync mode")
             return
+        if self.headers.get("If-None-Match") == "*" and page in State.spaces[space]:
+            self._send(412)
+            return
         length = int(self.headers.get("Content-Length", "0"))
+        body = self.rfile.read(length)
+        if State.corrupt_upload:
+            body += b"corrupted"
         State.spaces[space][page] = {
-            "content": self.rfile.read(length).decode(),
+            "content": body.decode(errors="replace"),
+            "body": body,
+            "content_type": self.headers["Content-Type"],
             "created": int(self.headers["X-Created"]),
             "last_modified": int(self.headers["X-Last-Modified"]),
             "permission": self.headers["X-Permission"],
@@ -168,6 +179,7 @@ class SilverBulletPluginTest(unittest.TestCase):
         cls.temp.cleanup()
 
     def setUp(self):
+        State.corrupt_upload = False
         stamp = 1_750_000_000_000
         State.spaces = {
             "personal": {
@@ -213,10 +225,130 @@ class SilverBulletPluginTest(unittest.TestCase):
                 },
             },
             "max_content_bytes": 2 * 1024 * 1024,
+            "allowed_upload_roots": [self.temp.name],
             "max_search_bytes": 64 * 1024 * 1024,
             "max_result_chars": 50_000,
         }
         self.client = SilverBulletClient(parse_config(self.settings))
+
+    def test_upload_binary_image_verifies_bytes_and_links(self):
+        source = Path(self.temp.name) / "label.png"
+        body = b"\x89PNG\r\n\x1a\n\xff\x00label"
+        source.write_bytes(body)
+        context = self._register()
+        self.assertIn("silverbullet_upload_file", context.tools)
+        result = self._call(context, "silverbullet_upload_file", {
+            "space": "ksp", "source_path": str(source),
+            "destination": "assets/Desk label.png",
+        })
+        self.assertNotIn("error", result)
+        self.assertTrue(result["verified"])
+        self.assertEqual(result["bytes"], len(body))
+        self.assertEqual(result["metadata"]["content_type"], "image/png")
+        self.assertEqual(result["markdown_image"],
+                         "![Desk label.png](/ksp/assets/Desk%20label.png)")
+        self.assertEqual(State.spaces["ksp"]["assets/Desk label.png"]["body"], body)
+        self.assertNotIn("assets/Desk label.png", State.spaces["personal"])
+
+    def test_upload_retries_are_idempotent_and_never_replace_different_bytes(self):
+        source = Path(self.temp.name) / "document.pdf"
+        source.write_bytes(b"%PDF-1.7\x00\xff")
+        context = self._register()
+        args = {"source_path": str(source), "destination": "assets/document.pdf"}
+        first = self._call(context, "silverbullet_upload_file", args)
+        self.assertTrue(first["verified"])
+        self.assertIsNone(first["markdown_image"])
+        self.assertEqual(first["metadata"]["content_type"], "application/pdf")
+        second = self._call(context, "silverbullet_upload_file", args)
+        self.assertEqual(second["action"], "already_present")
+        self.assertEqual(second["metadata"]["last_modified"], first["metadata"]["last_modified"])
+        source.write_bytes(b"different")
+        refused = self._call(context, "silverbullet_upload_file", args)
+        self.assertIn("already exists", refused["error"])
+        self.assertEqual(State.spaces["personal"]["assets/document.pdf"]["body"], b"%PDF-1.7\x00\xff")
+
+    def test_upload_refuses_unsafe_sources_destinations_and_oversize_files(self):
+        source = Path(self.temp.name) / "source.png"
+        source.write_bytes(b"image")
+        context = self._register()
+        for destination in ("../escape.png", "Library/test.png", "assets/../test.png",
+                            "assets/.hidden.png", "/assets/test.png", "assets/test.png "):
+            with self.subTest(destination=destination):
+                result = self._call(context, "silverbullet_upload_file", {
+                    "source_path": str(source), "destination": destination,
+                })
+                self.assertIn("error", result)
+        for unsafe in ("relative.png", "/etc/passwd", str(Path(self.temp.name) / "missing"),
+                       self.temp.name):
+            with self.subTest(source=unsafe):
+                result = self._call(context, "silverbullet_upload_file", {
+                    "source_path": unsafe, "destination": "assets/test.png",
+                })
+                self.assertIn("error", result)
+        hidden = Path(self.temp.name) / ".private"
+        hidden.write_bytes(b"secret")
+        link = Path(self.temp.name) / "alias.png"
+        link.symlink_to("/etc/passwd")
+        for unsafe in (hidden, link):
+            result = self._call(context, "silverbullet_upload_file", {
+                "source_path": str(unsafe), "destination": "assets/test.png",
+            })
+            self.assertIn("error", result)
+        self.settings["max_upload_bytes"] = 4
+        limited = self._register()
+        result = self._call(limited, "silverbullet_upload_file", {
+            "source_path": str(source), "destination": "assets/test.png",
+        })
+        self.assertIn("max_upload_bytes", result["error"])
+        self.assertNotIn("assets/test.png", State.spaces["personal"])
+
+    def test_upload_refuses_ancestor_swap_to_hidden_directory_before_open(self):
+        with tempfile.TemporaryDirectory(dir=self.temp.name) as directory:
+            root = Path(directory)
+            visible = root / "visible"
+            visible.mkdir()
+            source = visible / "source.png"
+            source.write_bytes(b"public image")
+            hidden = root / ".private"
+            hidden.mkdir()
+            (hidden / source.name).write_bytes(b"private image")
+            real_open = os.open
+
+            def swap_before_open(path, flags, *args, **kwargs):
+                self.assertEqual(path, source)
+                visible.rename(root / "original")
+                visible.symlink_to(hidden, target_is_directory=True)
+                return real_open(path, flags, *args, **kwargs)
+
+            with patch("client.os.open", side_effect=swap_before_open) as opened:
+                with self.assertRaisesRegex(SilverBulletError, "Hidden source files"):
+                    self.client.upload_file(self.client.space(), str(source), "assets/private.png")
+            opened.assert_called_once()
+            self.assertNotIn("assets/private.png", State.spaces["personal"])
+
+    def test_upload_cannot_bypass_space_write_allowlists(self):
+        self.settings["spaces"]["personal"]["allowed_write_paths"] = ["Journal"]
+        context = self._register()
+        source = Path(self.temp.name) / "source.png"
+        source.write_bytes(b"image")
+        result = self._call(context, "silverbullet_upload_file", {
+            "source_path": str(source), "destination": "assets/test.png",
+        })
+        self.assertIn("allowlist", result["error"])
+
+    def test_upload_reports_failed_readback_verification(self):
+        source = Path(self.temp.name) / "source.png"
+        source.write_bytes(b"image")
+        State.corrupt_upload = True
+        result = self._call(self._register(), "silverbullet_upload_file", {
+            "source_path": str(source), "destination": "assets/test.png",
+        })
+        self.assertIn("verification failed", result["error"])
+        self.assertNotIn("verified", result)
+
+    def test_upload_configuration_rejects_roots_resolving_to_filesystem_root(self):
+        with self.assertRaises(SilverBulletError):
+            parse_config({**self.settings, "allowed_upload_roots": ["/var/.."]})
 
     def test_configuration_paths_and_credentials_are_restricted(self):
         self.assertEqual(normalize_page("Projects/Test"), "Projects/Test.md")
@@ -352,6 +484,7 @@ class SilverBulletPluginTest(unittest.TestCase):
             "silverbullet_append",
             "silverbullet_move",
             "silverbullet_soft_delete",
+            "silverbullet_upload_file",
         })
         self.assertEqual(context.skills[0][0], "silverbullet")
         self.assertEqual(context.sections[0][0][0], "inigo.silverbullet")

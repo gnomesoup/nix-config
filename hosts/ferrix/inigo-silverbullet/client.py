@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import mimetypes
 import os
 import re
 import stat
@@ -18,6 +20,7 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 REQUEST_TIMEOUT_SECONDS = 15
 HARD_MAX_LIST_BYTES = 5 * 1024 * 1024
 HARD_MAX_CONTENT_BYTES = 2 * 1024 * 1024
+HARD_MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 HARD_MAX_SEARCH_BYTES = 64 * 1024 * 1024
 HARD_MAX_RESULT_CHARS = 50_000
 TEXT_EXTENSIONS = {"md", "txt", "json", "yaml", "yml"}
@@ -60,6 +63,13 @@ class Snapshot:
 
 
 @dataclass(frozen=True)
+class FileSnapshot:
+    page: str
+    body: bytes
+    metadata: Metadata
+
+
+@dataclass(frozen=True)
 class Space:
     name: str
     label: str
@@ -78,6 +88,8 @@ class ClientConfig:
     max_content_bytes: int
     max_search_bytes: int
     max_result_chars: int
+    allowed_upload_roots: tuple[Path, ...]
+    max_upload_bytes: int
 
 
 def _integer(value: Any, label: str, minimum: int, maximum: int) -> int:
@@ -241,11 +253,22 @@ def parse_config(settings: Any, environ: dict[str, str] | None = None) -> Client
     default_space = settings.get("default_space")
     if not isinstance(default_space, str) or default_space not in spaces:
         raise SilverBulletError("SilverBullet default_space must name a configured space.")
+    roots = settings.get("allowed_upload_roots", [])
+    if not isinstance(roots, list) or any(
+        not isinstance(root, str) or not Path(root).is_absolute() or Path(root).resolve() == Path("/")
+        for root in roots
+    ):
+        raise SilverBulletError("allowed_upload_roots must be a list of absolute, non-root directories.")
     return ClientConfig(
         base_url=base_url,
         token_file=token_file,
         systemd_credential=systemd_credential,
         default_space=default_space,
+        allowed_upload_roots=tuple(Path(root) for root in roots),
+        max_upload_bytes=_integer(
+            settings.get("max_upload_bytes", HARD_MAX_UPLOAD_BYTES),
+            "max_upload_bytes", 1, HARD_MAX_UPLOAD_BYTES,
+        ),
         spaces=spaces,
         max_content_bytes=_integer(
             settings.get("max_content_bytes", HARD_MAX_CONTENT_BYTES),
@@ -340,6 +363,7 @@ class SilverBulletClient:
         page: str | None = None,
         body: bytes | None = None,
         metadata: Metadata | None = None,
+        create_only: bool = False,
     ):
         token = self._token()
         headers = {
@@ -349,6 +373,8 @@ class SilverBulletClient:
         }
         if metadata and metadata.etag:
             headers["If-Match"] = metadata.etag
+        if create_only:
+            headers["If-None-Match"] = "*"
         if body is not None:
             now = int(time.time() * 1000)
             if metadata and metadata.last_modified is not None:
@@ -440,16 +466,88 @@ class SilverBulletClient:
         files.sort(key=lambda item: item["name"].casefold())
         return files
 
-    def read_page(self, space: Space, page: str) -> Snapshot:
+    def read_file(self, space: Space, page: str, limit: int) -> FileSnapshot:
         self._assert_allowed(space, page)
         with self._request(space, "GET", page) as response:
-            body = self._read_limited(response, self.config.max_content_bytes)
+            body = self._read_limited(response, limit)
             metadata = self._metadata(response.headers, len(body))
+        return FileSnapshot(page=page, body=body, metadata=metadata)
+
+    def read_page(self, space: Space, page: str) -> Snapshot:
+        snapshot = self.read_file(space, page, self.config.max_content_bytes)
+        body, metadata = snapshot.body, snapshot.metadata
         try:
             content = body.decode("utf-8")
         except UnicodeDecodeError as error:
             raise SilverBulletError(f"SilverBullet page is not valid UTF-8 text: {page}.") from error
         return Snapshot(page=page, content=content, body=body, metadata=metadata)
+
+    def upload_file(self, space: Space, source_path: Any, destination: Any) -> dict[str, Any]:
+        if (
+            not isinstance(destination, str)
+            or not destination.startswith("assets/")
+            or destination != normalize_listing_prefix(destination)
+            or any(part.startswith(".") for part in destination.split("/"))
+        ):
+            raise SilverBulletError("Upload destination must be an exact relative path below assets/.")
+        self._assert_allowed(space, destination, write=True)
+        if not isinstance(source_path, str) or not Path(source_path).is_absolute():
+            raise SilverBulletError("source_path must be an absolute local file path.")
+        try:
+            source = Path(source_path).resolve(strict=True)
+            roots = tuple(root.resolve() for root in self.config.allowed_upload_roots)
+            if Path("/") in roots:
+                raise SilverBulletError("Upload roots must not resolve to the filesystem root.")
+            if not any(source.is_relative_to(root) for root in roots):
+                raise SilverBulletError("Upload source is outside the configured allowed_upload_roots.")
+            if any(part.startswith(".") for root in roots if source.is_relative_to(root)
+                   for part in source.relative_to(root).parts):
+                raise SilverBulletError("Hidden source files cannot be uploaded.")
+            fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            with os.fdopen(fd, "rb") as handle:
+                info = os.fstat(handle.fileno())
+                # Confirm the opened inode still belongs to an allowed root after symlink resolution.
+                opened = Path(f"/proc/self/fd/{handle.fileno()}").resolve(strict=True)
+                if not any(opened.is_relative_to(root) for root in roots):
+                    raise SilverBulletError("Upload source changed outside the allowed roots.")
+                if any(part.startswith(".") for root in roots if opened.is_relative_to(root)
+                       for part in opened.relative_to(root).parts):
+                    raise SilverBulletError("Hidden source files cannot be uploaded.")
+                if not stat.S_ISREG(info.st_mode):
+                    raise SilverBulletError("Upload source must be a regular file.")
+                if info.st_size > self.config.max_upload_bytes:
+                    raise SilverBulletError("Upload source exceeds max_upload_bytes.")
+                body = handle.read(self.config.max_upload_bytes + 1)
+        except OSError as error:
+            raise SilverBulletError("Upload source could not be read safely.") from error
+        if len(body) > self.config.max_upload_bytes:
+            raise SilverBulletError("Upload source exceeds max_upload_bytes.")
+        content_type = mimetypes.guess_type(destination)[0] or "application/octet-stream"
+        with self._mutation_lock:
+            try:
+                existing = self.read_file(space, destination, self.config.max_upload_bytes)
+            except MissingPageError:
+                existing = None
+            if existing is not None and existing.body != body:
+                raise ConflictError("Upload destination already exists with different bytes; choose a new name.")
+            if existing is None:
+                with self._request(space, "PUT", destination, body=body,
+                                   metadata=Metadata(content_type=content_type), create_only=True) as response:
+                    self._read_limited(response, 16 * 1024)
+            verified = self.read_file(space, destination, self.config.max_upload_bytes)
+            if verified.body != body:
+                raise SilverBulletError("SilverBullet upload verification failed.")
+        path = urlsplit(space.base_url).path + "/" + self._encoded_page(destination)
+        label = destination.rsplit("/", 1)[-1].replace("[", "\\[").replace("]", "\\]")
+        return {
+            "space": space.name, "label": space.label, "file": destination,
+            "action": "uploaded" if existing is None else "already_present",
+            "bytes": len(body), "sha256": hashlib.sha256(body).hexdigest(),
+            "metadata": metadata_dict(verified.metadata), "verified": True,
+            "url": space.base_url + "/" + self._encoded_page(destination),
+            "markdown_link": f"[{label}]({path})",
+            "markdown_image": f"![{label}]({path})" if content_type.startswith("image/") else None,
+        }
 
     @staticmethod
     def _assert_version(snapshot: Snapshot, expected: Any) -> None:

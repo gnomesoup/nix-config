@@ -1,7 +1,7 @@
 ---
 name: silverbullet
-version: 1.0.0
-description: Use Inigo's native SilverBullet tools to retrieve and maintain durable personal knowledge safely.
+version: 1.1.0
+description: Use when managing SilverBullet notes and attachments.
 platforms: [linux]
 metadata:
   hermes:
@@ -46,6 +46,40 @@ Suggested Personal organization, unless existing notes show another convention:
 - `Knowledge/<Topic>.md` for durable reference material
 - `Projects/<Name>.md` for project decisions and status
 - `People/<Name>.md` only for appropriate, user-approved personal information
+
+## Uploading files and images
+
+Use `silverbullet_upload_file` for user-provided photos, PDFs, and other files.
+Upload binary files directly; do not paste base64, use a `file://` embed, or treat a
+chat-cache path as a durable attachment. Do not use shell or generic web tools to
+bypass the native plugin's controls.
+
+1. Choose the same explicit `space` as the target note. Use the provided absolute
+   local file path as `source_path`. Sources must be in configured upload roots;
+   ferrix permits chat images and scratch artifacts. Never copy credentials or
+   hidden files into an upload root to bypass restrictions.
+2. Choose a distinctive, space-relative `destination` below `assets/`, including
+   the original extension, for example `assets/desk-label-2026-10-12.png`.
+   Preserve the path exactly; no page-style `.md` suffix is added. The upload limit
+   is 20 MiB by default, independent of the text-page limit.
+3. Call `silverbullet_upload_file` with `space`, `source_path`, and `destination`.
+   Require `verified: true`; the tool reads back and compares the exact bytes.
+   It returns the byte count, SHA-256, MIME metadata, URL, and Markdown links.
+   Identical retries return `already_present`; different-content overwrites are
+   refused. On a collision, choose a new name rather than deleting the old file.
+4. Read the target note immediately before editing and preserve unrelated text.
+   Insert the returned `markdown_image` for an image, or `markdown_link` for other
+   files. Links are space-root-relative and work from nested note directories.
+   Pass the read's `last_modified` when updating or appending an existing page.
+5. Add a reference to the changed note in today's journal in the same space,
+   following `silverbullet-journal-links`. Read back both the note and journal.
+6. Report the note's clickable link and distinguish verified attachment upload
+   from note embedding. If upload fails or the tool is absent, report that blocker
+   without claiming a local-path reference is an uploaded image.
+
+Uploads are create-only in normal operation. Conditional headers are sent, but
+servers that ignore them retain the external check-to-write race described below.
+After a plugin rebuild, start a fresh session to discover newly registered tools.
 
 ## Destructive changes
 

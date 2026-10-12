@@ -1,5 +1,5 @@
 name: inigo-silverbullet
-version: 0.1.0
+version: 0.2.0
 manifest_version: 2
 api_version: 1
 description: Direct, conflict-aware SilverBullet HTTP tools for Inigo
@@ -14,6 +14,7 @@ provides_tools:
   - silverbullet_append
   - silverbullet_move
   - silverbullet_soft_delete
+  - silverbullet_upload_file
 config_schema:
   base_url:
     type: str
@@ -37,6 +38,14 @@ config_schema:
     type: int
     default: 2097152
     description: Maximum bytes read from or written to one page
+  max_upload_bytes:
+    type: int
+    default: 20971520
+    description: Maximum attachment bytes uploaded or read back, capped at 20 MiB
+  allowed_upload_roots:
+    type: list
+    default: []
+    description: Absolute local source directories; empty disables file uploads
   max_search_bytes:
     type: int
     default: 67108864
