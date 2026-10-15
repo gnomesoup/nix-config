@@ -143,6 +143,12 @@
           pkgs = mkPkgs "x86_64-linux";
         in
         {
+          ferrix-backups = import ./hosts/modules/ferrix-backup-check.nix {
+            inherit pkgs;
+            ferrix = self.nixosConfigurations.ferrix.config;
+            hoth = self.nixosConfigurations.hoth.config;
+          };
+
           pi-ask = pkgs.callPackage ./users/modules/pi/pi-ask/package.nix { };
 
           inigo-silverbullet-plugin = pkgs.callPackage ./hosts/ferrix/inigo-silverbullet/package.nix { };

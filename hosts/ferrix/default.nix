@@ -6,6 +6,7 @@
 
 {
   imports = [
+    ./backups.nix
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
     ./inigo.nix
@@ -31,8 +32,6 @@
     group = "root";
     mode = "0400";
   };
-  # sops.secrets."borg/borg_passphrase" = { };
-  # sops.secrets."borg/endor/borgbase_path" = { };
 
   nix.settings.experimental-features = [
     "nix-command"
@@ -246,32 +245,6 @@
   # Enable the OpenSSH daemon.
   services.openssh.enable = true;
   services.tailscale.enable = true;
-
-  # services.borgmatic = {
-  #   enable = true;
-  #   settings = {
-  #     repositories = [
-  #       {
-  #         path = "/mnt/backup2/borg/ferrix";
-  #         label = "local";
-  #       }
-  #       {
-  #         path = "ssh://x387mg6b@x387mg6b.repo.borgbase.com/./repo";
-  #         label = "borgbase";
-  #       }
-  #     ];
-  #     source_directories = [
-  #       "/home/mpfammatter"
-  #     ];
-  #     archive_name_format = "endor-{now:%Y-%m-%d-%H%M%S}";
-  #     encryption_passcommand = "/run/current-system/sw/bin/cat ${config.sops.secrets."borg/borg_passphrase".path}";
-  #     ssh_command = "${pkgs.openssh}/bin/ssh -i /home/mpfammatter/.ssh/id_ed25519";
-  #     keep_daily = 1;
-  #     keep_weekly = 4;
-  #     keep_monthly = 12;
-  #     keep_yearly = 2;
-  #   };
-  # };
 
   virtualisation.docker.enable = true;
 

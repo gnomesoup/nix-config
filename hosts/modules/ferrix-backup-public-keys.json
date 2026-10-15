@@ -1,0 +1,4 @@
+{
+  "hoth": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGisEEqCu5nBt57hlw9BsRpL5CdnaukQlOe1CwHIWk8k ferrix-backup-hoth",
+  "borgbase": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINg6hKxuw4LFN/XGgmX2vkFqrNMLS5nSaPfn4GyzmD6L ferrix-backup-borgbase"
+}

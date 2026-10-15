@@ -122,6 +122,9 @@ let
   '';
 in
 {
+  # Backup and recovery must use the same Compose definition as the service.
+  environment.etc."zulip/compose.yaml".source = composeFile;
+
   sops.secrets."zulip/admin_email" = { };
   sops.secrets."zulip/email_username" = { };
   sops.secrets."zulip/email_password" = { };
