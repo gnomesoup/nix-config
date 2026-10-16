@@ -48,6 +48,9 @@ Safely maintain the multi-host flake in the current working directory. Prefer de
 
 ## Pitfalls
 
+- Package Python entrypoints and sibling modules in one derivation output;
+  separate `${./script.py}` store files have no shared import directory. Test
+  the installed CLI as well as copied source files to catch packaging failures.
 - MCP results describe upstream sources; repository-specific values still require local `nix eval` or a build.
 - A dirty worktree is never permission to stash or discard another session's changes. Stop before pulling and ask the user to resolve or commit them.
 - A successful evaluation does not prove activation. Never claim the running host changed without a successful rebuild and read-back.

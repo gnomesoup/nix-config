@@ -12,6 +12,7 @@
 
 {
   imports = [
+    ./backups.nix
     ./borg-repositories.nix
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
@@ -237,45 +238,6 @@
     };
   };
   services.samba.openFirewall = true;
-
-  services.borgmatic = {
-    enable = true;
-    settings = {
-      repositories = [
-        {
-          path = "/mnt/backup2/borg/endor";
-          label = "local";
-        }
-        {
-          path = "ssh://x387mg6b@x387mg6b.repo.borgbase.com/./repo";
-          label = "borgbase";
-        }
-      ];
-      source_directories = [
-        "/home/mpfammatter"
-        "/mnt/photoprism/photoprism/originals"
-        "/mnt/photoprism/photoprism/storage"
-        "/var/lib/docker/volumes/docker_frigatedb/_data"
-        "/mnt/backup2/homeassistant"
-        "/mnt/backup1/backups/dad"
-        "/mnt/backup1/immich/library"
-        "/mnt/backup2/backups/afp-northwestern"
-      ];
-      exclude_patterns = [
-        "/home/mpfammatter/docker/photoprism-database/*"
-        "/home/mpfammatter/docker/immich-db/*"
-      ];
-      archive_name_format = "endor-{now:%Y-%m-%d-%H%M%S}";
-      encryption_passcommand = "/run/current-system/sw/bin/cat ${
-        config.sops.secrets."borg/borg_passphrase".path
-      }";
-      ssh_command = "${pkgs.openssh}/bin/ssh -i /home/mpfammatter/.ssh/id_ed25519";
-      keep_daily = 1;
-      keep_weekly = 4;
-      keep_monthly = 12;
-      keep_yearly = 2;
-    };
-  };
 
   virtualisation.docker.enable = true;
 

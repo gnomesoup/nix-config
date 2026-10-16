@@ -143,6 +143,12 @@
           pkgs = mkPkgs "x86_64-linux";
         in
         {
+          managed-backups = import ./hosts/modules/managed-backup-check.nix {
+            inherit pkgs;
+            ferrix = self.nixosConfigurations.ferrix.config;
+            hoth = self.nixosConfigurations.hoth.config;
+          };
+
           ferrix-backups = import ./hosts/modules/ferrix-backup-check.nix {
             inherit pkgs;
             ferrix = self.nixosConfigurations.ferrix.config;

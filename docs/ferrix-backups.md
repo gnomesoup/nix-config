@@ -1,5 +1,11 @@
 # Ferrix backups: deployment and recovery
 
+The [shared workflow deployment guide](managed-backups.md) is authoritative for
+the current module, unit names, isolated staging, and migration gates. This page
+retains the original bootstrap and application recovery details. Old operator
+wrapper/service names remain compatibility aliases, not duplicate schedulers.
+Maintenance timers now require explicit post-restore acceptance before enabling.
+
 ## What is configured
 
 Ferrix creates independent nightly Borg archives on Hoth and BorgBase:
@@ -7,8 +13,8 @@ Ferrix creates independent nightly Borg archives on Hoth and BorgBase:
 - Hoth: `/mnt/backup2/borg/ferrix`, over SSH to `hoth.tailbb897.ts.net`.
 - BorgBase: `ssh://hlek3m3n@hlek3m3n.repo.borgbase.com/./repo`.
 - Nightly starts: Hoth 02:00, BorgBase 03:00, America/New_York, with up to ten
-  minutes of jitter. Persistent timers catch up after downtime. A shared lock
-  serializes preparation and uploads; each destination has independent retries.
+  minutes of jitter. Persistent timers catch up after downtime. Only preparation
+  is serialized; each destination has isolated staging, uploads, and retries.
 - Retention on Hoth: 7 daily, 4 weekly, 12 monthly, and 2 yearly recovery points.
   Pruning/compaction runs weekly, after requiring a backup less than 36 hours old
   and checking repository integrity. Full data verification runs monthly.
@@ -31,8 +37,9 @@ Included:
   spaces, attachments, and Git history, rather than just its public symlink.
 - `/var/lib/remote-pi-relay`: persistent relay state.
 - `/var/lib/docker/volumes/zulip_zulip/_data`: Zulip uploads and application state.
-- `/var/lib/ferrix-backup/sqlite`: consistent SQLite snapshots and their metadata.
-- `/var/lib/ferrix-backup/zulip/database.dump`: validated Zulip database export.
+- Destination-private `staging/sqlite`: consistent SQLite copies and metadata.
+- Destination-private `staging/exports/zulip/database.dump`: validated Zulip export.
+  Both are under `/var/lib/managed-backups/jobs/ferrix-DESTINATION/`.
 - `/etc/ferrix-backup-recovery`: copied encrypted credentials and policy metadata.
   The mutable Nix checkout is also included under Inigo's state.
 
@@ -90,8 +97,8 @@ Do not replace an existing repository's passphrase or initialize over existing
 backups. If Borg reports an existing repository or an authentication failure,
 stop and investigate rather than treating it as an empty destination.
 
-1. Transfer this working tree, including new files, to the administrator's normal
-   checkout on both machines. These changes have not been committed or pushed.
+1. Pull the backup implementation commit into the administrator's normal checkout
+   on both machines, including the new shared module and helper files.
    Each machine must be able to decrypt `secrets/ferrix-backups.yaml` with its
    configured SOPS identity. Preserve a working recovery identity outside Ferrix.
 2. Build both configurations. Use a `path:` flake while new files are untracked:

@@ -4,6 +4,11 @@ A nix config with multiple hosts and multiple architectures.
 
 See the [configuration wiring diagram](docs/wiring-diagram.md) for the flake inputs, outputs, host profiles, Home Manager profiles, shared modules, and secrets flow.
 
+## Backups
+
+See the [Hoth and Ferrix backup deployment guide](docs/managed-backups.md) for
+shared configuration, administrator setup, and required restore acceptance gates.
+
 ## Installation
 
 ### Nix-Darwin
