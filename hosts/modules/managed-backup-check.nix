@@ -6,6 +6,10 @@
 
 assert ferrix.services.managedBackups.enable;
 assert hoth.services.managedBackups.enable;
+assert ferrix.environment.etc."managed-backups/ssh_known_hosts".mode == "0444";
+assert
+  hoth.environment.etc."managed-backups/ssh_known_hosts".source
+  == ferrix.environment.etc."managed-backups/ssh_known_hosts".source;
 assert !ferrix.systemd.services.borgmatic.enable;
 assert !hoth.systemd.services.borgmatic.enable;
 assert !ferrix.systemd.timers.borgmatic.enable;
@@ -34,6 +38,39 @@ pkgs.runCommand "managed-backup-check"
   {
     HOTH_BACKUP_EXCLUDES = builtins.toJSON hoth.services.borgmatic.configurations.managed-hoth-local.exclude_patterns;
     FERRIX_TEST_EXCLUDES = builtins.toJSON ferrix.services.borgmatic.configurations.managed-ferrix-hoth.exclude_patterns;
+    BACKUP_KNOWN_HOSTS = hoth.environment.etc."managed-backups/ssh_known_hosts".source;
+    BACKUP_WRAPPER_TESTS = builtins.toJSON (
+      map
+        (
+          { host, name }:
+          let
+            r = host.services.managedBackups.repositories.${name};
+          in
+          {
+            wrapper = "${host.system.build.managedBackupWrappers.${name}}/bin/backup-borg-${name}";
+            inherit (r)
+              passphraseFile
+              sshKeyFile
+              knownHostsFile
+              sshHostname
+              ;
+          }
+        )
+        [
+          {
+            host = ferrix;
+            name = "ferrix-hoth";
+          }
+          {
+            host = ferrix;
+            name = "ferrix-borgbase";
+          }
+          {
+            host = hoth;
+            name = "hoth-borgbase";
+          }
+        ]
+    );
     nativeBuildInputs = [
       pkgs.python3
       pkgs.borgbackup

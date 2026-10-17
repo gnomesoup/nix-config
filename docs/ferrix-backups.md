@@ -136,11 +136,11 @@ stop and investigate rather than treating it as an empty destination.
    sudo ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
    ```
 
-   Verify BorgBase against its account-provided or officially published host-key
-   fingerprints. Install a root-owned, mode-0600 OpenSSH known-hosts file at
-   `/var/lib/ferrix-backup/ssh_known_hosts` on both hosts. Ferrix needs entries for
-   `hoth.tailbb897.ts.net` and `hlek3m3n.repo.borgbase.com`; Hoth needs BorgBase.
-   This file is an intentional trust bootstrap gate, not trust-on-first-use.
+   The verified keys are pinned in `hosts/modules/backup-ssh-known-hosts` and
+   installed by Nix at `/etc/managed-backups/ssh_known_hosts` on both hosts.
+   No manual file under `/var/lib/ferrix-backup` is required. For key rotation,
+   verify replacement fingerprints out of band before updating this source.
+   This is an explicit trust pin, not trust-on-first-use.
 
 6. On Hoth, initialize the two new, empty repositories with its wrappers:
 

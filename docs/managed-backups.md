@@ -131,11 +131,13 @@ administrator's checkout on both hosts before building or activating it.
    been registered, register only its `.pub` with full access to Ferrix's distinct
    `hlek3m3n` repository. Ferrix's existing client keys remain append-only.
 
-5. Keep the root-owned verified known-hosts file at
-   `/var/lib/ferrix-backup/ssh_known_hosts` on both hosts for compatibility.
-   Ferrix needs Hoth and `hlek3m3n.repo.borgbase.com`; Hoth needs both BorgBase
-   hosts. Verify fingerprints out of band before adding entries. Never bypass
-   strict verification or trust `ssh-keyscan` output by itself.
+5. Rebuilding either host installs the pinned public server keys at
+   `/etc/managed-backups/ssh_known_hosts`, root-owned and read-only. Hoth's key
+   was supplied from its administrator console; both BorgBase ED25519 keys were
+   matched to the fingerprints shown in the repository account. The shared source
+   is `hosts/modules/backup-ssh-known-hosts`; no manual trust-file installation or
+   network key scan is required at activation. For future rotation, verify new
+   fingerprints out of band before changing source. Never bypass strict checking.
 6. Inventory Hoth's existing repositories and restore a known historical file:
 
    ```sh
@@ -208,7 +210,7 @@ obsolete implementations only after administrator read-back and restore acceptan
 
 ## Local checks
 
-Executed locally: both full NixOS host builds, the shared backup check (62 tests,
+Executed locally: both full NixOS host builds, the shared backup check (67 tests,
 no skips), and `nix flake check path:$PWD`. These passed. The shared check includes
 the installed runtime CLI and the actual Hoth/Ferrix exclusion policies, not only
 standalone helpers. Hoth's initial ramdisk derivation is unchanged from the base

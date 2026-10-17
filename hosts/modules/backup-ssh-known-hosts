@@ -1,0 +1,7 @@
+# Public SSH server keys, not backup client identities.
+# Hoth: supplied from its administrator console.
+# BorgBase: ED25519 fingerprints verified against both repository screenshots.
+# Expected BorgBase SHA256: tlz8o+DhESqRqmPaDA1yOlT7avGqCEqdhbjB8h6R29s
+hoth.tailbb897.ts.net ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBCrpgxjD1B6k3/KqBOz+BLbVUtqG+ciUM71+xqmv6H/ root@hoth.
+hlek3m3n.repo.borgbase.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGU0mISTyHBw9tBs6SuhSq8tvNM8m9eifQxM+88TowPO
+x387mg6b.repo.borgbase.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGU0mISTyHBw9tBs6SuhSq8tvNM8m9eifQxM+88TowPO

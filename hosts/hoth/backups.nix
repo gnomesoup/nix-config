@@ -15,7 +15,10 @@ let
   frigate = "/home/mpfammatter/docker/frigate";
 in
 {
-  imports = [ ../modules/backups.nix ];
+  imports = [
+    ../modules/backup-ssh-trust.nix
+    ../modules/backups.nix
+  ];
 
   sops.secrets."backup/email-username".key = "zulip/email_username";
   sops.secrets."backup/email-password".key = "zulip/email_password";

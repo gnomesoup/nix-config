@@ -19,7 +19,10 @@ let
   '';
 in
 {
-  imports = [ ../modules/backups.nix ];
+  imports = [
+    ../modules/backup-ssh-trust.nix
+    ../modules/backups.nix
+  ];
 
   sops.secrets =
     lib.genAttrs

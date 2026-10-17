@@ -139,13 +139,24 @@ let
     pkgs.writeShellScriptBin "backup-borg-${name}" ''
       set -euo pipefail
       umask 077
+      fail() {
+        printf 'Backup preflight (%s): %s\n' ${lib.escapeShellArg name} "$1" >&2
+        exit 1
+      }
+      require_file() {
+        if [ ! -s "$1" ]; then
+          fail "$2 is missing or empty"
+        fi
+      }
       ${guard name}
-      test -s ${lib.escapeShellArg r.passphraseFile}
+      require_file ${lib.escapeShellArg r.passphraseFile} 'Repository passphrase file'
       ${lib.optionalString (r.sshHostname != null) ''
-        test -s ${lib.escapeShellArg r.sshKeyFile}
-        test -s ${lib.escapeShellArg r.knownHostsFile}
-        ${pkgs.openssh}/bin/ssh-keygen -F ${lib.escapeShellArg r.sshHostname} \
-          -f ${lib.escapeShellArg r.knownHostsFile} >/dev/null
+        require_file ${lib.escapeShellArg r.sshKeyFile} 'SSH identity file'
+        require_file ${lib.escapeShellArg r.knownHostsFile} 'Verified SSH trust file'
+        if ! ${pkgs.openssh}/bin/ssh-keygen -F ${lib.escapeShellArg r.sshHostname} \
+          -f ${lib.escapeShellArg r.knownHostsFile} >/dev/null; then
+          fail 'Verified SSH host key is missing'
+        fi
       ''}
       ${lib.concatStringsSep "\n" (
         lib.mapAttrsToList (key: value: "export ${key}=${lib.escapeShellArg value}") (borgEnvironment name)
@@ -438,6 +449,7 @@ in
       ) repos
     );
     system.build.managedBackupRuntime = runtime;
+    system.build.managedBackupWrappers = wrappers;
     system.build.managedBackupMountGuards = lib.mapAttrs (name: _: guard name) repos;
     system.build.managedBackupRuntimeConfigs = lib.mapAttrs (_: e: runtimeConfig e) entryAttrs;
 
