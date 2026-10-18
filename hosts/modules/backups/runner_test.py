@@ -1,5 +1,5 @@
 """Runtime tests; real Borg integration requires borg and borgmatic on PATH."""
-from contextlib import closing, redirect_stdout, redirect_stderr
+from contextlib import closing, contextmanager, redirect_stdout, redirect_stderr
 import io
 import fcntl
 import json
@@ -39,13 +39,15 @@ class Fixture(unittest.TestCase):
             ssh_known_hosts_file=None, expected_repository_id=None,
         )
         self.calls = []
+        self.diagnostics = []
 
     @property
     def status(self):
         return self.state / "status" / "source-local.json"
 
-    def command(self, args, deadline, env=None):
+    def command(self, args, deadline, env=None, *, diagnostic_path=None):
         self.calls.append((args, env))
+        self.diagnostics.append(diagnostic_path)
         return ""
 
 
@@ -56,10 +58,11 @@ class RuntimeTests(Fixture):
         config_file.write_text(json.dumps(self.config))
         original = runner.run_command
 
-        def command(args, deadline, env=None):
+        def command(args, deadline, env=None, *, diagnostic_path=None):
             if "create" in args:
                 return original([sys.executable, "-c",
-                    "import sys; print('TEST_SECRET_OUTPUT'); sys.exit(23)"], deadline)
+                    "import sys; print('TEST_SECRET_OUTPUT'); sys.exit(23)"], deadline,
+                    env=env, diagnostic_path=diagnostic_path)
             return ""
 
         output, errors = io.StringIO(), io.StringIO()
@@ -70,6 +73,66 @@ class RuntimeTests(Fixture):
         self.assertIn("stage: create", output.getvalue())
         self.assertIn("exit status 23", errors.getvalue())
         self.assertNotIn("TEST_SECRET_OUTPUT", output.getvalue() + errors.getvalue())
+
+    def test_create_failure_retains_private_diagnostic_without_promotion_or_success(self):
+        diagnostic = self.state / "jobs" / "source-local" / "logs" / "create.log"
+        renamed = self.base / "renamed"
+        self.config.update(
+            borgmatic_command=[sys.executable, "-c",
+                "import sys; print('private create failure',file=sys.stderr); sys.exit(19)"],
+            borg_command=[sys.executable, "-c",
+                f"from pathlib import Path; Path({str(renamed)!r}).touch()"])
+        output, errors = io.StringIO(), io.StringIO()
+        with redirect_stdout(output), redirect_stderr(errors):
+            with self.assertRaises(runner.CommandError) as failure:
+                runner.run_job(self.config)
+        self.assertEqual(failure.exception.returncode, 19)
+        self.assertEqual(diagnostic.read_bytes(), b"private create failure\n")
+        self.assertNotIn("private create failure", output.getvalue() + errors.getvalue() + str(failure.exception))
+        self.assertFalse(renamed.exists())
+        self.assertFalse(self.status.exists())
+        self.assertFalse(diagnostic.is_relative_to(self.stage))
+
+    def test_create_diagnostic_fsync_failure_prevents_promotion_and_status(self):
+        diagnostic = self.stage.parent / "logs" / "create.log"
+        renamed = self.base / "renamed"
+        self.config.update(
+            borgmatic_command=[sys.executable, "-c", "print('private diagnostic write')"],
+            borg_command=[sys.executable, "-c",
+                f"from pathlib import Path; Path({str(renamed)!r}).touch()"])
+        original = os.fsync
+        def fail_create_log(fd):
+            info = os.fstat(fd)
+            if diagnostic.exists() and info.st_ino == diagnostic.stat().st_ino and info.st_size:
+                raise OSError("private I/O error detail")
+            return original(fd)
+        output, errors = io.StringIO(), io.StringIO()
+        with mock.patch.object(runner.os, "fsync", side_effect=fail_create_log), \
+                redirect_stdout(output), redirect_stderr(errors):
+            with self.assertRaises(runner.DiagnosticError) as failure:
+                runner.run_job(self.config)
+        self.assertEqual(str(failure.exception), "Backup diagnostic I/O failed")
+        self.assertNotIn("private", output.getvalue() + errors.getvalue() + str(failure.exception))
+        self.assertFalse(renamed.exists())
+        self.assertFalse(self.status.exists())
+
+    def test_old_stage_logs_are_tightened_and_cleared_even_before_preflight_failure(self):
+        logs = self.state / "jobs" / "source-local" / "logs"
+        logs.mkdir(parents=True)
+        for directory in (self.state, self.state / "jobs", logs.parent, logs):
+            directory.chmod(0o755)
+        for stage in ("preparation", "create", "promotion"):
+            (logs / (stage + ".log")).write_bytes(b"old private data")
+            (logs / (stage + ".log")).chmod(0o644)
+        with self.assertRaises(FileNotFoundError):
+            runner.run_job(self.config | {"required_directories": [str(self.source / "missing")]})
+        for directory in (self.state, self.state / "jobs", logs.parent, logs):
+            self.assertEqual(directory.stat().st_mode & 0o777, 0o700)
+        for path in logs.iterdir():
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(path.read_bytes(), b"")
+        self.assertEqual(sorted(path.name for path in logs.iterdir()),
+                         ["create.log", "preparation.log", "promotion.log"])
 
     def test_success_promotes_unique_pending_archive_then_records_status(self):
         with mock.patch.object(runner, "run_command", side_effect=self.command):
@@ -90,6 +153,8 @@ class RuntimeTests(Fixture):
         self.assertLess(abs(status["completed_at"] - time.time()), 5)
         self.assertEqual(self.status.stat().st_mode & 0o777, 0o600)
         self.assertEqual(self.stage.stat().st_mode & 0o777, 0o700)
+        logs = self.stage.parent / "logs"
+        self.assertEqual(self.diagnostics, [logs / "create.log", logs / "promotion.log"])
 
     def test_required_inputs_and_mount_identity_fail_before_any_archive(self):
         cases = [
@@ -108,7 +173,7 @@ class RuntimeTests(Fixture):
                 self.assertFalse(any("create" in args for args, env in self.calls))
 
     def test_repository_id_mismatch_prevents_create(self):
-        def output(args, deadline, env=None):
+        def output(args, deadline, env=None, *, diagnostic_path=None):
             self.calls.append((args, env))
             return json.dumps({"repository": {"id": "wrong"}})
         with mock.patch.object(runner, "run_command", side_effect=output):
@@ -120,9 +185,10 @@ class RuntimeTests(Fixture):
     def test_preparation_rebuilds_stale_stage_and_receives_environment(self):
         self.stage.mkdir(parents=True)
         (self.stage / "stale").write_text("must not upload")
-        def output(args, deadline, env=None):
+        def output(args, deadline, env=None, *, diagnostic_path=None):
             self.calls.append((args, env))
             if args == ["prepare"]:
+                self.assertEqual(diagnostic_path, self.stage.parent / "logs" / "preparation.log")
                 self.assertFalse((self.stage / "stale").exists())
                 self.assertEqual(env["BACKUP_STAGING_DIRECTORY"], str(self.stage))
                 (self.stage / "exports" / "dump").write_text("fresh")
@@ -154,7 +220,7 @@ class RuntimeTests(Fixture):
                     return False
                 except BlockingIOError:
                     return True
-        def output(args, deadline, env=None):
+        def output(args, deadline, env=None, *, diagnostic_path=None):
             self.assertTrue(is_locked(locks / "source-local.lock"))
             self.assertEqual(is_locked(locks / "preparation.lock"), args == ["prepare"])
             return ""
@@ -205,7 +271,7 @@ class RuntimeTests(Fixture):
                                "staging_directory": str(second_stage),
                                "preparation_command": ["second-prepare"]}
         events = []
-        def output(args, deadline, env=None):
+        def output(args, deadline, env=None, *, diagnostic_path=None):
             events.append(args)
             if args[0] == "borgmatic" and not second_stage.exists():
                 runner.run_job(second)
@@ -223,7 +289,7 @@ class RuntimeTests(Fixture):
         for failing in ("prepare", "borgmatic", "borg-wrapper"):
             with self.subTest(stage=failing):
                 calls = []
-                def output(args, deadline, env=None):
+                def output(args, deadline, env=None, *, diagnostic_path=None):
                     calls.append(args)
                     if args[0] == failing:
                         raise RuntimeError("fixture failure")
@@ -238,7 +304,7 @@ class RuntimeTests(Fixture):
     def test_exact_mount_and_repository_identity_and_host_key_allow_create(self):
         known_hosts = self.base / "known_hosts"
         known_hosts.write_text("public fixture")
-        def output(args, deadline, env=None):
+        def output(args, deadline, env=None, *, diagnostic_path=None):
             self.calls.append((args, env))
             if args[0] == "findmnt":
                 return "fixture-uuid\n"
@@ -269,15 +335,30 @@ class RuntimeTests(Fixture):
         self.assertFalse(sentinel.exists())
 
     def test_timeout_kills_descendant_even_when_it_ignores_termination(self):
+        self.assert_timeout_cleanup()
+
+    def test_logged_timeout_kills_process_group_and_preserves_private_tail(self):
+        diagnostic = self.base / "logs" / "create.log"
+        output, errors = io.StringIO(), io.StringIO()
+        with redirect_stdout(output), redirect_stderr(errors):
+            self.assert_timeout_cleanup(diagnostic)
+        self.assertEqual(diagnostic.read_bytes(), b"private timeout tail\n")
+        self.assertEqual(diagnostic.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn("private timeout tail", output.getvalue() + errors.getvalue())
+
+    def assert_timeout_cleanup(self, diagnostic_path=None):
         pid_file = self.base / "child.pid"
         child = "import signal,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); time.sleep(5)"
         parent = ("import subprocess,sys,time; from pathlib import Path; "
                   f"p=subprocess.Popen([sys.executable,'-c',{child!r}]); "
-                  f"Path({str(pid_file)!r}).write_text(str(p.pid)); time.sleep(5)")
+                  f"Path({str(pid_file)!r}).write_text(str(p.pid)); "
+                  "print('private timeout tail',file=sys.stderr,flush=True); time.sleep(5)")
         start = time.monotonic()
         try:
-            with self.assertRaises(TimeoutError):
-                runner.run_command([sys.executable, "-c", parent], time.monotonic() + 0.3)
+            with self.assertRaises(TimeoutError) as failure:
+                runner.run_command([sys.executable, "-c", parent], time.monotonic() + 0.3,
+                                   diagnostic_path=diagnostic_path)
+            self.assertNotIn("private timeout tail", str(failure.exception))
             self.assertLess(time.monotonic() - start, 2)
             pid = int(pid_file.read_text())
             for attempt in range(30):
@@ -298,6 +379,105 @@ class RuntimeTests(Fixture):
                     os.kill(int(pid_file.read_text()), 9)
                 except ProcessLookupError:
                     pass
+
+    def test_failed_command_preserves_sensitive_stderr_only_in_private_diagnostic(self):
+        diagnostic = self.state / "jobs" / "source-local" / "logs" / "create.log"
+        output, errors = io.StringIO(), io.StringIO()
+        with redirect_stdout(output), redirect_stderr(errors):
+            with self.assertRaises(runner.CommandError) as failure:
+                runner.run_command([sys.executable, "-c",
+                    "import sys; print('private stdout'); print('private Borg stderr', file=sys.stderr); sys.exit(23)"],
+                    time.monotonic() + 2, diagnostic_path=diagnostic)
+        self.assertEqual(failure.exception.returncode, 23)
+        self.assertEqual(diagnostic.read_bytes(), b"private Borg stderr\nprivate stdout\n")
+        self.assertEqual(diagnostic.stat().st_mode & 0o777, 0o600)
+        for directory in (self.state, self.state / "jobs", diagnostic.parent.parent, diagnostic.parent):
+            self.assertEqual(directory.stat().st_mode & 0o777, 0o700)
+        for private in ("private stdout", "private Borg stderr"):
+            self.assertNotIn(private, output.getvalue() + errors.getvalue() + str(failure.exception))
+
+    def test_diagnostic_setup_cannot_start_child_after_deadline(self):
+        diagnostic = self.base / "logs" / "create.log"
+        original = runner.diagnostic_file
+        @contextmanager
+        def delayed_setup(path):
+            with original(path) as output:
+                time.sleep(0.04)
+                yield output
+        with mock.patch.object(runner, "diagnostic_file", delayed_setup), \
+                mock.patch.object(runner.subprocess, "Popen", side_effect=AssertionError("started after deadline")) as launch:
+            with self.assertRaises(TimeoutError):
+                runner.run_command(["must-not-start"], time.monotonic() + 0.02,
+                                   diagnostic_path=diagnostic)
+            launch.assert_not_called()
+        self.assertEqual(diagnostic.read_bytes(), b"")
+
+    def test_logged_output_is_bounded_to_the_latest_mebibyte_without_history(self):
+        diagnostic = self.base / "logs" / "create.log"
+        script = ("import os; "
+                  "[os.write(1, b'A'*65536) for _ in range(128)]; "
+                  "os.write(2, b'END\\x00\\xff')")
+        result = runner.run_command([sys.executable, "-c", script], time.monotonic() + 5,
+                                    diagnostic_path=diagnostic)
+        self.assertEqual(result, "")
+        self.assertEqual(diagnostic.read_bytes(), b"A" * (runner.DIAGNOSTIC_LIMIT - 5) + b"END\x00\xff")
+        runner.run_command([sys.executable, "-c", "print('next attempt')"], time.monotonic() + 2,
+                           diagnostic_path=diagnostic)
+        self.assertEqual(diagnostic.read_bytes(), b"next attempt\n")
+        self.assertEqual(list(diagnostic.parent.iterdir()), [diagnostic])
+
+    def test_existing_diagnostic_is_private_and_empty_before_child_starts(self):
+        diagnostic = self.base / "logs" / "create.log"
+        diagnostic.parent.mkdir()
+        diagnostic.parent.chmod(0o755)
+        diagnostic.write_bytes(b"previous run")
+        diagnostic.chmod(0o644)
+        script = ("from pathlib import Path; "
+                  f"p=Path({str(diagnostic)!r}); "
+                  "print(oct(p.stat().st_mode & 0o777), p.stat().st_size, "
+                  "oct(p.parent.stat().st_mode & 0o777))")
+        runner.run_command([sys.executable, "-c", script], time.monotonic() + 2,
+                           diagnostic_path=diagnostic)
+        self.assertEqual(diagnostic.read_bytes(), b"0o600 0 0o700\n")
+
+    def test_diagnostic_symlinks_and_nonregular_files_fail_before_child_starts(self):
+        outside = self.base / "outside"
+        outside.mkdir()
+        target = outside / "create.log"
+        target.write_bytes(b"do not overwrite")
+        target.chmod(0o644)
+        logs = self.base / "logs"
+        logs.mkdir()
+        cases = ("file-symlink", "directory-symlink", "ancestor-symlink", "fifo", "directory", "hardlink")
+        for case in cases:
+            with self.subTest(case=case):
+                leaf = logs / case
+                if case == "file-symlink":
+                    leaf.symlink_to(target)
+                elif case in ("directory-symlink", "ancestor-symlink"):
+                    leaf.symlink_to(outside, target_is_directory=True)
+                    leaf = leaf / ("create.log" if case == "directory-symlink" else "nested/create.log")
+                elif case == "fifo":
+                    os.mkfifo(leaf)
+                elif case == "directory":
+                    leaf.mkdir()
+                else:
+                    os.link(target, leaf)
+                start = time.monotonic()
+                with mock.patch.object(runner.subprocess, "Popen") as launch:
+                    with self.assertRaises(runner.DiagnosticError) as failure:
+                        runner.run_command(["must-not-start"], time.monotonic() + 1,
+                                           diagnostic_path=leaf)
+                    launch.assert_not_called()
+                self.assertLess(time.monotonic() - start, 1)
+                self.assertEqual(str(failure.exception), "Backup diagnostic I/O failed")
+                self.assertEqual(target.read_bytes(), b"do not overwrite")
+                self.assertEqual(target.stat().st_mode & 0o777, 0o644)
+
+    def test_default_command_still_returns_stdout_without_stderr(self):
+        self.assertEqual(runner.run_command([sys.executable, "-c",
+            "import sys; print('{\"repository\": {\"id\": \"fixture\"}}'); print('private', file=sys.stderr)"],
+            time.monotonic() + 2), '{"repository": {"id": "fixture"}}\n')
 
     def test_nonzero_command_error_does_not_disclose_child_output(self):
         with self.assertRaises(RuntimeError) as failure:
@@ -338,8 +518,11 @@ class BorgIntegrationTests(Fixture):
             "borgmatic_source_directory: " + json.dumps(str(self.base / "borgmatic-state")) + "\n")
 
     def borg_run(self, *args, cwd=None, check=True):
+        assert self.borg is not None
+        # Fixture setup must tolerate concurrent host builds; this does not
+        # increase the runtime deadline exercised by the backup runner.
         return subprocess.run([self.borg, *args], cwd=cwd, check=check,
-                              capture_output=True, text=True, timeout=30)
+                              capture_output=True, text=True, timeout=120)
 
     def run_cli(self):
         self.config_path.write_text(json.dumps(self.config))
@@ -379,6 +562,12 @@ class BorgIntegrationTests(Fixture):
             self.assertEqual(recovered.execute("PRAGMA quick_check").fetchall(), [("ok",)])
         self.assertEqual(json.loads(extracted(self.stage / "sqlite" / "manifest.json").read_text())[0]["path"], str(database))
         self.assertEqual(json.loads(self.borg_run("info", "--json").stdout)["encryption"]["mode"], "repokey-blake2")
+        for stage in ("preparation", "create", "promotion"):
+            diagnostic = self.stage.parent / "logs" / (stage + ".log")
+            self.assertTrue(diagnostic.is_file())
+            self.assertEqual(diagnostic.stat().st_mode & 0o777, 0o600)
+            self.assertLessEqual(diagnostic.stat().st_size, runner.DIAGNOSTIC_LIMIT)
+            self.assertFalse(extracted(diagnostic).exists())
 
     def test_real_borg_warning_archive_is_never_promoted_or_marked_success(self):
         # Inject the nonexistent input at the Borg boundary: Borgmatic itself
@@ -398,6 +587,10 @@ class BorgIntegrationTests(Fixture):
         result = self.run_cli()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(int(exit_status.read_text()), {1, 107})
+        diagnostic = self.stage.parent / "logs" / "create.log"
+        self.assertIn(b"missing-input", diagnostic.read_bytes())
+        self.assertNotIn("missing-input", result.stdout + result.stderr)
+        self.assertNotIn(str(self.source), result.stdout + result.stderr)
         archives = self.archives()
         self.assertEqual(len(archives), 1)
         self.assertTrue(archives[0]["name"].startswith("incomplete-source-"))

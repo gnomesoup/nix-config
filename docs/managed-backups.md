@@ -88,6 +88,45 @@ for explicit administrator invocation. Existing append-only limitations remain:
 trusted compaction can physically remove client-deleted data. This is not immutable
 or ransomware-proof storage; stop upkeep if compromise is suspected.
 
+## Diagnosing failed archive creation
+
+`start-limit-hit` means systemd stopped retrying; inspect the preceding attempt,
+not only the final status line. A `TimeoutError` at the configured runtime limit
+is distinct from a later nonzero Borg exit. Do not assume the latter is a lock
+problem, break locks blindly, or initialize an existing repository.
+
+Subprocess diagnostics are kept privately under
+`/var/lib/managed-backups/jobs/JOB-DESTINATION/logs/`, outside archive sources.
+The stage files are `preparation.log`, `create.log`, and `promotion.log`; they
+retain the latest 1 MiB of combined stdout/stderr each, with directories mode
+`0700` and files mode `0600`. Only the current attempt is retained; all stage
+logs reset when a new run starts, including automatic retries. Inspect a failure
+before another attempt overwrites its evidence.
+Output is saved when the command exits or times out, not streamed to disk while
+it runs. This is for local inspection, not journal or email publication.
+Inspect `create.log` after a create-stage failure. These logs
+can contain private filenames or application details: review locally and share
+only relevant, redacted error lines, never an entire log without checking it.
+Older errors discarded by the previous runtime cannot be recovered retroactively.
+
+After deploying the diagnostic update on Hoth, retry one destination first:
+
+```sh
+sudo systemctl reset-failed backup-hoth-borgbase.service
+sudo systemctl start --no-block backup-hoth-borgbase.service
+sudo journalctl -u backup-hoth-borgbase.service -n 30 --no-pager -l
+```
+
+Once the command finishes, inspect its private diagnostics on Hoth:
+
+```sh
+sudo less /var/lib/managed-backups/jobs/hoth-borgbase/logs/create.log
+```
+
+No longer seed window is enabled merely by installing diagnostics. Choose an
+explicit initial `jobs.hoth.timeoutSeconds` before another long seed if the
+six-hour budget is insufficient; restore the normal policy after verification.
+
 ## Deployment gates
 
 Inigo has no remote SSH or administrator access. Run these steps at the respective
