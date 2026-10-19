@@ -40,8 +40,14 @@ in
         mode = "0400";
       })
     // {
-      "backup/email-username".key = "zulip/email_username";
-      "backup/email-password".key = "zulip/email_password";
+      "backup/email-username" = {
+        key = "zulip/email_username";
+        sopsFile = ../../secrets/backup-shared.yaml;
+      };
+      "backup/email-password" = {
+        key = "zulip/email_password";
+        sopsFile = ../../secrets/backup-shared.yaml;
+      };
     };
 
   environment.etc = {

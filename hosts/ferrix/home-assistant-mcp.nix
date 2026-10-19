@@ -13,6 +13,7 @@ let
 in
 {
   sops.secrets."inigo/home-assistant-token" = {
+    sopsFile = ../../secrets/inigo.yaml;
     owner = "mpfammatter";
     mode = "0400";
   };

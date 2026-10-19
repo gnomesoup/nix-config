@@ -143,6 +143,13 @@
           pkgs = mkPkgs "x86_64-linux";
         in
         {
+          sops-access = import ./hosts/modules/sops-access-check.nix {
+            inherit pkgs;
+            ferrix = self.nixosConfigurations.ferrix.config;
+            hoth = self.nixosConfigurations.hoth.config;
+            jedha = self.nixosConfigurations.jedha.config;
+          };
+
           managed-backups = import ./hosts/modules/managed-backup-check.nix {
             inherit pkgs;
             ferrix = self.nixosConfigurations.ferrix.config;

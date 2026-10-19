@@ -49,36 +49,43 @@ in
       mode = "0400";
     };
     "inigo/github-deploy-key" = {
+      sopsFile = ../../secrets/inigo.yaml;
       owner = "inigo";
       group = "inigo";
       mode = "0400";
     };
     "hermes/api-server-key" = {
+      sopsFile = ../../secrets/inigo.yaml;
       owner = "inigo";
       group = "inigo";
       mode = "0400";
     };
     "hermes/dashboard-password" = {
+      sopsFile = ../../secrets/inigo.yaml;
       owner = "inigo";
       group = "inigo";
       mode = "0400";
     };
     "hermes/dashboard-secret" = {
+      sopsFile = ../../secrets/inigo.yaml;
       owner = "inigo";
       group = "inigo";
       mode = "0400";
     };
     "inigo/protonmail-bridge-email" = {
+      sopsFile = ../../secrets/inigo.yaml;
       owner = "inigo";
       group = "inigo";
       mode = "0400";
     };
     "inigo/protonmail-bridge-password" = {
+      sopsFile = ../../secrets/inigo.yaml;
       owner = "inigo";
       group = "inigo";
       mode = "0400";
     };
     "inigo/protonmail-bridge-username" = {
+      sopsFile = ../../secrets/inigo.yaml;
       owner = "inigo";
       group = "inigo";
       mode = "0400";
@@ -86,6 +93,7 @@ in
     # A dedicated MultiSpace account token is exposed to Hermes only through
     # each unit's private systemd credential directory.
     "inigo/silverbullet-api-token" = {
+      sopsFile = ../../secrets/inigo.yaml;
       mode = "0400";
       restartUnits = [
         "hermes-agent.service"

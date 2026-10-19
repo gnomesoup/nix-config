@@ -126,8 +126,8 @@ in
   environment.etc."zulip/compose.yaml".source = composeFile;
 
   sops.secrets."zulip/admin_email" = { };
-  sops.secrets."zulip/email_username" = { };
-  sops.secrets."zulip/email_password" = { };
+  sops.secrets."zulip/email_username".sopsFile = ../../secrets/backup-shared.yaml;
+  sops.secrets."zulip/email_password".sopsFile = ../../secrets/backup-shared.yaml;
   sops.secrets."zulip/postgres_password" = { };
   sops.secrets."zulip/memcached_password" = { };
   sops.secrets."zulip/rabbitmq_password" = { };

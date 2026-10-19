@@ -24,8 +24,8 @@
   sops.defaultSopsFile = ../../secrets/secrets.yaml;
   sops.defaultSopsFormat = "yaml";
   sops.age.keyFile = "/home/mpfammatter/.config/sops/age/keys.txt";
-  sops.secrets."borg/borg_passphrase" = { };
-  sops.secrets."borg/endor/borgbase_path" = { };
+  sops.secrets."borg/borg_passphrase".sopsFile = ../../secrets/backup-shared.yaml;
+  sops.secrets."borg/endor/borgbase_path".sopsFile = ../../secrets/backup-shared.yaml;
 
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;

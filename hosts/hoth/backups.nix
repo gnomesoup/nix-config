@@ -20,8 +20,14 @@ in
     ../modules/backups.nix
   ];
 
-  sops.secrets."backup/email-username".key = "zulip/email_username";
-  sops.secrets."backup/email-password".key = "zulip/email_password";
+  sops.secrets."backup/email-username" = {
+    key = "zulip/email_username";
+    sopsFile = ../../secrets/backup-shared.yaml;
+  };
+  sops.secrets."backup/email-password" = {
+    key = "zulip/email_password";
+    sopsFile = ../../secrets/backup-shared.yaml;
+  };
 
   services.managedBackups = {
     enable = true;

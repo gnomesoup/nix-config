@@ -19,8 +19,8 @@ in
 {
   # Reuse the existing noninteractive SMTP credentials, not the Proton Bridge
   # session. Only root can read them; STARTTLS verifies the remote certificate.
-  sops.secrets."zulip/email_username" = { };
-  sops.secrets."zulip/email_password" = { };
+  sops.secrets."zulip/email_username".sopsFile = ../../secrets/backup-shared.yaml;
+  sops.secrets."zulip/email_password".sopsFile = ../../secrets/backup-shared.yaml;
 
   environment.systemPackages = [ health ];
   system.build.ferrixBackupHealth = health;

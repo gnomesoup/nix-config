@@ -23,5 +23,5 @@
       PermitEmptyPasswords no
   '';
 
-  sops.secrets."inigo/ssh_key" = { };
+  sops.secrets."inigo/ssh_key".sopsFile = ../secrets/inigo.yaml;
 }
