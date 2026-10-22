@@ -52,9 +52,16 @@ containers require explicit coverage review. No live database is restored here.
 The persistent schedules are Ferrix 02:00/03:00 and Hoth 00:30/01:30 in the host's
 configured timezone, with ten minutes of jitter. The upstream all-configurations
 Borgmatic service/timer is disabled; compatibility service aliases are not extra
-schedulers. Transfers have a six-hour deadline and up to three systemd starts per
-day, with thirty-minute restart delays. Increase `jobs.NAME.timeoutSeconds`
-explicitly for a large first seed, then restore the steady-state limit.
+schedulers. Hoth's local and offsite jobs have no total-runtime cutoff:
+`jobs.hoth.timeoutSeconds = null` disables the runner deadline and sets systemd
+`TimeoutStartSec=infinity`. Ferrix retains its six-hour deadline. Jobs allow up
+to three systemd starts per day, with thirty-minute restart delays.
+
+Disabling the total-runtime cutoff does not disable SSH keepalives, Borg's
+ten-minute lock wait, bounded preparation/job-lock waits, or per-database and
+application-export safeguards. It does not clear existing cache locks or change
+retention, maintenance, freshness alerts, or archive promotion rules. An upload
+may run indefinitely; completion monitoring remains separate from runtime limits.
 
 Each destination has its own staging tree under
 `/var/lib/managed-backups/jobs/JOB-DESTINATION/staging`. Only application export
@@ -123,9 +130,16 @@ Once the command finishes, inspect its private diagnostics on Hoth:
 sudo less /var/lib/managed-backups/jobs/hoth-borgbase/logs/create.log
 ```
 
-No longer seed window is enabled merely by installing diagnostics. Choose an
-explicit initial `jobs.hoth.timeoutSeconds` before another long seed if the
-six-hour budget is insufficient; restore the normal policy after verification.
+After activating the no-cutoff policy on Hoth, verify both backup services show
+an infinite startup timeout before retrying. Any stale local cache lock from a
+previously interrupted run requires separate, guarded recovery; changing the
+timeout does not remove it. Do not break a remote repository lock to resolve a
+local cache-lock error.
+
+```sh
+systemctl show backup-hoth-local.service backup-hoth-borgbase.service \
+  -p Id -p TimeoutStartUSec
+```
 
 ## Deployment gates
 

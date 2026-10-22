@@ -53,6 +53,39 @@ class Fixture(unittest.TestCase):
 
 
 class RuntimeTests(Fixture):
+    def test_null_timeout_cli_prepares_creates_promotes_and_records_success(self):
+        events = self.base / "events.jsonl"
+        script = ("import json,sys,time; from pathlib import Path; time.sleep(0.15); "
+                  f"p=Path({str(events)!r}); "
+                  "f=p.open('a'); f.write(json.dumps(sys.argv[1:])+'\\n'); f.close(); "
+                  "print('private stage output')")
+        self.config.update(timeout_seconds=None, preparation_lock_wait_seconds=0.1,
+            borgmatic_command=[sys.executable, "-c", script],
+            borg_command=[sys.executable, "-c", script],
+            preparation_command=[sys.executable, "-c", "import os,time; from pathlib import Path; time.sleep(0.15); "
+                "(Path(os.environ['BACKUP_STAGING_DIRECTORY'])/'exports'/'dump').write_text('fixture')"])
+        config_file = self.base / "runtime.json"
+        config_file.write_text(json.dumps(self.config))
+        result = subprocess.run([sys.executable, str(Path(runner.__file__)),
+                                 "--config", str(config_file)],
+                                capture_output=True, text=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        create, rename = [json.loads(line) for line in events.read_text().splitlines()]
+        pending = next(arg.split("=", 1)[1] for arg in create if arg.startswith("archive_name_format="))
+        self.assertTrue(pending.startswith("incomplete-source-"))
+        self.assertEqual(create[-1], "create")
+        strict = json.loads(next(arg.split("=", 1)[1] for arg in create if arg.startswith("borg_exit_codes=")))
+        self.assertEqual(strict, [{"code": code, "treat_as": "error"} for code in range(1, 256)])
+        status = json.loads(self.status.read_text())
+        self.assertEqual(rename, ["rename", "::" + pending, status["archive"]])
+        self.assertTrue(status["archive"].startswith("source-complete-"))
+        self.assertEqual((self.stage / "exports" / "dump").read_text(), "fixture")
+        self.assertEqual(self.status.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn("private stage output", result.stdout + result.stderr)
+        for stage in ("create", "promotion"):
+            self.assertEqual((self.stage.parent / "logs" / (stage + ".log")).read_bytes(),
+                             b"private stage output\n")
+
     def test_cli_reports_static_stage_and_exit_status_without_child_output(self):
         config_file = self.base / "runtime.json"
         config_file.write_text(json.dumps(self.config))
@@ -246,6 +279,30 @@ class RuntimeTests(Fixture):
                 self.assertLess(time.monotonic() - start, 1)
                 self.assertTrue(sentinel.exists())
         self.assertFalse(self.status.exists())
+
+    def test_null_timeout_cli_lock_contention_is_bounded_without_discarding_staging(self):
+        locks = self.state / "locks"
+        locks.mkdir(parents=True)
+        self.stage.mkdir(parents=True)
+        sentinel = self.stage / "owned-by-another-run"
+        sentinel.touch()
+        self.config.update(timeout_seconds=None, preparation_lock_wait_seconds=0.05)
+        config_file = self.base / "runtime.json"
+        config_file.write_text(json.dumps(self.config))
+        for name in ("source-local.lock", "preparation.lock"):
+            with self.subTest(lock=name), (locks / name).open("a") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+                started = time.monotonic()
+                result = subprocess.run([sys.executable, str(Path(runner.__file__)),
+                                         "--config", str(config_file)],
+                                        capture_output=True, text=True, timeout=5)
+                elapsed = time.monotonic() - started
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("(TimeoutError)", result.stderr)
+                self.assertGreaterEqual(elapsed, self.config["preparation_lock_wait_seconds"])
+                self.assertLess(elapsed, 2)
+                self.assertTrue(sentinel.exists())
+                self.assertFalse(self.status.exists())
 
     def test_staging_cannot_be_a_symlink_or_cover_source(self):
         self.stage.parent.mkdir(parents=True)
@@ -474,6 +531,43 @@ class RuntimeTests(Fixture):
                 self.assertEqual(target.read_bytes(), b"do not overwrite")
                 self.assertEqual(target.stat().st_mode & 0o777, 0o644)
 
+    def test_unbounded_logged_command_retains_only_private_bounded_current_tail(self):
+        diagnostic = self.base / "logs" / "create.log"
+        script = ("import os,time; time.sleep(0.02); "
+                  "[os.write(1, b'A'*65536) for _ in range(128)]; "
+                  "os.write(2, b'END\\x00\\xff')")
+        output, errors = io.StringIO(), io.StringIO()
+        with redirect_stdout(output), redirect_stderr(errors):
+            result = runner.run_command([sys.executable, "-c", script], None,
+                                        diagnostic_path=diagnostic)
+            self.assertEqual(result, "")
+            self.assertEqual(diagnostic.read_bytes(),
+                             b"A" * (runner.DIAGNOSTIC_LIMIT - 5) + b"END\x00\xff")
+            with self.assertRaises(runner.CommandError) as failure:
+                runner.run_command([sys.executable, "-c",
+                    "import sys; print('private failure'); sys.exit(23)"], None,
+                    diagnostic_path=diagnostic)
+        self.assertEqual(failure.exception.returncode, 23)
+        self.assertEqual(diagnostic.read_bytes(), b"private failure\n")
+        self.assertEqual(diagnostic.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(diagnostic.parent.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(list(diagnostic.parent.iterdir()), [diagnostic])
+        self.assertEqual(output.getvalue() + errors.getvalue(), "")
+        self.assertNotIn("private failure", str(failure.exception))
+
+    def test_unbounded_command_returns_stdout_and_keeps_failures_private(self):
+        output, errors = io.StringIO(), io.StringIO()
+        with redirect_stdout(output), redirect_stderr(errors):
+            result = runner.run_command([sys.executable, "-c",
+                "import sys,time; time.sleep(0.02); print('fixture stdout'); "
+                "print('private stderr', file=sys.stderr)"], None)
+            with self.assertRaises(runner.CommandError) as failure:
+                runner.run_command([sys.executable, "-c",
+                    "import sys; print('private failure'); sys.exit(23)"], None)
+        self.assertEqual(result, "fixture stdout\n")
+        self.assertEqual(failure.exception.returncode, 23)
+        self.assertNotIn("private", output.getvalue() + errors.getvalue() + str(failure.exception))
+
     def test_default_command_still_returns_stdout_without_stderr(self):
         self.assertEqual(runner.run_command([sys.executable, "-c",
             "import sys; print('{\"repository\": {\"id\": \"fixture\"}}'); print('private', file=sys.stderr)"],
@@ -533,6 +627,13 @@ class BorgIntegrationTests(Fixture):
         return json.loads(self.borg_run("list", "--json").stdout)["archives"]
 
     def test_real_encrypted_borgmatic_cli_roundtrip_includes_wal_snapshot_and_export(self):
+        self.assert_encrypted_roundtrip()
+
+    def test_null_timeout_real_encrypted_borgmatic_cli_roundtrip(self):
+        self.config["timeout_seconds"] = None
+        self.assert_encrypted_roundtrip()
+
+    def assert_encrypted_roundtrip(self):
         (self.source / "document").write_text("restore me")
         database = self.source / "state.sqlite"
         db = sqlite3.connect(database)

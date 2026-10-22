@@ -58,6 +58,8 @@ in
     };
     jobs.hoth = {
       sourceId = "hoth";
+      # Large backups must not be killed while productive transfers are running.
+      timeoutSeconds = null;
       paths = [
         "/home/mpfammatter"
         "/mnt/backup2/homeassistant"

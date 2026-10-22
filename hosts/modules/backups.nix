@@ -391,7 +391,11 @@ in
             prepareCommand = optionalString "Host-owned executable hook; receives BACKUP_STAGING_DIRECTORY.";
             requiredServices = strings "Application services required before preparation.";
             readWritePaths = strings "Additional sandbox writes, e.g. SQLite shared-memory roots and app exports.";
-            timeoutSeconds = number 21600 "Bounded total runtime; explicitly increase for an initial seed.";
+            timeoutSeconds = mkOption {
+              type = types.nullOr types.ints.positive;
+              default = 21600;
+              description = "Total runtime limit in seconds; null disables the runner and systemd total-runtime cutoff.";
+            };
             destinations = mkOption {
               default = { };
               type = types.attrsOf (
@@ -584,7 +588,7 @@ in
           };
           serviceConfig = {
             ExecStart = "${pkgs.python3}/bin/python3 ${runtime}/runner.py --config ${runtimeConfig e}";
-            TimeoutStartSec = e.job.timeoutSeconds + 60;
+            TimeoutStartSec = if e.job.timeoutSeconds == null then "infinity" else e.job.timeoutSeconds + 60;
             Restart = "on-failure";
             RestartSec = "30min";
             NoNewPrivileges = true;

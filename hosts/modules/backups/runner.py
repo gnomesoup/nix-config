@@ -124,8 +124,8 @@ def collect_tail(process, deadline, tail):
         os.set_blocking(process.stdout.fileno(), False)
         selector.register(process.stdout, selectors.EVENT_READ)
         while selector.get_map():
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
+            remaining = None if deadline is None else deadline - time.monotonic()
+            if remaining is not None and remaining <= 0:
                 raise subprocess.TimeoutExpired("backup stage", 0)
             for key, _ in selector.select(remaining):
                 data = os.read(key.fd, 65536)
@@ -134,14 +134,14 @@ def collect_tail(process, deadline, tail):
                 else:
                     tail.extend(data)
                     del tail[:-DIAGNOSTIC_LIMIT]
-        process.wait(timeout=max(0.001, deadline - time.monotonic()))
+        process.wait(timeout=None if deadline is None else max(0.001, deadline - time.monotonic()))
 
 
 def run_logged_command(command, deadline, env, diagnostic_path):
     tail = bytearray()
     # Opening the private destination before launching fails closed on bad paths.
     with diagnostic_file(diagnostic_path) as output:
-        if time.monotonic() >= deadline:
+        if deadline is not None and time.monotonic() >= deadline:
             raise TimeoutError("Backup deadline exceeded")
         try:
             with subprocess.Popen(command, env=env, stdin=subprocess.DEVNULL,
@@ -180,7 +180,7 @@ def run_command(command, deadline, env=None, *, diagnostic_path=None):
     Logged stages return an empty string; output never appears in exceptions or
     the journal. The root service owns diagnostics (0700 parents, 0600 files).
     """
-    if time.monotonic() >= deadline:
+    if deadline is not None and time.monotonic() >= deadline:
         raise TimeoutError("Backup deadline exceeded")
     if diagnostic_path is not None:
         return run_logged_command(command, deadline, env, diagnostic_path)
@@ -188,7 +188,8 @@ def run_command(command, deadline, env=None, *, diagnostic_path=None):
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                           text=True, start_new_session=True) as process:
         try:
-            stdout, _ = process.communicate(timeout=max(0.001, deadline - time.monotonic()))
+            stdout, _ = process.communicate(
+                timeout=None if deadline is None else max(0.001, deadline - time.monotonic()))
         except BaseException as error:
             # A child (docker, ssh, shell, or Borg) may outlive its direct parent.
             # Killing the whole session's process group prevents orphan uploads.
@@ -283,9 +284,13 @@ def run_job(config):
         if path == staging.resolve() or path.is_relative_to(staging.resolve()):
             raise ValueError("Staging must not contain backup sources")
     os.umask(0o077)
-    deadline = time.monotonic() + config["timeout_seconds"]
+    timeout = config["timeout_seconds"]
+    deadline = None if timeout is None else time.monotonic() + timeout
     locks = state / "locks"
-    with locked(locks / (config["job_id"] + ".lock"), deadline):
+    # Unlimited uploads must not mean unlimited waits behind another run.
+    job_lock_deadline = (time.monotonic() + config["preparation_lock_wait_seconds"]
+                         if deadline is None else deadline)
+    with locked(locks / (config["job_id"] + ".lock"), job_lock_deadline):
         logs = state / "jobs" / config["job_id"] / "logs"
         for directory in (state, state / "jobs", logs.parent, logs):
             with private_directory(directory):
@@ -297,7 +302,9 @@ def run_job(config):
                 pass
         print("Managed backup stage: preflight", flush=True)
         preflight(config, deadline)
-        preparation_deadline = min(deadline, time.monotonic() + config["preparation_lock_wait_seconds"])
+        preparation_deadline = time.monotonic() + config["preparation_lock_wait_seconds"]
+        if deadline is not None:
+            preparation_deadline = min(deadline, preparation_deadline)
         with locked(locks / "preparation.lock", preparation_deadline):
             print("Managed backup stage: preparation", flush=True)
             prepare(config, staging, deadline)

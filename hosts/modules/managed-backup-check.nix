@@ -6,6 +6,24 @@
 
 assert ferrix.services.managedBackups.enable;
 assert hoth.services.managedBackups.enable;
+assert hoth.services.managedBackups.jobs.hoth.timeoutSeconds == null;
+assert pkgs.lib.all
+  (name: hoth.systemd.services.${name}.serviceConfig.TimeoutStartSec == "infinity")
+  [
+    "backup-hoth-local"
+    "backup-hoth-borgbase"
+  ];
+assert ferrix.services.managedBackups.jobs.ferrix.timeoutSeconds != null;
+assert pkgs.lib.all
+  (
+    name:
+    ferrix.systemd.services.${name}.serviceConfig.TimeoutStartSec
+    == ferrix.services.managedBackups.jobs.ferrix.timeoutSeconds + 60
+  )
+  [
+    "backup-ferrix-hoth"
+    "backup-ferrix-borgbase"
+  ];
 assert ferrix.environment.etc."managed-backups/ssh_known_hosts".mode == "0444";
 assert
   hoth.environment.etc."managed-backups/ssh_known_hosts".source
