@@ -83,7 +83,28 @@
       overlays.default =
         final: prev:
         {
-          hermes-desktop = hermes-agent.packages.${final.stdenv.hostPlatform.system}.desktop;
+          hermes-desktop =
+            let
+              hermesPackages = hermes-agent.packages.${final.stdenv.hostPlatform.system};
+              # Upstream applies ELF fixups to every pm artifact, including
+              # Mach-O binaries. Disable both automatic and Python-specific
+              # ELF patching on Darwin while preserving the pinned artifacts.
+              darwinPmPackages = nixpkgs.lib.mapAttrs' (
+                name: package:
+                nixpkgs.lib.nameValuePair (nixpkgs.lib.removePrefix "pm-" name) (
+                  package.overrideAttrs (old: {
+                    nativeBuildInputs = builtins.filter (
+                      input: input != final.autoPatchelfHook && input != final.patchelf
+                    ) (old.nativeBuildInputs or [ ]);
+                    postFixup = "";
+                  })
+                )
+              ) (nixpkgs.lib.filterAttrs (name: _: nixpkgs.lib.hasPrefix "pm-" name) hermesPackages);
+            in
+            if final.stdenv.hostPlatform.isDarwin then
+              (hermesPackages.default.override { pmPackages = darwinPmPackages; }).hermesDesktop
+            else
+              hermesPackages.desktop;
 
           herdr = prev.herdr.overrideAttrs (
             _finalAttrs: previousAttrs: {
