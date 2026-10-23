@@ -71,6 +71,10 @@ let
       url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-1.1.0.tgz";
       hash = "sha512-1T7LAkc/5Bvc0v6w4vAGVdCrli0o/E0pEmYKTnixu95vSFArBjvbhS/G4ZwI0RUePgf0Imcu0VyqlM4EcXxqfw==";
     };
+    "1.4.0" = fetchurl {
+      url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-1.4.0.tgz";
+      hash = "sha512-hQM/C4+1w8rHYACzDDf+0vQMnEnpzIop1tptIERVgR3ZeT/hHSzBNG8PaWPgxWQjqSeKCyBZSyp8uTT6eKK1pQ==";
+    };
   };
   aiModelDataTarball = aiModelDataTarballs.${version} or null;
   updateScript = writeShellApplication {
@@ -153,9 +157,9 @@ buildNpmPackage (finalAttrs: {
     rm -rf packages/ai/dist/providers/data
     cp -R packages/ai/src/providers/data packages/ai/dist/providers/data
     ./node_modules/.bin/tsc -p packages/tui/tsconfig.build.json
+    ./node_modules/.bin/tsc -p packages/durable/tsconfig.build.json
+    ./node_modules/.bin/tsc -p packages/env/tsconfig.build.json
     ./node_modules/.bin/tsc -p packages/agent/tsconfig.build.json
-    ./node_modules/.bin/tsc -p packages/protocol/tsconfig.build.json
-    ./node_modules/.bin/tsc -p packages/client/tsconfig.build.json
     npm run build --workspace=packages/coding-agent
 
     runHook postBuild
@@ -174,8 +178,8 @@ buildNpmPackage (finalAttrs: {
               @earendil-works/pi-ai:packages/ai \
               @earendil-works/pi-telemetry:packages/telemetry \
               @earendil-works/pi-agent-core:packages/agent \
-              @earendil-works/pi-client:packages/client \
-              @earendil-works/pi-protocol:packages/protocol \
+              @earendil-works/pi-durable:packages/durable \
+              @earendil-works/pi-env:packages/env \
               @earendil-works/pi-tui:packages/tui; do
       IFS=: read -r pkg src <<< "$ws"
       rm "$nm/$pkg"
