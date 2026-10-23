@@ -35,8 +35,8 @@ nix build .#checks.x86_64-linux.silverbullet-journal-navigation
 nix flake check -L
 ```
 
-The package intentionally asserts SilverBullet 2.11.0 so upgrades require reviewing the
-panel, command, action-button, and top-widget APIs. The 2.11 review confirmed that the
-legacy modal panel API remains supported alongside the new dockable View API, and that
-commands, action buttons, `dropdown = false`, and `hooks:renderTopWidgets` remain
-compatible.
+The plug builds against the frontend source and dependencies from the locked
+SilverBullet package. Compilation, type checks, unit tests, and configuration checks
+validate compatibility without an exact-version guard. Browser behavior still needs
+manual verification after upgrades, especially the modal panel, commands, action
+buttons, and top widgets.

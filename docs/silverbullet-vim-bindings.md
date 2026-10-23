@@ -96,11 +96,11 @@ logged without repeated UI notifications.
 - Hardened synchronizer: `hosts/ferrix/silverbullet-plug-sync.py`
 - Synchronizer tests: `hosts/ferrix/silverbullet-plug-sync_test.py`
 
-The package uses the pinned SilverBullet 2.11.0 frontend dependency set and upstream
-`plug-compile` implementation. The 2.11 review confirmed that `clientStore`,
-`editor.getUiOption`, `editor.vimEx`, the lifecycle events, and the plug compiler remain
-compatible. Its version assertion intentionally fails when SilverBullet changes so these
-assumptions must be reviewed again.
+The package uses the locked SilverBullet frontend dependency set and upstream
+`plug-compile` implementation. Compilation, type checks, unit tests, and generated
+mapping checks validate compatibility without an exact-version guard. Browser behavior
+still needs manual verification after upgrades, especially Vim initialization and
+lifecycle events.
 
 ## Synchronization and security
 
