@@ -317,8 +317,8 @@ def run_job(config):
                                         for code in range(1, 256)], separators=(",", ":"))
         print("Managed backup stage: create", flush=True)
         run_command(config["borgmatic_command"] + ["--config", config["borgmatic_config"],
-                    "--override", "archive_name_format=" + pending,
-                    "--override", "borg_exit_codes=" + strict_exit_codes, "create"], deadline,
+                    "--archive-name-format", pending,
+                    "--borg-exit-codes", strict_exit_codes, "create"], deadline,
                     diagnostic_path=state / "jobs" / config["job_id"] / "logs" / "create.log")
         print("Managed backup stage: promotion", flush=True)
         run_command(config["borg_command"] + ["rename", "::" + pending, complete], deadline,

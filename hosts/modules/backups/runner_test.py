@@ -71,10 +71,11 @@ class RuntimeTests(Fixture):
                                 capture_output=True, text=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
         create, rename = [json.loads(line) for line in events.read_text().splitlines()]
-        pending = next(arg.split("=", 1)[1] for arg in create if arg.startswith("archive_name_format="))
+        self.assertFalse("--override" in create, "Deprecated Borgmatic override flag used")
+        pending = create[create.index("--archive-name-format") + 1]
         self.assertTrue(pending.startswith("incomplete-source-"))
         self.assertEqual(create[-1], "create")
-        strict = json.loads(next(arg.split("=", 1)[1] for arg in create if arg.startswith("borg_exit_codes=")))
+        strict = json.loads(create[create.index("--borg-exit-codes") + 1])
         self.assertEqual(strict, [{"code": code, "treat_as": "error"} for code in range(1, 256)])
         status = json.loads(self.status.read_text())
         self.assertEqual(rename, ["rename", "::" + pending, status["archive"]])
@@ -174,7 +175,8 @@ class RuntimeTests(Fixture):
         self.assertTrue((self.stage / "exports").is_dir())
         create = self.calls[0][0]
         self.assertEqual(create[:3], ["borgmatic", "--config", self.config["borgmatic_config"]])
-        pending = next(arg.split("=", 1)[1] for arg in create if arg.startswith("archive_name_format="))
+        self.assertFalse("--override" in create, "Deprecated Borgmatic override flag used")
+        pending = create[create.index("--archive-name-format") + 1]
         self.assertTrue(pending.startswith("incomplete-source-"))
         self.assertEqual(create[-1], "create")
         rename = self.calls[1][0]
@@ -666,6 +668,7 @@ class BorgIntegrationTests(Fixture):
         for stage in ("preparation", "create", "promotion"):
             diagnostic = self.stage.parent / "logs" / (stage + ".log")
             self.assertTrue(diagnostic.is_file())
+            self.assertNotIn(b"The --override flag is deprecated", diagnostic.read_bytes())
             self.assertEqual(diagnostic.stat().st_mode & 0o777, 0o600)
             self.assertLessEqual(diagnostic.stat().st_size, runner.DIAGNOSTIC_LIMIT)
             self.assertFalse(extracted(diagnostic).exists())
