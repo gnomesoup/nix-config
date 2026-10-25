@@ -35,7 +35,8 @@ Included:
 - `/var/lib/inigo`: assistant sessions, memory, skills, profiles, and workspace.
 - `/var/lib/private/silverbullet`: actual DynamicUser storage, including both
   spaces, attachments, and Git history, rather than just its public symlink.
-- `/var/lib/remote-pi-relay`: persistent relay state.
+- `/var/lib/remote-pi-relay`: retained state from the retired relay; not deleted
+  when switching to the [Paseo trial](ferrix-paseo.md).
 - `/var/lib/docker/volumes/zulip_zulip/_data`: Zulip uploads and application state.
 - Destination-private `staging/sqlite`: consistent SQLite copies and metadata.
 - Destination-private `staging/exports/zulip/database.dump`: validated Zulip export.

@@ -9,6 +9,11 @@ See the [configuration wiring diagram](docs/wiring-diagram.md) for the flake inp
 See the [Hoth and Ferrix backup deployment guide](docs/managed-backups.md) for
 shared configuration, administrator setup, and required restore acceptance gates.
 
+## Mobile Pi access
+
+See the [Ferrix Paseo trial guide](docs/ferrix-paseo.md) for activation, iPhone
+connection, security boundaries, and the custom Ask questionnaire limitation.
+
 ## Installation
 
 ### Nix-Darwin

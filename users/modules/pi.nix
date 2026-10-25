@@ -26,7 +26,6 @@ let
       "${piAsk}"
       "npm:pi-openai-codex-usage@0.1.2"
       "npm:pi-web-search@1.3.1"
-      "npm:remote-pi@0.7.0"
     ];
   };
   piAskSettings = {

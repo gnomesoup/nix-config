@@ -11,6 +11,7 @@ let
   databaseRoots = [
     "/var/lib/inigo/.hermes"
     "/var/lib/private/silverbullet"
+    # Retain the retired relay's data until it is intentionally removed.
     "/var/lib/remote-pi-relay"
   ];
   prepare = pkgs.writeShellScript "prepare-ferrix-backup" ''

@@ -185,6 +185,11 @@
 
           pi-ask = pkgs.callPackage ./users/modules/pi/pi-ask/package.nix { };
 
+          paseo-test = import ./hosts/ferrix/paseo-check.nix {
+            inherit pkgs;
+            ferrix = self.nixosConfigurations.ferrix.config;
+          };
+
           inigo-silverbullet-plugin = pkgs.callPackage ./hosts/ferrix/inigo-silverbullet/package.nix { };
 
           silverbullet-pi-extension =

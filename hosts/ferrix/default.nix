@@ -11,7 +11,7 @@
     ./hardware-configuration.nix
     ./inigo.nix
     ./home-assistant-mcp.nix
-    ./remote-pi-relay.nix
+    ./paseo.nix
     ./silverbullet.nix
     ./zulip.nix
     ../modules/fonts.nix
