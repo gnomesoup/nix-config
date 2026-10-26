@@ -1,5 +1,5 @@
 name: inigo-silverbullet
-version: 0.2.0
+version: 0.3.0
 manifest_version: 2
 api_version: 1
 description: Direct, conflict-aware SilverBullet HTTP tools for Inigo
@@ -15,6 +15,7 @@ provides_tools:
   - silverbullet_move
   - silverbullet_soft_delete
   - silverbullet_upload_file
+  - silverbullet_journal_retry
 config_schema:
   base_url:
     type: str

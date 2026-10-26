@@ -128,6 +128,8 @@ in
 
     hermesHomeFiles."skins/spacemacs-dark.yaml" = ./inigo-spacemacs-dark.yaml;
     hermesHomeFiles."skills/nix-config-management/SKILL.md" = ./nix-config-management/SKILL.md;
+    hermesHomeFiles."skills/note-taking/silverbullet-journal-links/SKILL.md" =
+      ../../agents/skills/silverbullet-journal-links/SKILL.md;
 
     # The upstream default is its full package. Native mode keeps the runtime
     # reproducible; capability-gated tools activate when their backend exists.
@@ -377,6 +379,7 @@ in
     after = [ "inigo-nix-config.service" ];
     requires = [ "inigo-nix-config.service" ];
     environment = {
+      PYTHONTZPATH = "${pkgs.tzdata}/share/zoneinfo";
       GIT_SSH_COMMAND = gitSshCommand;
       SOPS_AGE_KEY_FILE = config.sops.secrets."inigo/age-key".path;
     };
@@ -392,6 +395,7 @@ in
     after = [ "inigo-nix-config.service" ];
     requires = [ "inigo-nix-config.service" ];
     environment = {
+      PYTHONTZPATH = "${pkgs.tzdata}/share/zoneinfo";
       GIT_SSH_COMMAND = gitSshCommand;
       SOPS_AGE_KEY_FILE = config.sops.secrets."inigo/age-key".path;
     };

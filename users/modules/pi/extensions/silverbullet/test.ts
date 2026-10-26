@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
@@ -30,6 +31,12 @@ let token: string;
 let baseUrl: string;
 let config: ResolvedConfig;
 let server: ReturnType<typeof createServer>;
+let failJournalWrites = false;
+let failJournalReadAfterWrite = false;
+const requests: Array<{ method: string; space: string; page?: string }> = [];
+const rejectedWrites = new Set<string>();
+let failNextJournalRead = false;
+let pretendDelete = false;
 
 function send(response: ServerResponse, status: number, body = "", headers: Record<string, string> = {}) {
   response.writeHead(status, headers);
@@ -64,6 +71,20 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
   const target = route(request);
   if (!target) {
     send(response, 404, "not found");
+    return;
+  }
+  requests.push({ method: request.method ?? "", ...target });
+  if (request.method === "PUT" && target.page?.startsWith("Journal/") && failJournalWrites) {
+    send(response, 503, "journal unavailable");
+    return;
+  }
+  if ((request.method === "PUT" || request.method === "DELETE") && rejectedWrites.has(target.page ?? "")) {
+    send(response, 503, "write rejected");
+    return;
+  }
+  if (request.method === "GET" && target.page?.startsWith("Journal/") && failNextJournalRead) {
+    failNextJournalRead = false;
+    send(response, 503, "journal verification unavailable");
     return;
   }
   const spaceFiles = files[target.space];
@@ -115,6 +136,7 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
       lastModified: now,
       permission: String(request.headers["x-permission"]),
     });
+    if (target.page.startsWith("Journal/") && failJournalReadAfterWrite) failNextJournalRead = true;
     send(response, 200, "OK");
     return;
   }
@@ -123,7 +145,7 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
       send(response, 404, "404 page not found\n");
       return;
     }
-    spaceFiles.delete(target.page);
+    if (!pretendDelete) spaceFiles.delete(target.page);
     send(response, 200, "OK");
     return;
   }
@@ -157,7 +179,10 @@ const context = {
 async function execute(name: string, params: Record<string, unknown>, ctx: any = context) {
   const tool = tools.get(name);
   assert.ok(tool, `tool ${name} was registered`);
-  return tool.execute("test-call", params, undefined, undefined, ctx);
+  const defaults = ["silverbullet_create", "silverbullet_append", "silverbullet_update"].includes(name)
+    ? { change_summary: "Updated test note" }
+    : {};
+  return tool.execute("test-call", { ...defaults, ...params }, undefined, undefined, ctx);
 }
 
 before(async () => {
@@ -249,6 +274,274 @@ describe("configuration and path security", () => {
       /managed path is read-only/,
     );
     await assert.rejects(() => execute("silverbullet_read", { space: "other", page: "Shared" }), /Unknown.*space/);
+  });
+});
+
+describe("journal enforcement", () => {
+  test("requires a brief summary before non-journal mutations", async () => {
+    await assert.rejects(
+      () => execute("silverbullet_create", { page: "Tests/MissingSummary", content: "note", change_summary: undefined }),
+      /change_summary/,
+    );
+    assert.equal(files.personal.has("Tests/MissingSummary.md"), false);
+  });
+
+  test("no-op replacements do not write or journal or prompt", async () => {
+    await execute("silverbullet_create", { page: "Tests/Noop", content: "unchanged" });
+    const before = JSON.stringify([...files.personal]);
+    const prompts = permissionPrompts.length;
+    for (const params of [
+      { action: "replace_page", content: "unchanged" },
+      { action: "replace_text", find: "unchanged", replacement: "unchanged" },
+    ]) {
+      const result = await execute("silverbullet_update", { page: "Tests/Noop", ...params });
+      assert.equal(result.details.changed, false);
+      assert.equal(result.details.journal.status, "skipped_noop");
+    }
+    assert.equal(JSON.stringify([...files.personal]), before);
+    assert.equal(permissionPrompts.length, prompts);
+  });
+
+  test("daily journal targets need no summary and never recurse", async () => {
+    const result = await execute("silverbullet_create", { page: "Journal/2000-01-01", content: "direct entry", change_summary: undefined });
+    assert.equal(result.details.journal.status, "exempt");
+    assert.equal(files.personal.get("Journal/2000-01-01.md")?.content, "direct entry");
+  });
+
+  test("deletion is verified before recording activity", async () => {
+    await execute("silverbullet_create", { page: "Tests/DeleteVerification", content: "keep" });
+    const before = requests.length;
+    pretendDelete = true;
+    try {
+      await assert.rejects(
+        () => execute("silverbullet_update", { page: "Tests/DeleteVerification", action: "delete" }),
+        /deletion verification failed/,
+      );
+    } finally {
+      pretendDelete = false;
+    }
+    assert.equal(requests.slice(before).some((request) => request.page?.startsWith("Journal/")), false);
+  });
+
+  test("partial success returns a restart-safe journal-only retry payload", async () => {
+    failJournalWrites = true;
+    let result: any;
+    try {
+      result = await execute("silverbullet_append", { page: "Tests/Partial", content: "once", operation_id: "caller-partial-1" });
+    } finally {
+      failJournalWrites = false;
+    }
+    assert.equal(files.personal.get("Tests/Partial.md")?.content, "once");
+    assert.equal(result.details.status, "partial_success");
+    assert.equal(result.details.note_status, "succeeded");
+    assert.equal(result.details.journal.status, "failed");
+    assert.match(result.content[0].text, /Do not replay.*silverbullet_journal_retry/);
+    assert.ok(result.content[0].text.includes(JSON.stringify({ retry: result.details.journal.retry })), "model-visible text includes the self-contained retry arguments");
+    const retry = JSON.parse(JSON.stringify(result.details.journal.retry));
+    assert.equal(retry.operation_id, "caller-partial-1");
+    const fresh = await import(`./index.ts?retry=${Date.now()}`);
+    fresh.registerSilverbullet({ registerTool: (tool: any) => { if (tool.name === "silverbullet_journal_retry") tools.set(tool.name, tool); }, on: () => {}, events: { emit: () => {} } } as any, config);
+    const start = requests.length;
+    // The child has no parent module state; only config and the saved payload.
+    const loader = process.execArgv[process.execArgv.indexOf("--import") + 1];
+    assert.ok(loader);
+    const child = spawn(process.execPath, ["--import", loader, "--input-type=module", "--eval", `
+      import { registerSilverbullet } from ${JSON.stringify(new URL("./index.ts", import.meta.url).href)};
+      let input = "";
+      for await (const chunk of process.stdin) input += chunk;
+      const { config, retry } = JSON.parse(input);
+      let retryTool;
+      registerSilverbullet({ registerTool: tool => { if (tool.name === "silverbullet_journal_retry") retryTool = tool; }, on() {}, events: { emit() {} } }, config);
+      const result = await retryTool.execute("child-retry", { retry }, undefined, undefined, { hasUI: false });
+      console.log(JSON.stringify(result));
+    `], { stdio: ["pipe", "pipe", "pipe"] });
+    let output = "";
+    let errors = "";
+    child.stdout.on("data", (chunk) => { output += chunk; });
+    child.stderr.on("data", (chunk) => { errors += chunk; });
+    const finished = new Promise<void>((resolve, reject) => {
+      child.on("error", reject);
+      child.on("close", (code) => code === 0 ? resolve() : reject(new Error(`Retry child failed (${code}): ${errors}`)));
+    });
+    child.stdin.end(JSON.stringify({ config, retry }));
+    await finished;
+    assert.equal(JSON.parse(output).details.journal.status, "recorded");
+    const retried = await execute("silverbullet_journal_retry", { retry }, { hasUI: false });
+    assert.equal(retried.details.journal.status, "already_recorded");
+    const again = await execute("silverbullet_journal_retry", { retry });
+    assert.equal(again.details.journal.status, "already_recorded");
+    assert.ok(requests.slice(start).every((request) => request.page === retry.journal_page));
+    assert.equal(files.personal.get("Tests/Partial.md")?.content, "once");
+    const journal = files.personal.get(retry.journal_page)?.content ?? "";
+    assert.equal(journal.split(`<!-- inigo-journal:${retry.marker_id} -->`).length - 1, 1);
+  });
+
+  test("journal entries cannot inject markup through summary or unusual note names", async () => {
+    const result = await execute("silverbullet_create", {
+      page: "Tests/Brackets]]", content: "safe", change_summary: "Saved <!-- hidden --> [[Other]]",
+    });
+    const journal = files.personal.get(result.details.journal.page)?.content ?? "";
+    assert.match(journal, /Tests\/Brackets%5D%5D/);
+    assert.ok(journal.includes("](</Tests/Brackets%5D%5D.md>)"));
+    assert.match(journal, /Saved &lt;!-- hidden --&gt;/);
+    assert.doesNotMatch(journal, /\[\[Other\]\]/);
+  });
+
+  test("validates summaries and caller IDs before any mutation or approval", async () => {
+    const before = requests.length;
+    const prompts = permissionPrompts.length;
+    for (const name of ["silverbullet_create", "silverbullet_append", "silverbullet_update"]) {
+      for (const change_summary of [undefined, "", "  ", "two\nlines", "x".repeat(281)]) {
+        await assert.rejects(() => execute(name, { page: "Tests/Invalid", content: "note", action: "delete", change_summary }), /change_summary/);
+      }
+      await assert.rejects(() => execute(name, { page: "Tests/Invalid", content: "note", action: "delete", operation_id: "invalid id" }), /operation_id/);
+    }
+    assert.equal(requests.length, before);
+    assert.equal(permissionPrompts.length, prompts);
+  });
+
+  test("New York date boundaries and DST do not use the UTC or host date", async (t) => {
+    t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-01-02T04:59:59Z") });
+    const cases = [
+      ["2026-01-02T04:59:59Z", "2026-01-01"],
+      ["2026-01-02T05:00:00Z", "2026-01-02"],
+      ["2026-07-02T03:59:59Z", "2026-07-01"],
+      ["2026-07-02T04:00:00Z", "2026-07-02"],
+    ];
+    for (const [instant, day] of cases) {
+      t.mock.timers.setTime(new Date(instant).getTime());
+      const result = await execute("silverbullet_create", { page: `Tests/Date-${instant.replaceAll(":", "-")}`, content: "date" });
+      assert.equal(result.details.journal.page, `Journal/${day}.md`);
+    }
+  });
+
+  test("failed and denied note writes never touch the journal", async () => {
+    await execute("silverbullet_create", { page: "Tests/Failure", content: "original" });
+    let start = requests.length;
+    permissionChoices.push("Deny");
+    await assert.rejects(() => execute("silverbullet_update", { page: "Tests/Failure", action: "delete" }), /cancelled/);
+    assert.ok(requests.slice(start).every((request) => request.page === "Tests/Failure.md" && request.method === "GET"));
+    rejectedWrites.add("Tests/Failure.md");
+    start = requests.length;
+    try {
+      for (const [name, params] of [
+        ["silverbullet_append", { content: "blocked" }],
+        ["silverbullet_update", { action: "replace_page", content: "blocked" }],
+        ["silverbullet_update", { action: "delete" }],
+      ] as const) {
+        await assert.rejects(() => execute(name, { page: "Tests/Failure", ...params }), /write rejected/);
+      }
+    } finally {
+      rejectedWrites.delete("Tests/Failure.md");
+    }
+    assert.ok(requests.slice(start).every((request) => request.page === "Tests/Failure.md"));
+    assert.equal(files.personal.get("Tests/Failure.md")?.content, "original");
+    rejectedWrites.add("Tests/FailedCreate.md");
+    try {
+      await assert.rejects(() => execute("silverbullet_create", { page: "Tests/FailedCreate", content: "blocked" }), /write rejected/);
+    } finally {
+      rejectedWrites.delete("Tests/FailedCreate.md");
+    }
+    assert.equal(files.personal.has("Tests/FailedCreate.md"), false);
+  });
+
+  test("retry detects a persisted marker after journal commit but failed verification", async () => {
+    failJournalReadAfterWrite = true;
+    let result: any;
+    try {
+      result = await execute("silverbullet_create", { page: "Tests/AmbiguousJournal", content: "once" });
+    } finally {
+      failJournalReadAfterWrite = false;
+    }
+    assert.equal(result.details.status, "partial_success");
+    const start = requests.length;
+    const retried = await execute("silverbullet_journal_retry", { retry: result.details.journal.retry });
+    assert.equal(retried.details.journal.status, "already_recorded");
+    assert.deepEqual(requests.slice(start).map((request) => request.method), ["GET"]);
+  });
+
+  test("all mutation kinds return recoverable partial journal results without replay", async () => {
+    await execute("silverbullet_create", { page: "Tests/PartialUpdate", content: "first" });
+    for (const [name, params] of [
+      ["silverbullet_create", { page: "Tests/PartialCreate", content: "first" }],
+      ["silverbullet_update", { page: "Tests/PartialUpdate", action: "replace_page", content: "second" }],
+      ["silverbullet_update", { page: "Tests/PartialUpdate", action: "replace_text", find: "second", replacement: "third" }],
+      ["silverbullet_update", { page: "Tests/PartialUpdate", action: "delete" }],
+    ] as const) {
+      failJournalWrites = true;
+      let result: any;
+      try { result = await execute(name, params); } finally { failJournalWrites = false; }
+      assert.equal(result.details.status, "partial_success");
+      const retry = result.details.journal.retry;
+      failJournalWrites = true;
+      try {
+        const failed = await execute("silverbullet_journal_retry", { retry });
+        assert.equal(failed.details.status, "journal_failed");
+        assert.deepEqual(failed.details.journal.retry, retry);
+      } finally { failJournalWrites = false; }
+      const retried = await execute("silverbullet_journal_retry", { retry });
+      assert.equal(retried.details.journal.status, "recorded");
+      if (retry.action === "delete") {
+        const line = files.personal.get(retry.journal_page)!.content.split("\n").find((line) => line.includes(retry.marker_id))!;
+        assert.match(line, /Deleted Tests\/PartialUpdate\.md — Updated test note/);
+        assert.doesNotMatch(line, /\[\[/);
+        assert.equal(files.personal.has("Tests/PartialUpdate.md"), false);
+      }
+    }
+  });
+
+  test("read-only journal yields partial success and retry preserves existing journal bytes", async () => {
+    const seed = await execute("silverbullet_create", { page: "Tests/ReadonlySeed", content: "seed" });
+    const page = seed.details.journal.page;
+    const file = files.personal.get(page)!;
+    const prefix = file.content;
+    file.permission = "ro";
+    let result: any;
+    try {
+      result = await execute("silverbullet_create", { page: "Tests/ReadonlyJournal", content: "saved" });
+      assert.equal(result.details.status, "partial_success");
+      assert.match(result.details.journal.error, /read-only/);
+      assert.equal(files.personal.get(page)!.content, prefix);
+    } finally { file.permission = "rw"; }
+    await execute("silverbullet_journal_retry", { retry: result.details.journal.retry });
+    assert.ok(files.personal.get(page)!.content.startsWith(prefix));
+  });
+
+  test("tampered retry payloads cannot cross spaces or write arbitrary paths", async () => {
+    const result = await execute("silverbullet_create", { page: "Tests/RetryValidation", content: "saved" });
+    const retry = result.details.journal.retry;
+    const start = requests.length;
+    for (const override of [
+      { space: "ksp" }, { space: "missing" }, { page: "../escape.md" }, { page: "Library/Owned.md" },
+      { journal_page: "Tests/Escape.md" }, { journal_page: "Journal/../Escape.md" },
+      { marker_id: "0".repeat(64) }, { action: "execute" }, { change_summary: "different" }, { operation_id: "" },
+    ]) {
+      await assert.rejects(() => execute("silverbullet_journal_retry", { retry: { ...retry, ...override } }));
+    }
+    assert.equal(requests.length, start);
+  });
+
+  test("concurrent journal appends serialize and repeated caller IDs deduplicate journaling only", async () => {
+    const results = await Promise.all(["A", "B", "C"].map((suffix) => execute("silverbullet_create", { page: `Tests/Concurrent${suffix}`, content: suffix })));
+    const journal = files.personal.get(results[0].details.journal.page)!.content;
+    for (const result of results) assert.ok(journal.includes(result.details.journal.retry.marker_id));
+    const first = await execute("silverbullet_append", { page: "Tests/CallerId", content: "first", operation_id: "same-logical-operation" });
+    const second = await execute("silverbullet_append", { page: "Tests/CallerId", content: "second", operation_id: "same-logical-operation" });
+    assert.equal(second.details.journal.status, "already_recorded");
+    assert.equal(first.details.journal.retry.marker_id, second.details.journal.retry.marker_id);
+    assert.equal(files.personal.get("Tests/CallerId.md")!.content, "first\nsecond");
+  });
+
+  test("successful writes append a same-space link and brief summary to the New York journal", async () => {
+    const date = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    const personalBefore = files.personal.get(`Journal/${date}.md`)?.content;
+    const result = await execute("silverbullet_create", {
+      space: "ksp", page: "Tests/Journaled", content: "note", change_summary: "Recorded deployment decision",
+    });
+    assert.equal(result.details.journal.status, "recorded");
+    assert.equal(result.details.journal.page, `Journal/${date}.md`);
+    assert.match(files.ksp.get(`Journal/${date}.md`)?.content ?? "", /\[\[Tests\/Journaled\]\] — Recorded deployment decision/);
+    assert.equal(files.personal.get(`Journal/${date}.md`)?.content, personalBefore);
   });
 });
 

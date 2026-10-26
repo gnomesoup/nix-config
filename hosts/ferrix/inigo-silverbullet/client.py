@@ -392,6 +392,8 @@ class SilverBulletClient:
             return self._opener.open(request, timeout=REQUEST_TIMEOUT_SECONDS)
         except HTTPError as error:
             try:
+                if error.code in {409, 412}:
+                    raise ConflictError(f"SilverBullet conflict for {page}; read again and reconcile.") from error
                 if error.code == 404:
                     raise MissingPageError(f"SilverBullet page not found: {page or '/.fs'}.") from error
                 if 300 <= error.code < 400:
@@ -537,7 +539,7 @@ class SilverBulletClient:
             verified = self.read_file(space, destination, self.config.max_upload_bytes)
             if verified.body != body:
                 raise SilverBulletError("SilverBullet upload verification failed.")
-        path = urlsplit(space.base_url).path + "/" + self._encoded_page(destination)
+        path = "/" + self._encoded_page(destination)
         label = destination.rsplit("/", 1)[-1].replace("[", "\\[").replace("]", "\\]")
         return {
             "space": space.name, "label": space.label, "file": destination,
@@ -562,12 +564,13 @@ class SilverBulletClient:
                 "Read the page again and reconcile the changes."
             )
 
-    def _put(self, space: Space, page: str, content: str, metadata: Metadata | None = None) -> Snapshot:
+    def _put(self, space: Space, page: str, content: str, metadata: Metadata | None = None,
+             *, create_only: bool = False) -> Snapshot:
         self._assert_allowed(space, page, write=True)
         body = content.encode("utf-8")
         if len(body) > self.config.max_content_bytes:
             raise SilverBulletError(f"SilverBullet content exceeds the {self.config.max_content_bytes}-byte write limit.")
-        with self._request(space, "PUT", page, body=body, metadata=metadata) as response:
+        with self._request(space, "PUT", page, body=body, metadata=metadata, create_only=create_only) as response:
             self._read_limited(response, 16 * 1024)
         verified = self.read_page(space, page)
         if verified.body != body:
@@ -577,6 +580,11 @@ class SilverBulletClient:
     def _delete(self, space: Space, page: str, metadata: Metadata) -> None:
         with self._request(space, "DELETE", page, metadata=metadata) as response:
             self._read_limited(response, 16 * 1024)
+        try:
+            self.read_page(space, page)
+        except MissingPageError:
+            return
+        raise SilverBulletError(f"SilverBullet delete verification failed for {page}.")
 
     def create(self, space: Space, page: str, content: str) -> Snapshot:
         with self._mutation_lock:
@@ -594,6 +602,8 @@ class SilverBulletClient:
             if current.metadata.permission == "ro":
                 raise SilverBulletError(f"SilverBullet page is read-only: {page}.")
             self._assert_version(current, expected_last_modified)
+            if current.content == content:
+                return current
             return self._put(space, page, content, current.metadata)
 
     def append(self, space: Space, page: str, content: str, expected_last_modified: Any = None) -> tuple[Snapshot, bool]:
@@ -601,7 +611,7 @@ class SilverBulletClient:
             try:
                 current = self.read_page(space, page)
             except MissingPageError:
-                return self._put(space, page, content), True
+                return self._put(space, page, content, create_only=True), True
             self._assert_allowed(space, page, write=True)
             if current.metadata.permission == "ro":
                 raise SilverBulletError(f"SilverBullet page is read-only: {page}.")

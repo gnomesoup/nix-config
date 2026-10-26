@@ -1,7 +1,7 @@
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize, truncateHead } from "@earendil-works/pi-coding-agent";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { isAbsolute } from "node:path";
 import { readFileSync, statSync } from "node:fs";
 import { Type } from "typebox";
@@ -219,6 +219,18 @@ function isSystemPath(page: string): boolean {
 
 function assertWritablePath(page: string): void {
   if (isSystemPath(page)) throw new Error(`SilverBullet managed path is read-only to Pi: ${page}`);
+}
+
+function isJournalPage(page: string): boolean {
+  return /^Journal\/\d{4}-\d{2}-\d{2}\.md$/.test(page);
+}
+
+function validateChangeSummary(page: string, summary?: string): string {
+  if (isJournalPage(page)) return "";
+  if (typeof summary !== "string" || !summary.trim() || summary.trim().length > 280 || /[\r\n\u0000-\u001f\u007f]/.test(summary)) {
+    throw new Error("Non-journal mutations require change_summary: a brief, non-empty single line (maximum 280 characters).");
+  }
+  return summary.trim();
 }
 
 function encodePagePath(page: string): string {
@@ -451,6 +463,13 @@ async function deletePage(
   const response = await request(config, space, ctx, "DELETE", page, undefined, metadata);
   await response.body?.cancel();
   invalidateCache(space, page);
+  try {
+    await readPage(config, space, ctx, page);
+  } catch (error) {
+    if (error instanceof MissingPageError) return;
+    throw error;
+  }
+  throw new Error(`SilverBullet deletion verification failed for ${page}; page still exists.`);
 }
 
 async function withPageLock<T>(space: ResolvedSpace, page: string, operation: () => Promise<T>): Promise<T> {
@@ -491,6 +510,97 @@ function filteredPages(files: FileEntry[], prefix: string, includeSystem: boolea
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
+interface JournalRetry {
+  space: string;
+  page: string;
+  action: string;
+  change_summary: string;
+  journal_page: string;
+  operation_id: string;
+  marker_id: string;
+}
+
+interface JournalResult {
+  status: string;
+  page?: string;
+  operation_id?: string;
+  retry?: JournalRetry;
+  error?: string;
+}
+
+function journalMarker(space: ResolvedSpace, retry: Omit<JournalRetry, "marker_id">): string {
+  return createHash("sha256").update(JSON.stringify([
+    space.baseUrl, space.name, retry.page, retry.action, retry.change_summary, retry.journal_page, retry.operation_id,
+  ])).digest("hex");
+}
+
+function validateOperationId(operationId?: string): void {
+  if (operationId !== undefined && (typeof operationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(operationId))) {
+    throw new Error("operation_id must contain 1–128 ASCII letters, digits, dots, underscores, colons, or hyphens.");
+  }
+}
+
+function journalText(text: string): string {
+  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+    .replace(/[\\`*_[\]{}|]/g, "\\$&");
+}
+
+async function appendJournal(
+  config: ResolvedConfig, space: ResolvedSpace, ctx: ExtensionContext, retry: JournalRetry,
+): Promise<JournalResult> {
+  try {
+    return await withPageLock(space, retry.journal_page, async () => {
+      let existing: FileSnapshot | undefined;
+      try {
+        existing = await readPage(config, space, ctx, retry.journal_page);
+      } catch (error) {
+        if (!(error instanceof MissingPageError)) throw error;
+      }
+      const marker = `<!-- inigo-journal:${retry.marker_id} -->`;
+      if (existing?.text.includes(marker)) {
+        return { status: "already_recorded", page: retry.journal_page, operation_id: retry.operation_id, retry };
+      }
+      if (existing?.metadata.permission === "ro") throw new Error(`SilverBullet page is read-only: ${retry.journal_page}`);
+      const target = retry.page.replace(/\.md$/, "");
+      const link = /[\[\]|<>]/.test(target)
+        ? `[${journalText(target)}](</${encodePagePath(retry.page)}>)`
+        : `[[${target}]]`;
+      const entry = retry.action === "delete"
+        ? `- Deleted ${journalText(retry.page)} — ${journalText(retry.change_summary)} ${marker}\n`
+        : `- ${link} — ${journalText(retry.change_summary)} ${marker}\n`;
+      const prefix = existing?.text ?? "";
+      await putPage(config, space, ctx, retry.journal_page, `${prefix}${prefix && !prefix.endsWith("\n") ? "\n" : ""}${entry}`, existing?.metadata);
+      return { status: "recorded", page: retry.journal_page, operation_id: retry.operation_id, retry };
+    });
+  } catch (error) {
+    return { status: "failed", page: retry.journal_page, operation_id: retry.operation_id, retry,
+      error: redactSecret(error instanceof Error ? error.message : String(error), config.token) };
+  }
+}
+
+async function journalMutation(
+  config: ResolvedConfig, space: ResolvedSpace, ctx: ExtensionContext,
+  page: string, action: string, changeSummary: string, operationId?: string,
+): Promise<JournalResult> {
+  if (isJournalPage(page)) return { status: "exempt" };
+  const date = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+  const payload = { space: space.name, page, action, change_summary: changeSummary,
+    journal_page: `Journal/${date}.md`, operation_id: operationId ?? randomUUID() };
+  return appendJournal(config, space, ctx, { ...payload, marker_id: journalMarker(space, payload) });
+}
+
+function journalOutcome<T extends { content: Array<{ type: "text"; text: string }>; details: Record<string, unknown> }>(
+  result: T, journal: JournalResult,
+) {
+  const partial = journal.status === "failed";
+  result.content[0].text += partial
+    ? ` Journal failed: ${journal.error}. Do not replay the note mutation; call silverbullet_journal_retry with these arguments:\n${JSON.stringify({ retry: journal.retry })}`
+    : ` Journal: ${journal.status}${journal.page ? ` (${journal.page})` : ""}.`;
+  return { ...result, details: { ...result.details, status: partial ? "partial_success" : "success", note_status: "succeeded", journal } };
+}
+
 function mutationResult(
   action: string,
   space: ResolvedSpace,
@@ -498,15 +608,15 @@ function mutationResult(
   snapshot: FileSnapshot,
   extra: Record<string, unknown> = {},
 ) {
-  return {
+  return journalOutcome({
     content: [
       {
         type: "text" as const,
         text: `[${space.label}] ${action} ${page} (${snapshot.body.byteLength} bytes). Write verified by reading the page back.`,
       },
     ],
-    details: { space: space.name, page, action, bytes: snapshot.body.byteLength, metadata: snapshot.metadata, ...extra },
-  };
+    details: { space: space.name, page, action, changed: true, bytes: snapshot.body.byteLength, metadata: snapshot.metadata, ...extra },
+  }, extra.journal as JournalResult);
 }
 
 async function confirmDestructive(
@@ -547,7 +657,22 @@ function toolSchemas(config: ResolvedConfig) {
       default: config.defaultSpace,
     }),
   );
+  const mutation = {
+    operation_id: Type.Optional(Type.String({ minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9._:-]+$", description: "Optional unique logical operation ID for deterministic journal markers. Does not make note writes idempotent." })),
+    change_summary: Type.Optional(Type.String({ minLength: 1, maxLength: 280, description: "Required for non-journal mutations: very brief single-line change summary. Daily Journal/YYYY-MM-DD.md targets are exempt." })),
+  };
   return {
+    journalRetry: Type.Object({
+      retry: Type.Object({
+        space: StringEnum(Object.keys(config.spaces).sort()),
+        page: Type.String(),
+        action: StringEnum(["create", "append", "replace_page", "replace_text", "delete"] as const),
+        change_summary: Type.String({ minLength: 1, maxLength: 280 }),
+        journal_page: Type.String({ pattern: "^Journal/[0-9]{4}-[0-9]{2}-[0-9]{2}\\.md$" }),
+        operation_id: Type.String({ minLength: 1, maxLength: 128 }),
+        marker_id: Type.String({ pattern: "^[a-f0-9]{64}$" }),
+      }),
+    }),
     search: Type.Object({
       space,
       query: Type.Optional(Type.String({ description: "Literal case-insensitive text to find. Omit to list pages." })),
@@ -565,16 +690,19 @@ function toolSchemas(config: ResolvedConfig) {
     }),
     create: Type.Object({
       space,
+      ...mutation,
       page: Type.String({ description: "New space-relative page path; .md is added when absent." }),
       content: Type.String({ minLength: 1, description: "Complete Markdown content for the new page." }),
     }),
     append: Type.Object({
       space,
+      ...mutation,
       page: Type.String({ description: "Space-relative page path; created when absent." }),
       content: Type.String({ minLength: 1, description: "Markdown content to append." }),
     }),
     update: Type.Object({
       space,
+      ...mutation,
       action: StringEnum(["replace_page", "replace_text", "delete"] as const, {
         description: "Destructive operation; requires interactive approval unless granted for this Pi session.",
       }),
@@ -710,20 +838,22 @@ export function registerSilverbullet(pi: ExtensionAPI, config: ResolvedConfig) {
   pi.registerTool({
     name: "silverbullet_create",
     label: "SilverBullet Create",
-    description: "Create a new SilverBullet Markdown page. Refuses to overwrite an existing page or write managed paths.",
+    description: "Create a new SilverBullet Markdown page. Refuses existing pages and managed paths. Requires change_summary except for daily Journal/YYYY-MM-DD.md targets; automatically appends same-space activity journaling. A partial_success means the note succeeded: retry only silverbullet_journal_retry.",
     parameters: schemas.create,
     executionMode: "sequential",
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const space = resolveSpace(config, params.space);
       const page = normalizePagePath(params.page);
       assertWritablePath(page);
+      const changeSummary = validateChangeSummary(page, params.change_summary);
+      validateOperationId(params.operation_id);
       return withPageLock(space, page, async () => {
         try {
           await readPage(config, space, ctx, page);
         } catch (error) {
           if (!(error instanceof MissingPageError)) throw error;
           const snapshot = await putPage(config, space, ctx, page, params.content);
-          return mutationResult("Created", space, page, snapshot);
+          return mutationResult("Created", space, page, snapshot, { journal: await journalMutation(config, space, ctx, page, "create", changeSummary, params.operation_id) });
         }
         throw new Error(`SilverBullet page already exists: ${page}; use append or an explicitly confirmed update.`);
       });
@@ -733,13 +863,15 @@ export function registerSilverbullet(pi: ExtensionAPI, config: ResolvedConfig) {
   pi.registerTool({
     name: "silverbullet_append",
     label: "SilverBullet Append",
-    description: "Append Markdown to a SilverBullet page, creating it if absent. Refuses managed paths and verifies the result.",
+    description: "Append Markdown to a SilverBullet page, creating it if absent. Refuses managed paths and verifies the result. Requires change_summary except for daily journal targets; automatically journals changes. On partial_success retry only silverbullet_journal_retry, never the note append.",
     parameters: schemas.append,
     executionMode: "sequential",
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const space = resolveSpace(config, params.space);
       const page = normalizePagePath(params.page);
       assertWritablePath(page);
+      const changeSummary = validateChangeSummary(page, params.change_summary);
+      validateOperationId(params.operation_id);
       return withPageLock(space, page, async () => {
         let existing: FileSnapshot | undefined;
         try {
@@ -753,6 +885,7 @@ export function registerSilverbullet(pi: ExtensionAPI, config: ResolvedConfig) {
         const snapshot = await putPage(config, space, ctx, page, next, existing?.metadata);
         return mutationResult(existing ? "Appended to" : "Created", space, page, snapshot, {
           bytesAdded: Buffer.byteLength(params.content, "utf8"),
+          journal: await journalMutation(config, space, ctx, page, "append", changeSummary, params.operation_id),
         });
       });
     },
@@ -762,13 +895,15 @@ export function registerSilverbullet(pi: ExtensionAPI, config: ResolvedConfig) {
     name: "silverbullet_update",
     label: "SilverBullet Update",
     description:
-      "Replace a whole page, replace exact text, or delete a SilverBullet page. Always reads the current page and requests interactive approval, with an optional allow-for-session choice. Managed paths are forbidden.",
+      "Replace a whole page, replace exact text, or delete a SilverBullet page. Reads the current page and requires interactive approval (or session grant) for actual changes. Managed paths are forbidden. Requires change_summary except for daily journal targets; automatically journals verified changes. On partial_success retry only silverbullet_journal_retry.",
     parameters: schemas.update,
     executionMode: "sequential",
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const space = resolveSpace(config, params.space);
       const page = normalizePagePath(params.page);
       assertWritablePath(page);
+      const changeSummary = validateChangeSummary(page, params.change_summary);
+      validateOperationId(params.operation_id);
       return withPageLock(space, page, async () => {
         const existing = await readPage(config, space, ctx, page);
         if (existing.metadata.permission === "ro") throw new Error(`SilverBullet page is read-only: ${page}`);
@@ -782,10 +917,10 @@ export function registerSilverbullet(pi: ExtensionAPI, config: ResolvedConfig) {
             sessionPermission,
           );
           await deletePage(config, space, ctx, page, existing.metadata);
-          return {
+          return journalOutcome({
             content: [{ type: "text", text: `[${space.label}] Deleted ${page}.` }],
-            details: { space: space.name, page, action: "delete", previousBytes: existing.body.byteLength },
-          };
+            details: { space: space.name, page, action: "delete", changed: true, previousBytes: existing.body.byteLength },
+          }, await journalMutation(config, space, ctx, page, "delete", changeSummary, params.operation_id));
         }
 
         let next: string;
@@ -810,6 +945,10 @@ export function registerSilverbullet(pi: ExtensionAPI, config: ResolvedConfig) {
           summary = `Space: ${space.label} (${space.name})\nPage: ${page}\n\nReplace ${params.replaceAll ? replacements : 1} exact occurrence${(params.replaceAll ? replacements : 1) === 1 ? "" : "s"}?`;
         }
 
+        if (next === existing.text) return {
+          content: [{ type: "text" as const, text: `[${space.label}] No change to ${page}; no write or journal entry.` }],
+          details: { space: space.name, page, changed: false, journal: { status: "skipped_noop" } },
+        };
         await confirmDestructive(
           pi,
           ctx,
@@ -818,8 +957,34 @@ export function registerSilverbullet(pi: ExtensionAPI, config: ResolvedConfig) {
           sessionPermission,
         );
         const snapshot = await putPage(config, space, ctx, page, next, existing.metadata);
-        return mutationResult("Updated", space, page, snapshot, replacements === undefined ? {} : { replacements });
+        return mutationResult("Updated", space, page, snapshot, { replacements, journal: await journalMutation(config, space, ctx, page, params.action, changeSummary, params.operation_id) });
       });
+    },
+  });
+
+  pi.registerTool({
+    name: "silverbullet_journal_retry",
+    label: "SilverBullet Journal Retry",
+    description: "Retry ONLY a failed activity journal append using the exact self-contained details.journal.retry payload returned by a note mutation. Never replays the original note write or deletion. Safe after extension restart; journal markers suppress sequential duplicates.",
+    parameters: schemas.journalRetry,
+    executionMode: "sequential",
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const retry = params.retry;
+      const space = resolveSpace(config, retry.space);
+      const page = normalizePagePath(retry.page);
+      assertWritablePath(page);
+      validateChangeSummary(page, retry.change_summary);
+      validateOperationId(retry.operation_id);
+      if (page !== retry.page || isJournalPage(page) || !isJournalPage(retry.journal_page) ||
+          !["create", "append", "replace_page", "replace_text", "delete"].includes(retry.action) ||
+          !retry.operation_id || !/^[a-f0-9]{64}$/.test(retry.marker_id) || journalMarker(space, retry) !== retry.marker_id) {
+        throw new Error("Invalid journal retry payload; use the exact details.journal.retry returned by the mutation.");
+      }
+      const journal = await appendJournal(config, space, ctx, retry);
+      return {
+        content: [{ type: "text", text: `[${space.label}] Journal: ${journal.status} (${retry.journal_page}). Original note was not touched.${journal.error ? ` ${journal.error}. Retry only silverbullet_journal_retry.` : ""}` }],
+        details: { space: space.name, status: journal.status === "failed" ? "journal_failed" : "success", note_status: "not_touched", journal },
+      };
     },
   });
 

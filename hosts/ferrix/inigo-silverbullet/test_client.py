@@ -28,6 +28,11 @@ class State:
     token = "test-secret-token"
     spaces: ClassVar = {"personal": {}, "ksp": {}}
     corrupt_upload = False
+    fail_journal_put = False
+    journal_conflicts = 0
+    journal_puts = 0
+    journal_create_race = False
+    ignore_delete = False
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -116,6 +121,24 @@ class Handler(BaseHTTPRequestHandler):
             return
         length = int(self.headers.get("Content-Length", "0"))
         body = self.rfile.read(length)
+        if page.startswith("Journal/"):
+            if State.journal_create_race and page not in State.spaces[space]:
+                State.journal_create_race = False
+                State.spaces[space][page] = {
+                    "content": "- Concurrent human entry\n", "created": 100, "last_modified": 100,
+                    "permission": "rw",
+                }
+                if self.headers.get("If-None-Match") == "*":
+                    self._send(412, b"created concurrently")
+                    return
+            State.journal_puts += 1
+            if State.fail_journal_put:
+                self._send(503, b"journal unavailable")
+                return
+            if State.journal_conflicts:
+                State.journal_conflicts -= 1
+                self._send(412, b"conflict")
+                return
         if State.corrupt_upload:
             body += b"corrupted"
         State.spaces[space][page] = {
@@ -135,7 +158,8 @@ class Handler(BaseHTTPRequestHandler):
         if not space or page not in State.spaces[space]:
             self._send(404)
             return
-        del State.spaces[space][page]
+        if not State.ignore_delete:
+            del State.spaces[space][page]
         self._send(200, b"OK")
 
 
@@ -180,6 +204,11 @@ class SilverBulletPluginTest(unittest.TestCase):
 
     def setUp(self):
         State.corrupt_upload = False
+        State.fail_journal_put = False
+        State.journal_conflicts = 0
+        State.journal_puts = 0
+        State.journal_create_race = False
+        State.ignore_delete = False
         stamp = 1_750_000_000_000
         State.spaces = {
             "personal": {
@@ -238,7 +267,7 @@ class SilverBulletPluginTest(unittest.TestCase):
         context = self._register()
         self.assertIn("silverbullet_upload_file", context.tools)
         result = self._call(context, "silverbullet_upload_file", {
-            "space": "ksp", "source_path": str(source),
+            "space": "ksp", "source_path": str(source), "change_summary": "Saved attachment",
             "destination": "assets/Desk label.png",
         })
         self.assertNotIn("error", result)
@@ -246,7 +275,7 @@ class SilverBulletPluginTest(unittest.TestCase):
         self.assertEqual(result["bytes"], len(body))
         self.assertEqual(result["metadata"]["content_type"], "image/png")
         self.assertEqual(result["markdown_image"],
-                         "![Desk label.png](/ksp/assets/Desk%20label.png)")
+                         "![Desk label.png](/assets/Desk%20label.png)")
         self.assertEqual(State.spaces["ksp"]["assets/Desk label.png"]["body"], body)
         self.assertNotIn("assets/Desk label.png", State.spaces["personal"])
 
@@ -254,7 +283,7 @@ class SilverBulletPluginTest(unittest.TestCase):
         source = Path(self.temp.name) / "document.pdf"
         source.write_bytes(b"%PDF-1.7\x00\xff")
         context = self._register()
-        args = {"source_path": str(source), "destination": "assets/document.pdf"}
+        args = {"source_path": str(source), "change_summary": "Saved attachment", "destination": "assets/document.pdf"}
         first = self._call(context, "silverbullet_upload_file", args)
         self.assertTrue(first["verified"])
         self.assertIsNone(first["markdown_image"])
@@ -275,14 +304,14 @@ class SilverBulletPluginTest(unittest.TestCase):
                             "assets/.hidden.png", "/assets/test.png", "assets/test.png "):
             with self.subTest(destination=destination):
                 result = self._call(context, "silverbullet_upload_file", {
-                    "source_path": str(source), "destination": destination,
+                    "source_path": str(source), "change_summary": "Saved attachment", "destination": destination,
                 })
                 self.assertIn("error", result)
         for unsafe in ("relative.png", "/etc/passwd", str(Path(self.temp.name) / "missing"),
                        self.temp.name):
             with self.subTest(source=unsafe):
                 result = self._call(context, "silverbullet_upload_file", {
-                    "source_path": unsafe, "destination": "assets/test.png",
+                    "source_path": unsafe, "change_summary": "Saved attachment", "destination": "assets/test.png",
                 })
                 self.assertIn("error", result)
         hidden = Path(self.temp.name) / ".private"
@@ -291,13 +320,13 @@ class SilverBulletPluginTest(unittest.TestCase):
         link.symlink_to("/etc/passwd")
         for unsafe in (hidden, link):
             result = self._call(context, "silverbullet_upload_file", {
-                "source_path": str(unsafe), "destination": "assets/test.png",
+                "source_path": str(unsafe), "change_summary": "Saved attachment", "destination": "assets/test.png",
             })
             self.assertIn("error", result)
         self.settings["max_upload_bytes"] = 4
         limited = self._register()
         result = self._call(limited, "silverbullet_upload_file", {
-            "source_path": str(source), "destination": "assets/test.png",
+            "source_path": str(source), "change_summary": "Saved attachment", "destination": "assets/test.png",
         })
         self.assertIn("max_upload_bytes", result["error"])
         self.assertNotIn("assets/test.png", State.spaces["personal"])
@@ -332,7 +361,7 @@ class SilverBulletPluginTest(unittest.TestCase):
         source = Path(self.temp.name) / "source.png"
         source.write_bytes(b"image")
         result = self._call(context, "silverbullet_upload_file", {
-            "source_path": str(source), "destination": "assets/test.png",
+            "source_path": str(source), "change_summary": "Saved attachment", "destination": "assets/test.png",
         })
         self.assertIn("allowlist", result["error"])
 
@@ -341,7 +370,7 @@ class SilverBulletPluginTest(unittest.TestCase):
         source.write_bytes(b"image")
         State.corrupt_upload = True
         result = self._call(self._register(), "silverbullet_upload_file", {
-            "source_path": str(source), "destination": "assets/test.png",
+            "source_path": str(source), "change_summary": "Saved attachment", "destination": "assets/test.png",
         })
         self.assertIn("verification failed", result["error"])
         self.assertNotIn("verified", result)
@@ -485,6 +514,7 @@ class SilverBulletPluginTest(unittest.TestCase):
             "silverbullet_move",
             "silverbullet_soft_delete",
             "silverbullet_upload_file",
+            "silverbullet_journal_retry",
         })
         self.assertEqual(context.skills[0][0], "silverbullet")
         self.assertEqual(context.sections[0][0][0], "inigo.silverbullet")

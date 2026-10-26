@@ -362,7 +362,7 @@ in
     };
     ".pi/agent/skills/silverbullet" = {
       force = true;
-      source = ../../users/modules/pi/skills/silverbullet;
+      source = ../../agents/skills/silverbullet;
     };
   };
 

@@ -1,12 +1,14 @@
 {
   lib,
   python3,
+  silverbulletSkill ? ../../../agents/skills/silverbullet,
   stdenvNoCC,
+  tzdata,
 }:
 
 stdenvNoCC.mkDerivation {
   pname = "inigo-silverbullet-plugin";
-  version = "0.2.0";
+  version = "0.3.0";
 
   src = lib.fileset.toSource {
     root = ./.;
@@ -15,17 +17,21 @@ stdenvNoCC.mkDerivation {
       ./client.py
       ./plugin.yaml
       ./schemas.py
-      ./skills/silverbullet/SKILL.md
       ./test_client.py
+      ./test_journal.py
+      ./test_shared_skill.py
     ];
   };
 
   nativeCheckInputs = [ python3 ];
+  PYTHONTZPATH = "${tzdata}/share/zoneinfo";
   doCheck = true;
   checkPhase = ''
     runHook preCheck
 
-    python3 -m unittest -v test_client.py
+    mkdir -p skills
+    cp -R ${silverbulletSkill} skills/silverbullet
+    python3 -m unittest discover -v
 
     runHook postCheck
   '';
@@ -35,7 +41,7 @@ stdenvNoCC.mkDerivation {
 
     mkdir -p "$out/skills/silverbullet"
     cp __init__.py client.py plugin.yaml schemas.py "$out/"
-    cp skills/silverbullet/SKILL.md "$out/skills/silverbullet/"
+    cp -R ${silverbulletSkill}/. "$out/skills/silverbullet/"
 
     runHook postInstall
   '';

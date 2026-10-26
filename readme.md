@@ -14,6 +14,13 @@ shared configuration, administrator setup, and required restore acceptance gates
 See the [Ferrix Paseo trial guide](docs/ferrix-paseo.md) for activation, iPhone
 connection, security boundaries, and the custom Ask questionnaire limitation.
 
+## SilverBullet agent notes
+
+Pi and Hermes share the policy in
+[`agents/skills/silverbullet/SKILL.md`](agents/skills/silverbullet/SKILL.md).
+See the [journal integration guide](docs/silverbullet-agent-journal.md) for
+automatic activity logging, retry behavior, tests, and deployment.
+
 ## Installation
 
 ### Nix-Darwin

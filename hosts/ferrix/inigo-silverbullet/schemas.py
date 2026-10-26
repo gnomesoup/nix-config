@@ -156,4 +156,25 @@ UPLOAD_FILE = schema(
     ["source_path", "destination"],
 )
 
-ALL = [LIST_PAGES, SEARCH, READ, CREATE, UPDATE, APPEND, MOVE, SOFT_DELETE, UPLOAD_FILE]
+CHANGE_SUMMARY = {
+    "type": "string", "minLength": 1, "maxLength": 240,
+    "description": (
+        "Required for non-journal mutations, including uploads; omitted for daily Journal/YYYY-MM-DD.md edits. "
+        "Brief single-line explanation of what changed. Safely rendered as text in the automatic "
+        "same-space America/New_York daily journal. Unchanged updates and already-present uploads are not logged."
+    ),
+}
+for mutation in (CREATE, UPDATE, APPEND, MOVE, SOFT_DELETE, UPLOAD_FILE):
+    mutation["parameters"]["properties"]["change_summary"] = CHANGE_SUMMARY
+
+JOURNAL_RETRY = schema(
+    "silverbullet_journal_retry",
+    "Retry only failed daily journal logging using the exact returned journal.retry payload. "
+    "Never repeats the note mutation; journal operation markers make retries idempotent across restarts.",
+    {"space": SPACE, "journal_page": {"type": "string", "description": "Exact returned Journal/YYYY-MM-DD.md path."},
+     "entry": {"type": "string", "description": "Exact returned journal entry."},
+     "operation_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"}},
+    ["space", "journal_page", "entry", "operation_id"],
+)
+
+ALL = [LIST_PAGES, SEARCH, READ, CREATE, UPDATE, APPEND, MOVE, SOFT_DELETE, UPLOAD_FILE, JOURNAL_RETRY]
