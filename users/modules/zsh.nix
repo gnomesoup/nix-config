@@ -305,10 +305,6 @@ in
         source "$activate_script"
       }
 
-      if command -v opencode >/dev/null 2>&1; then
-        source <(opencode completion)
-      fi
-
       if [[ -d /proc/sys/fs/binfmt_misc ]] && [[ -f /proc/sys/fs/binfmt_misc/WSLInterop || -n "$WSL_DISTRO_NAME" ]]; then
         if command -v wslpath >/dev/null 2>&1; then
           __wsl_path_is_windows_drive() {
