@@ -9,16 +9,10 @@ let
   wide = {
 
     "$schema" = "https://starship.rs/config-schema.json";
-    # Each optional section owns its caps, so absent modules leave no arrows.
-    format = lib.concatStrings [
-      "[](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)"
-      "$username[](fg:color_purple2 bg:color_bg3)$directory[](color_bg3)"
-      "( [](color_bg1)$git_branch$git_status[](color_bg1))"
-      "( [](color_blue)$c$cpp$rust$golang$nodejs$php$java$kotlin$haskell$python[](color_blue))"
-      "( [](color_bg1)$nix_shell$conda[](color_bg1))"
-      "( [](color_purple2)$time[](color_purple2))"
-      "$line_break$character"
-    ];
+    # Preserve the original wide prompt, including its connected ribbon.
+    format = ''
+      [](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)$username[](fg:color_purple2 bg:color_bg3)$directory[](fg:color_bg3 bg:color_bg1)$git_branch$git_status[](fg:color_bg1 bg:color_blue)$c$cpp$rust$golang$nodejs$php$java$kotlin$haskell$python[](fg:color_blue bg:color_bg1)$nix_shell$conda[](fg:color_bg1 bg:color_purple2)$time[ ](fg:color_purple2)$line_break$character
+    '';
     palette = "spacemacs";
     palettes.spacemacs = {
       color_fg0 = "#b2b2b2";
@@ -86,12 +80,9 @@ let
       format = "[ $path ]($style)";
       truncation_length = 3;
       truncation_symbol = "…/";
-      truncate_to_repo = false;
     };
     git_branch = {
       symbol = "";
-      truncation_length = 24;
-      truncation_symbol = "…";
       style = "bg:color_bg1";
       format = "[[ $symbol $branch ](fg:color_green bg:color_bg1)]($style)";
     };
@@ -182,43 +173,44 @@ let
     };
   };
   compact = lib.recursiveUpdate wide {
-    format = "($username$hostname\n)$directory$git_branch$git_status$nix_shell$conda$python$line_break$character";
-    username = {
-      show_always = false;
-      style_user = "bold color_yellow";
-      style_root = "bold color_red";
-      format = "[$user]($style) ";
-    };
-    hostname = {
-      ssh_only = true;
-      style = "bold color_yellow";
-      format = "[@$hostname]($style)";
-    };
+    format = lib.concatStrings [
+      "[](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)"
+      "$username[](fg:color_purple2 bg:color_bg3)$directory"
+      "[](fg:color_bg3 bg:color_bg1)$git_branch$git_status"
+      "[](fg:color_bg1 bg:color_blue)$env_var$nix_shell[ ](color_blue)"
+      "$line_break$character"
+    ];
     directory = {
-      style = "fg:color_purple bg:color_bg3";
-      truncation_length = 2;
+      truncation_length = 1;
+      truncation_symbol = "";
+      truncate_to_repo = false;
     };
     git_branch = {
       truncation_length = 16;
-      format = "[ $symbol $branch](color_green)";
+      truncation_symbol = "…";
     };
-    git_status.format = "[ $all_status$ahead_behind](color_green)";
-    nix_shell.format = "[ $symbol( $name)](color_blue)";
-    conda.format = "[ $symbol $environment](color_blue)";
-    python.format = "[( $symbol $virtualenv)](color_blue)";
+    # Environment presence only: do not print versions or long environment names.
+    env_var = {
+      VIRTUAL_ENV = {
+        variable = "VIRTUAL_ENV";
+        format = "[  ](fg:color_bg1 bg:color_blue)";
+      };
+      CONDA_DEFAULT_ENV = {
+        variable = "CONDA_DEFAULT_ENV";
+        format = "[  ](fg:color_bg1 bg:color_blue)";
+      };
+    };
+    nix_shell.format = "[ $symbol ](fg:color_bg1 bg:color_blue)";
   };
   minimal = lib.recursiveUpdate compact {
-    format = "($username$hostname\n)$directory$git_branch$git_status$line_break$character";
-    directory = {
-      style = "color_purple";
-      format = "[$path]($style)";
-      truncation_length = 1;
-      truncation_symbol = "";
-    };
-    git_branch = {
-      truncation_length = 10;
-      format = "[ $branch](color_green)";
-    };
+    # Deliberate ribbon break instead of letting the terminal split a segment.
+    format = lib.concatStrings [
+      "[](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)"
+      "$username[](fg:color_purple2 bg:color_blue)$env_var$nix_shell[ ](color_blue)"
+      "$line_break[](color_bg3)$directory[](fg:color_bg3 bg:color_bg1)"
+      "$git_branch$git_status[ ](color_bg1)$line_break$character"
+    ];
+    git_branch.truncation_length = 8;
   };
   compactFile = toml.generate "starship-compact.toml" compact;
   minimalFile = toml.generate "starship-minimal.toml" minimal;

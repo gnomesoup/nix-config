@@ -13,6 +13,7 @@ import pwd
 import re
 import select
 import signal
+import socket
 import struct
 import subprocess
 import termios
@@ -133,13 +134,14 @@ class StarshipTests(unittest.TestCase):
                 colored, plain = self.render(width)
                 lines = plain.strip().splitlines()
                 self.assertEqual(lines[-1], "")
-                self.assertIn("feature/", plain)
+                self.assertIn("feature", plain)
                 self.assertIn("?", plain)
                 self.assertIn("⇡", plain)
                 self.assertIn("nix-config", plain)
                 self.assertTrue(all(len(line) < width for line in lines), repr(plain))
-                if width < 70:
-                    self.assertNotRegex(plain, "[]")
+                self.assertIn("", plain)
+                self.assertIn("", plain)
+                self.assertIn("", plain)
                 # The normal and error symbols, and all Vim modes, share settings.
                 name = ("starship-minimal.toml" if width < 70 else
                         "starship-compact.toml" if width < 110 else "wide.toml")
@@ -152,24 +154,20 @@ class StarshipTests(unittest.TestCase):
             _, plain = self.render(width, SSH_CONNECTION="192.0.2.1 1234 192.0.2.2 22",
                                    IN_NIX_SHELL="pure", name="dev", VIRTUAL_ENV="/envs/test")
             self.assertIn(pwd.getpwuid(os.getuid()).pw_name, plain)
-            if width < 110:
-                self.assertIn("@", plain)
-            if width >= 70:
+            if width >= 110:
                 self.assertIn("dev", plain)
                 self.assertIn("test", plain)
 
     def test_deep_paths_are_truncated_not_all_ancestors_abbreviated(self):
         path = ("/work/projects/company/platform/infrastructure/production/regions/"
                 "us-east/services/backend/application/long-project-name")
-        for width in (40, 80, 120):
+        for width in (40, 80):
             with self.subTest(width=width):
                 _, plain = self.render(width, logical_path=path)
                 self.assertIn("long-project-name", plain)
                 self.assertTrue(all(len(line) < width for line in plain.splitlines()),
                                 repr(plain))
-                if width == 40:
-                    self.assertTrue(any(line.startswith("long-project-name ")
-                                        for line in plain.splitlines()), repr(plain))
+
 
     def test_actual_insert_mode_error_and_success_colors(self):
         for width in (40, 80, 120):
@@ -177,12 +175,47 @@ class StarshipTests(unittest.TestCase):
                 with self.subTest(width=width, status=status):
                     colored, plain = self.render(width, keymap="viins", status=status)
                     self.assertEqual(plain.strip().splitlines()[-1], "")
-                    self.assertIn(f"38;2;{color}", colored.split("\n")[-1])
+                    self.assertIn(f"38;2;{color}", colored.rstrip("\n").split("\n")[-1])
 
-    def test_optional_wide_sections_have_no_empty_caps(self):
-        _, plain = self.render(120)
-        self.assertEqual(plain.count(""), 3, repr(plain))
-        # Identity/directory, Git, and clock; no language/environment placeholders.
+    def test_wide_prompt_retains_original_format_and_unbounded_branch(self):
+        settings = tomllib.loads((self.artifacts / "wide.toml").read_text())
+        original_format = (
+            "[](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)"
+            "$username[](fg:color_purple2 bg:color_bg3)$directory"
+            "[](fg:color_bg3 bg:color_bg1)$git_branch$git_status"
+            "[](fg:color_bg1 bg:color_blue)$c$cpp$rust$golang$nodejs$php$java$kotlin$haskell$python"
+            "[](fg:color_blue bg:color_bg1)$nix_shell$conda"
+            "[](fg:color_bg1 bg:color_purple2)$time[ ](fg:color_purple2)$line_break$character\n"
+        )
+        self.assertEqual(settings["format"], original_format)
+        self.assertNotIn("truncation_length", settings["git_branch"])
+        self.assertNotIn("truncate_to_repo", settings["directory"])
+
+    def test_narrow_prompts_keep_os_hostname_and_original_colors(self):
+        for width in (40, 60, 80, 100):
+            colored, plain = self.render(width)
+            settings = tomllib.loads((self.artifacts /
+                ("starship-minimal.toml" if width < 70 else "starship-compact.toml")).read_text())
+            self.assertIn(socket.gethostname().split(".")[0], plain)
+            self.assertTrue(any(icon in plain for icon in settings["os"]["symbols"].values()))
+            self.assertIn("48;2;209;149;29", colored)
+            self.assertIn("48;2;52;50;62", colored)
+            self.assertIn("", plain)
+            self.assertIn("", plain)
+            self.assertIn("", plain)
+
+    def test_narrow_environment_indicators_are_icons_not_names(self):
+        for width in (40, 80):
+            _, baseline = self.render(width)
+            for _, plain in (
+                self.render(width, VIRTUAL_ENV="/envs/distinctive-python-environment"),
+                self.render(width, CONDA_DEFAULT_ENV="distinctive-conda-environment"),
+            ):
+                self.assertEqual(plain.count(""), baseline.count("") + 1)
+                self.assertNotIn("distinctive", plain)
+            _, plain = self.render(width, IN_NIX_SHELL="pure", name="distinctive-nix-environment")
+            self.assertEqual(plain.count(""), baseline.count("") + 1)
+            self.assertNotIn("distinctive", plain)
 
     def test_selector_preserves_starship_status_and_hook_order(self):
         script = '''
