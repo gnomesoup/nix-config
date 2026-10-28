@@ -63,9 +63,10 @@ Safely maintain the multi-host flake in the current working directory. Prefer de
 ### Starship prompt changes
 
 - Preserve the original wide prompt exactly unless explicitly asked to redesign it.
-  Narrow layouts retain its connected Powerline ribbon, palette, OS icon, and
-  hostname. Use Python/Conda and Nix logos to indicate active environments without
-  spending width on environment names or runtime versions.
+  Measure actual rendered width instead of using fixed breakpoints. Try the full
+  prompt, then remove time, then blank the username while retaining its colored
+  slot and arrows, and only then move the path alone to the next line. Keep all
+  other modules, their order, the OS icon, hostname, palette, and arrows unchanged.
 - Run `terminal(command="python3 users/modules/starship_test.py")` for generated
   TOML, real rendering, and live Zsh resizing with typed input, failure status,
   pipelines, and Vim-mode transitions. Check appearance as well as line lengths.
@@ -75,5 +76,9 @@ Safely maintain the multi-host flake in the current working directory. Prefer de
 - Register width-selection hooks after Home Manager's Starship initialization so
   Starship captures command status first. Use a ZLE pre-redraw hook for resizing;
   checking only the next command's prompt can hide a broken live resize.
+- When measuring Zsh prompt text, disable `promptsubst` locally so data cannot
+  execute commands. Its `%l` condition counts from the latest automatic wrap:
+  use a locally enlarged `COLUMNS` while comparing against the real width. Test
+  Unicode display cells, ANSI escape handling, and exact-width boundaries.
 
 A change is complete only when formatting passes, the relevant evaluation or build succeeds, `git diff --check` is clean, and `git status` shows only intentional files.

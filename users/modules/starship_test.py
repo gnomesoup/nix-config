@@ -1,11 +1,8 @@
-"""Integration tests for the generated prompts and Zsh width selection.
+"""Real Starship/Zsh integration tests: python3 users/modules/starship_test.py."""
 
-Run: python3 users/modules/starship_test.py
-Builds a minimal Home Manager profile using the repository's locked inputs.
-"""
-
-import json
+import ctypes
 import fcntl
+import json
 import os
 from pathlib import Path
 import pty
@@ -16,14 +13,31 @@ import signal
 import socket
 import struct
 import subprocess
-import termios
 import tempfile
+import termios
 import time
 import tomllib
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
+LAYOUTS = {
+    "full": "wide.toml",
+    "no-time": "starship-no-time.toml",
+    "no-username": "starship-no-username.toml",
+    "path-below": "starship-path-below.toml",
+}
+
+
+def plain(text):
+    return re.sub(r"\x1b\[[0-9;]*m", "", text).replace("%{", "").replace("%}", "")
+
+
+def line_width(text):
+    # Use the same locale-aware display-cell accounting as Zsh, not Python len().
+    libc = ctypes.CDLL(None)
+    libc.wcswidth.argtypes = [ctypes.c_wchar_p, ctypes.c_size_t]
+    return libc.wcswidth(text, len(text))
 
 
 class StarshipTests(unittest.TestCase):
@@ -67,7 +81,7 @@ class StarshipTests(unittest.TestCase):
         cls.project = Path(cls.scratch.name) / "work" / "projects" / "nix-config"
         cls.project.mkdir(parents=True)
         for args in (
-            ["init", "-b", "feature/a-very-long-branch-name-for-narrow-windows"],
+            ["init", "-b", "main"],
             ["-c", "user.name=Prompt Test", "-c", "user.email=test@example.invalid",
              "commit", "--allow-empty", "-m", "fixture"],
             ["branch", "upstream"],
@@ -79,106 +93,144 @@ class StarshipTests(unittest.TestCase):
                            capture_output=True, check=True)
         (cls.project / "untracked").touch()
 
-    def render(self, width, logical_path=None, keymap="vicmd", status=1, **environment):
-        name = ("starship-minimal.toml" if width < 70 else
-                "starship-compact.toml" if width < 110 else "wide.toml")
-        env = {**os.environ, "STARSHIP_CONFIG": str(self.artifacts / name),
-               "STARSHIP_SHELL": "zsh", "TERM": "xterm-256color",
+    def environment(self, **changes):
+        env = {**os.environ, "STARSHIP_SHELL": "zsh", "TERM": "xterm-256color",
+               "HOME": self.scratch.name, "PWD": str(self.project),
                "USER": pwd.getpwuid(os.getuid()).pw_name,
                "LOGNAME": pwd.getpwuid(os.getuid()).pw_name}
         for variable in ("SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY", "VIRTUAL_ENV",
                          "CONDA_DEFAULT_ENV", "IN_NIX_SHELL", "name"):
             env.pop(variable, None)
-        env.update(environment)
-        command = [str(self.artifacts / "starship"), "prompt", "--terminal-width", str(width),
-                   "--path", str(self.project), "--status", str(status), "--keymap", keymap]
-        if logical_path is not None:
-            command.extend(["--logical-path", logical_path])
+        return {**env, **changes}
+
+    def render(self, layout, width=4096, keymap="viins", status=0, environment=None):
+        env = self.environment(STARSHIP_CONFIG=str(self.artifacts / LAYOUTS[layout]),
+                               **(environment or {}))
         result = subprocess.run(
-            command,
+            [str(self.artifacts / "starship"), "prompt", "--terminal-width", str(width),
+             "--path", str(self.project), "--status", str(status), "--keymap", keymap],
             env=env, text=True, capture_output=True, check=True,
         )
         self.assertEqual(result.stderr, "")
-        plain = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
-        return result.stdout, plain.replace("%{", "").replace("%}", "")
+        return result.stdout
 
-    def test_width_layouts_are_generated(self):
-        for name in ("wide.toml", "starship-compact.toml", "starship-minimal.toml"):
+    def shell(self, script, *arguments, **environment):
+        result = subprocess.run(
+            ["zsh", "-dfc", script, "test", str(self.artifacts / "init.zsh"),
+             *map(str, arguments)], cwd=self.project,
+            env=self.environment(**environment), text=True, capture_output=True, check=True,
+        )
+        self.assertEqual(result.stderr, "")
+        return result.stdout
+
+    def selected(self, width, **environment):
+        return self.shell('''
+          COLUMNS=$2
+          source "$1"
+          _inigo_starship_select
+          print -r -- "$_inigo_starship_layout"
+        ''', width, **environment).strip()
+
+    def widths(self, **environment):
+        return {layout: max(map(line_width, plain(self.render(layout, environment=environment)).splitlines()))
+                for layout in LAYOUTS}
+
+    def settings(self, layout):
+        return tomllib.loads((self.artifacts / LAYOUTS[layout]).read_text())
+
+    def test_four_progressive_layouts_are_generated(self):
+        for name in LAYOUTS.values():
             with self.subTest(name=name):
                 self.assertTrue((self.artifacts / name).is_file(), name)
 
-    def test_zsh_selects_layout_at_boundaries(self):
-        script = '''
+    def test_only_requested_fields_change_at_each_stage(self):
+        full = self.settings("full")
+        no_time = self.settings("no-time")
+        no_username = self.settings("no-username")
+        path_below = self.settings("path-below")
+        expected = {**full, "time": {**full["time"], "disabled": True}}
+        self.assertEqual(no_time, expected)
+        expected = {**expected, "username": {**full["username"], "format": "[ ]($style)"}}
+        self.assertEqual(no_username, expected)
+        self.assertEqual({k: v for k, v in path_below.items() if k != "format"},
+                         {k: v for k, v in no_username.items() if k != "format"})
+        # Git, runtimes, and environments never move to another line or reorder.
+        expected_format = full["format"].replace("$directory", "[ ](bg:color_bg3 fg:color_purple)")
+        expected_format = expected_format.replace(
+            "$line_break$character", "$line_break$directory$line_break$character")
+        self.assertEqual(path_below["format"], expected_format)
+
+    def test_selection_uses_actual_width_and_order_not_fixed_breakpoints(self):
+        widths = self.widths()
+        self.assertGreater(widths["full"], widths["no-time"])
+        self.assertGreater(widths["no-time"], widths["no-username"])
+        cases = ((widths["full"] + 1, "full"),
+                 (widths["full"], "no-time"),
+                 (widths["no-time"], "no-username"),
+                 (widths["no-username"], "path-below"))
+        for columns, expected in cases:
+            with self.subTest(columns=columns):
+                self.assertEqual(self.selected(columns), expected)
+
+    def test_environment_contents_affect_selection_without_losing_information(self):
+        columns = self.widths()["full"] + 1
+        self.assertEqual(self.selected(columns), "full")
+        environment = {"IN_NIX_SHELL": "pure", "name": "a-long-active-nix-environment"}
+        widths = self.widths(**environment)
+        expected = next((stage for stage in ("full", "no-time", "no-username")
+                         if widths[stage] < columns), "path-below")
+        self.assertNotEqual(expected, "full")
+        self.assertEqual(self.selected(columns, **environment), expected)
+        for stage in LAYOUTS:
+            self.assertIn("a-long-active-nix-environment", plain(self.render(stage, environment=environment)))
+
+    def test_width_measurement_handles_ansi_unicode_and_exact_boundary(self):
+        result = self.shell(r'''
+          COLUMNS=5
           source "$1"
-          for width in 40 60 69 70 80 100 109 110 120; do
-            COLUMNS=$width
-            _inigo_starship_select
-            print -r -- "$width:${STARSHIP_CONFIG:t}"
+          for text in abc abcde '界界' '界界界' $'%{\e[31m%}abc%{\e[0m%}'; do
+            if _inigo_starship_fits "$text"; then print fits; else print overflow; fi
           done
-        '''
-        result = subprocess.run(
-            ["zsh", "-dfc", script, "test", str(self.artifacts / "init.zsh")],
-            env={**os.environ, "TERM": "xterm-256color"},
-            text=True, capture_output=True, check=True,
-        )
-        self.assertEqual(result.stderr, "")
-        for line in result.stdout.splitlines():
-            width, name = line.split(":", 1)
-            expected = ("minimal" if int(width) < 70 else
-                        "compact" if int(width) < 110 else "config")
-            self.assertIn(expected, name, line)
+        ''')
+        self.assertEqual(result.splitlines(), ["fits", "overflow", "fits", "overflow", "fits"])
 
-    def test_rendered_prompts_fit_and_keep_git_and_vim_state(self):
-        for width in (40, 60, 80, 100, 120):
-            with self.subTest(width=width):
-                colored, plain = self.render(width)
-                lines = plain.strip().splitlines()
-                self.assertEqual(lines[-1], "")
-                self.assertIn("feature", plain)
-                self.assertIn("?", plain)
-                self.assertIn("⇡", plain)
-                self.assertIn("nix-config", plain)
-                self.assertTrue(all(len(line) < width for line in lines), repr(plain))
-                self.assertIn("", plain)
-                self.assertIn("", plain)
-                self.assertIn("", plain)
-                # The normal and error symbols, and all Vim modes, share settings.
-                name = ("starship-minimal.toml" if width < 70 else
-                        "starship-compact.toml" if width < 110 else "wide.toml")
-                settings = tomllib.loads((self.artifacts / name).read_text())
-                self.assertIn("color_red", settings["character"]["error_symbol"])
-                self.assertIn("color_red", settings["username"]["style_root"])
+    def test_path_only_moves_below_after_both_reductions(self):
+        username = pwd.getpwuid(os.getuid()).pw_name
+        for stage in LAYOUTS:
+            lines = [line for line in plain(self.render(stage)).splitlines() if line.strip()]
+            if stage == "path-below":
+                self.assertEqual(len(lines), 3)
+                self.assertNotIn("nix-config", lines[0])
+                self.assertIn("main", lines[0])
+                self.assertIn("nix-config", lines[1])
+                self.assertNotIn("main", lines[1])
+            else:
+                self.assertEqual(len(lines), 2)
+                self.assertIn("nix-config", lines[0])
+                self.assertLess(lines[0].index("nix-config"), lines[0].index("main"))
+            self.assertIn(socket.gethostname().split(".")[0], lines[0])
+            self.assertIn("", lines[0]) if stage == "full" else self.assertNotIn("", lines[0])
+            if stage in ("full", "no-time"):
+                self.assertIn(username, lines[0])
+            else:
+                self.assertNotIn(username, lines[0])
+            self.assertEqual(lines[0].count(""), 6)
+            self.assertIn(" ", lines[0]) if stage in ("no-username", "path-below") else None
+            self.assertEqual(lines[-1].strip(), "")
 
-    def test_ssh_identity_and_active_environments(self):
-        for width in (40, 80, 120):
-            _, plain = self.render(width, SSH_CONNECTION="192.0.2.1 1234 192.0.2.2 22",
-                                   IN_NIX_SHELL="pure", name="dev", VIRTUAL_ENV="/envs/test")
-            self.assertIn(pwd.getpwuid(os.getuid()).pw_name, plain)
-            if width >= 110:
-                self.assertIn("dev", plain)
-                self.assertIn("test", plain)
-
-    def test_deep_paths_are_truncated_not_all_ancestors_abbreviated(self):
-        path = ("/work/projects/company/platform/infrastructure/production/regions/"
-                "us-east/services/backend/application/long-project-name")
-        for width in (40, 80):
-            with self.subTest(width=width):
-                _, plain = self.render(width, logical_path=path)
-                self.assertIn("long-project-name", plain)
-                self.assertTrue(all(len(line) < width for line in plain.splitlines()),
-                                repr(plain))
-
-
-    def test_actual_insert_mode_error_and_success_colors(self):
-        for width in (40, 80, 120):
-            for status, color in ((1, "224;33;29"), (0, "82;173;112")):
-                with self.subTest(width=width, status=status):
-                    colored, plain = self.render(width, keymap="viins", status=status)
-                    self.assertEqual(plain.strip().splitlines()[-1], "")
-                    self.assertIn(f"38;2;{color}", colored.rstrip("\n").split("\n")[-1])
+    def test_width_measurement_does_not_execute_text_or_change_shell_options(self):
+        result = self.shell('''
+          COLUMNS=80
+          source "$1"
+          text='$(touch unexpected-prompt-command)'
+          _inigo_starship_fits "$text"
+          print -r -- "COLUMNS:$COLUMNS SUBST:$options[promptsubst]"
+        ''')
+        self.assertFalse((self.project / "unexpected-prompt-command").exists())
+        self.assertIn("COLUMNS:80 SUBST:on", result)
 
     def test_wide_prompt_retains_original_format_and_unbounded_branch(self):
-        settings = tomllib.loads((self.artifacts / "wide.toml").read_text())
+        settings = self.settings("full")
         original_format = (
             "[](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)"
             "$username[](fg:color_purple2 bg:color_bg3)$directory"
@@ -191,62 +243,54 @@ class StarshipTests(unittest.TestCase):
         self.assertNotIn("truncation_length", settings["git_branch"])
         self.assertNotIn("truncate_to_repo", settings["directory"])
 
-    def test_narrow_prompts_keep_os_hostname_and_original_colors(self):
-        for width in (40, 60, 80, 100):
-            colored, plain = self.render(width)
-            settings = tomllib.loads((self.artifacts /
-                ("starship-minimal.toml" if width < 70 else "starship-compact.toml")).read_text())
-            self.assertIn(socket.gethostname().split(".")[0], plain)
-            self.assertTrue(any(icon in plain for icon in settings["os"]["symbols"].values()))
-            self.assertIn("48;2;209;149;29", colored)
-            self.assertIn("48;2;52;50;62", colored)
-            self.assertIn("", plain)
-            self.assertIn("", plain)
-            self.assertIn("", plain)
-
-    def test_narrow_environment_indicators_are_icons_not_names(self):
-        for width in (40, 80):
-            _, baseline = self.render(width)
-            for _, plain in (
-                self.render(width, VIRTUAL_ENV="/envs/distinctive-python-environment"),
-                self.render(width, CONDA_DEFAULT_ENV="distinctive-conda-environment"),
+    def test_colors_os_git_and_vim_states_survive_all_stages(self):
+        for stage in LAYOUTS:
+            for status, keymap, glyph, color in (
+                (0, "viins", "", "82;173;112"),
+                (1, "viins", "", "224;33;29"),
+                (1, "vicmd", "", "82;173;112"),
             ):
-                self.assertEqual(plain.count(""), baseline.count("") + 1)
-                self.assertNotIn("distinctive", plain)
-            _, plain = self.render(width, IN_NIX_SHELL="pure", name="distinctive-nix-environment")
-            self.assertEqual(plain.count(""), baseline.count("") + 1)
-            self.assertNotIn("distinctive", plain)
+                with self.subTest(stage=stage, status=status, keymap=keymap):
+                    rendered = self.render(stage, status=status, keymap=keymap)
+                    text = plain(rendered)
+                    self.assertIn("48;2;209;149;29", rendered)
+                    self.assertIn("48;2;52;50;62", rendered)
+                    self.assertTrue(any(icon in text for icon in self.settings(stage)["os"]["symbols"].values()))
+                    self.assertIn("?", text)
+                    self.assertIn("⇡", text)
+                    self.assertEqual(text.strip().splitlines()[-1], glyph)
+                    self.assertIn(f"38;2;{color}", rendered.rstrip("\n").split("\n")[-1])
 
     def test_selector_preserves_starship_status_and_hook_order(self):
-        script = '''
+        result = self.shell('''
+          COLUMNS=80
           source "$1"
           print -r -- "ORDER:$precmd_functions"
           prompt_starship_preexec
-          false
+          true | false
           prompt_starship_precmd
-          COLUMNS=40
           _inigo_starship_select
           print -r -- "STATUS:$STARSHIP_CMD_STATUS PIPE:$STARSHIP_PIPE_STATUS"
-        '''
-        result = subprocess.run(
-            ["zsh", "-dfc", script, "test", str(self.artifacts / "init.zsh")],
-            env={**os.environ, "TERM": "xterm-256color"},
-            text=True, capture_output=True, check=True,
-        )
-        self.assertEqual(result.stderr, "")
-        self.assertIn("prompt_starship_precmd _inigo_starship_select", result.stdout)
-        self.assertIn("STATUS:1 PIPE:1", result.stdout)
+        ''')
+        self.assertIn("prompt_starship_precmd _inigo_starship_select", result)
+        self.assertIn("STATUS:1 PIPE:0 1", result)
 
-    def test_live_resize_preserves_input_and_selects_before_execution(self):
+    def test_live_resize_preserves_buffer_status_and_vim_modes(self):
+        widths = self.widths()
+        cases = ((widths["full"] + 1, "full"), (widths["full"], "no-time"),
+                 (widths["no-time"], "no-username"),
+                 (widths["no-username"], "path-below"), (widths["full"] + 1, "full"))
         pid, fd = pty.fork()
         if pid == 0:
-            os.chdir(self.project)
-            os.environ.update(TERM="xterm-256color", HOME=self.scratch.name)
-            os.execvp("zsh", ["zsh", "-dfi"])
-
+            try:
+                os.chdir(self.project)
+                os.execvpe("zsh", ["zsh", "-dfi"], self.environment(HOME=self.scratch.name))
+            except BaseException:
+                # Never unwind unittest in the child and delete the parent's fixture.
+                os._exit(127)
         pending = b""
 
-        def read_until(marker, timeout=8):
+        def read_until(marker, timeout=12):
             nonlocal pending
             deadline = time.monotonic() + timeout
             while time.monotonic() < deadline:
@@ -264,32 +308,25 @@ class StarshipTests(unittest.TestCase):
             os.kill(pid, signal.SIGWINCH)
 
         try:
-            resize(120)
+            resize(4096)
             os.write(fd, f"bindkey -v; KEYTIMEOUT=1; source {self.artifacts}/init.zsh\n".encode())
             read_until("".encode())
-            for width, expected in ((40, b"minimal"), (80, b"compact"), (120, b"config")):
+            for columns, expected in cases:
                 os.write(fd, b"false\n")
-                failure_prompt = read_until("".encode())
-                self.assertIn(b"38;2;224;33;29", failure_prompt)
+                self.assertIn(b"38;2;224;33;29", read_until("".encode()))
                 os.write(fd, b"\x1b")
                 read_until("".encode())
                 os.write(fd, b"i")
-                insert_prompt = read_until("".encode())
-                self.assertIn(b"38;2;224;33;29", insert_prompt)
-                # Leave a command in the editor while resizing; read STARSHIP_CONFIG
-                # before the next precmd can mask a missed live resize.
-                os.write(fd, b"print -r -- BUFFER_OK:$STARSHIP_CONFIG")
-                resize(width)
-                resized_prompt = read_until("".encode())
-                self.assertIn(b"38;2;224;33;29", resized_prompt)
+                self.assertIn(b"38;2;224;33;29", read_until("".encode()))
+                os.write(fd, b'print -r -- BUFFER_"OK":$_inigo_starship_layout')
+                resize(columns)
+                self.assertIn(b"38;2;224;33;29", read_until("".encode()))
                 os.write(fd, b"\n")
-                output = read_until(b"BUFFER_OK:/nix/store/")
-                output += read_until(b"\n")
-                self.assertIn(expected, output.split(b"BUFFER_OK:/nix/store/", 1)[1])
+                output = read_until(b"BUFFER_OK:") + read_until(b"\n")
+                self.assertIn(b"BUFFER_OK:" + expected.encode(), output)
                 read_until("".encode())
             os.write(fd, b"true | false\n")
-            failure_prompt = read_until("".encode())
-            self.assertIn(b"38;2;224;33;29", failure_prompt)
+            self.assertIn(b"38;2;224;33;29", read_until("".encode()))
             os.write(fd, b'print -r -- "PIPELINE:$STARSHIP_CMD_STATUS:$STARSHIP_PIPE_STATUS"\n')
             read_until(b"PIPELINE:1:0 1")
             read_until("".encode())

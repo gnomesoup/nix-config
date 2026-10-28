@@ -172,48 +172,24 @@ let
       vimcmd_visual_symbol = "[](bold fg:color_yellow)";
     };
   };
-  compact = lib.recursiveUpdate wide {
-    format = lib.concatStrings [
-      "[](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)"
-      "$username[](fg:color_purple2 bg:color_bg3)$directory"
-      "[](fg:color_bg3 bg:color_bg1)$git_branch$git_status"
-      "[](fg:color_bg1 bg:color_blue)$env_var$nix_shell[ ](color_blue)"
-      "$line_break$character"
-    ];
-    directory = {
-      truncation_length = 1;
-      truncation_symbol = "";
-      truncate_to_repo = false;
-    };
-    git_branch = {
-      truncation_length = 16;
-      truncation_symbol = "…";
-    };
-    # Environment presence only: do not print versions or long environment names.
-    env_var = {
-      VIRTUAL_ENV = {
-        variable = "VIRTUAL_ENV";
-        format = "[  ](fg:color_bg1 bg:color_blue)";
-      };
-      CONDA_DEFAULT_ENV = {
-        variable = "CONDA_DEFAULT_ENV";
-        format = "[  ](fg:color_bg1 bg:color_blue)";
-      };
-    };
-    nix_shell.format = "[ $symbol ](fg:color_bg1 bg:color_blue)";
+  noTime = lib.recursiveUpdate wide {
+    time.disabled = true;
   };
-  minimal = lib.recursiveUpdate compact {
-    # Deliberate ribbon break instead of letting the terminal split a segment.
-    format = lib.concatStrings [
-      "[](color_yellow)$os$hostname[](fg:color_yellow bg:color_purple2)"
-      "$username[](fg:color_purple2 bg:color_blue)$env_var$nix_shell[ ](color_blue)"
-      "$line_break[](color_bg3)$directory[](fg:color_bg3 bg:color_bg1)"
-      "$git_branch$git_status[ ](color_bg1)$line_break$character"
-    ];
-    git_branch.truncation_length = 8;
+  noUsername = lib.recursiveUpdate noTime {
+    # Retain the purple slot and its arrows, including root's red styling.
+    username.format = "[ ]($style)";
   };
-  compactFile = toml.generate "starship-compact.toml" compact;
-  minimalFile = toml.generate "starship-minimal.toml" minimal;
+  pathBelow = noUsername // {
+    # Move only the path; leave every other module and colored arrow in place.
+    format =
+      lib.replaceStrings
+        [ "$directory" "$line_break$character" ]
+        [ "[ ](bg:color_bg3 fg:color_purple)" "$line_break$directory$line_break$character" ]
+        noUsername.format;
+  };
+  noTimeFile = toml.generate "starship-no-time.toml" noTime;
+  noUsernameFile = toml.generate "starship-no-username.toml" noUsername;
+  pathBelowFile = toml.generate "starship-path-below.toml" pathBelow;
 in
 {
   programs.starship = {
@@ -222,23 +198,63 @@ in
     settings = wide;
   };
   xdg.configFile = {
-    "starship-compact.toml".source = compactFile;
-    "starship-minimal.toml".source = minimalFile;
+    "starship-no-time.toml".source = noTimeFile;
+    "starship-no-username.toml".source = noUsernameFile;
+    "starship-path-below.toml".source = pathBelowFile;
   };
   # Run after Home Manager's Starship init, preserving its status and Vim hooks.
   programs.zsh.initContent = lib.mkOrder 1100 ''
     if [[ $TERM != dumb ]]; then
+      _inigo_starship_fits() {
+        emulate -L zsh
+        # Prompt expansion counts terminal cells and ignores Starship's ANSI
+        # escapes. Disable substitution so prompt text cannot execute commands.
+        unsetopt promptsubst
+        local -i limit=$COLUMNS
+        # The %l conditional counts from the latest automatic wrap. Measure in
+        # a local virtual terminal wider than the text, against the real limit.
+        local -i COLUMNS=$(( ''${#1} * 2 + limit + 1 ))
+        local line check
+        for line in "''${(@f)1}"; do
+          check="$line%''${limit}(l.overflow.fits)"
+          if [[ ''${(%)check} == *overflow ]]; then
+            return 1
+          fi
+        done
+        return 0
+      }
+
       _inigo_starship_select() {
         typeset -g _inigo_starship_columns=$COLUMNS
-        if (( COLUMNS < 70 )); then
-          export STARSHIP_CONFIG=${lib.escapeShellArg (toString minimalFile)}
-        elif (( COLUMNS < 110 )); then
-          export STARSHIP_CONFIG=${lib.escapeShellArg (toString compactFile)}
-        else
-          export STARSHIP_CONFIG=${
-            lib.escapeShellArg (toString config.home.file.${config.programs.starship.configPath}.source)
-          }
-        fi
+        local -a layouts=(full no-time no-username path-below)
+        local -a files=(
+          ${lib.escapeShellArg (
+            toString config.home.file.${config.programs.starship.configPath}.source
+          )}
+          ${lib.escapeShellArg (toString noTimeFile)}
+          ${lib.escapeShellArg (toString noUsernameFile)}
+          ${lib.escapeShellArg (toString pathBelowFile)}
+        )
+        typeset -g _inigo_starship_layout=full
+        export STARSHIP_CONFIG="''${files[1]}"
+        (( COLUMNS > 0 )) || return 0
+        local -i index
+        local rendered
+        # Measure actual content, not guessed breakpoints. Reserve the last
+        # column to avoid the terminal's automatic end-of-line wrap.
+        for index in 1 2 3; do
+          rendered=$(STARSHIP_CONFIG="''${files[index]}" ${lib.getExe config.programs.starship.package} prompt \
+            --terminal-width="$COLUMNS" --keymap="''${KEYMAP:-viins}" \
+            --status="''${STARSHIP_CMD_STATUS:-0}" --pipestatus="''${STARSHIP_PIPE_STATUS[*]:-}" \
+            --cmd-duration="''${STARSHIP_DURATION:-}" --jobs="''${STARSHIP_JOBS_COUNT:-0}") || return 0
+          if _inigo_starship_fits "$rendered"; then
+            export STARSHIP_CONFIG="''${files[index]}"
+            typeset -g _inigo_starship_layout="''${layouts[index]}"
+            return 0
+          fi
+        done
+        export STARSHIP_CONFIG="''${files[4]}"
+        typeset -g _inigo_starship_layout=path-below
       }
 
       _inigo_starship_resize() {
