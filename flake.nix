@@ -192,6 +192,8 @@
 
           inigo-silverbullet-plugin = pkgs.callPackage ./hosts/ferrix/inigo-silverbullet/package.nix { };
 
+          inigo-silverbullet-cli = pkgs.callPackage ./hosts/ferrix/silverbullet-cli/package.nix { };
+
           silverbullet-pi-extension =
             let
               configFile = pkgs.writeText "silverbullet-pi-extension-check.json" (

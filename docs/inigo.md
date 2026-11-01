@@ -80,11 +80,18 @@ Python's standard library. The `inigo/silverbullet-api-token` SOPS secret is loa
 both Hermes units as a private systemd credential rather than copied into the Nix store
 or `.env`.
 
-Create a dedicated SilverBullet account token authorized for Personal and KSP, then add
-the encrypted key with `sops secrets/secrets.yaml` before activation. Existing-page
+The dedicated account token for Personal and KSP is encrypted in
+`secrets/inigo.yaml`; no plaintext token belongs in the repository. Existing-page
 mutations require the `last_modified` value from a prior read; soft deletion moves pages
 below `Trash/` unless irreversible deletion was explicitly requested. See
 `hosts/ferrix/inigo-silverbullet/README.md` for the API and concurrency limitations.
+
+Ferrix also installs the upstream `sb` filesystem client and the `inigo-sb`
+credential-only launcher. It reuses the existing private systemd credential;
+file transfer and exact-edit semantics are upstream, not a custom HTTP adapter.
+See [the official CLI guide](silverbullet-cli.md) for invocation, verification,
+manual journaling requirements, and deployment. Pi's native approval flow is
+unchanged.
 
 ## Authenticate OpenAI Codex
 

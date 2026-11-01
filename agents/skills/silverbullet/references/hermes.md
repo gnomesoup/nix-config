@@ -3,6 +3,46 @@
 Load this reference when using the Hermes `inigo-silverbullet` plugin. Do not
 assume these arguments or capabilities exist in Pi.
 
+## Official CLI for files and exact edits
+
+Ferrix also packages upstream `sb` and the credential-only `inigo-sb` launcher.
+Use `inigo-sb personal fs ...` or `inigo-sb ksp fs ...`; the space is mandatory.
+The launcher uses the same private systemd credential as the native plugin,
+feeds it to upstream `sb space add` on stdin, and removes the isolated temporary
+configuration after each command. It does not implement HTTP or file semantics.
+Never pass `--token`, print credentials, copy them to scratch, configure another
+server URL, or use self-update commands; update the pinned Nix package instead.
+
+- `inigo-sb ksp fs stat 'GSA.md' --json` returns metadata and opaque `revision`.
+- `inigo-sb personal fs read 'assets/example.pdf' > "$TMPDIR/example.pdf"`
+  downloads exact binary bytes. Keep local artifacts private; do not print bytes.
+- `inigo-sb ksp fs write 'assets/example.pdf' --create --file "$TMPDIR/example.pdf"`
+  creates without replacing an existing file. Reread and compare exact bytes or
+  SHA-256 before reporting transfer success. Identical existing bytes can count
+  as verified; different bytes are a conflict, not permission to overwrite.
+- `inigo-sb personal fs edit 'Journal/example.md' --file edits.json` uses the
+  upstream exact-replacement JSON format. Each `old` must occur exactly once;
+  batch ranges must be disjoint. Empty `new` removes only that exact section.
+  Supply `--if-match` with the unchanged quoted revision from the prior read when
+  an edit depends on an earlier inspection. Never expose unrelated sensitive
+  page content in context, payloads, command arguments, diffs, or error output.
+- For full replacements, use `fs write --if-match` with that revision. Never use
+  `--overwrite` to bypass a conflict. `fs rm` is permanent: only use it for an
+  explicitly authorized deletion, with `--if-match`, after verified recovery
+  copies where required. There is no upstream copy, move, or Trash command.
+
+All paths include extensions and are relative to the selected space. Do not add
+the `/ksp` URL prefix to filenames. Protected managed paths and user approvals
+still apply; the CLI is not a workaround for a denied operation. Prefer native
+tools for routine note writes and their automatic journal logging.
+
+CLI mutations require manual, verified same-space daily activity entries. File
+copy workflows must verify both assets and note links, preserve source content
+until the destination is verified, and record partial failures for safe resume.
+Upstream caps transfers at 16 MiB by default; choose a bounded `--max-bytes` when
+needed. Inspect readback after any uncertain outcome before retrying. Verify
+server/client conditional-write compatibility before a destructive migration.
+
 ## Tools and conflict guards
 
 - `silverbullet_list_pages` lists pages; `silverbullet_search` searches literal

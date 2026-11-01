@@ -1,7 +1,7 @@
 ---
 name: silverbullet
 description: Use when managing SilverBullet notes and attachments.
-version: 2.0.0
+version: 2.1.0
 author: Michael Pfammatter, Inigo
 license: MIT
 metadata:
@@ -13,9 +13,11 @@ metadata:
 
 # SilverBullet shared notes
 
-Use native `silverbullet_*` tools, never shell or generic web tools to call the API.
-This is the shared policy for Pi and Hermes. Load the current agent's reference
-before writing: [Pi](references/pi.md) or [Hermes](references/hermes.md).
+Use native `silverbullet_*` tools by default. Hermes may also use the Nix-managed
+official `sb` client through `inigo-sb` as described in its reference; Pi retains
+its native-tool approval boundary. Never use ad hoc HTTP clients or expose tokens.
+Load the current agent's reference before writing:
+[Pi](references/pi.md) or [Hermes](references/hermes.md).
 
 ## When to use
 
@@ -82,13 +84,20 @@ Daily journal-page edits are exempt to prevent recursion; other notes under
 - Read back the affected note and journal. For deletion, verify source absence
   and the surviving Trash destination when applicable.
 
+The Hermes official CLI does not run the native integrations' activity logger.
+After CLI writes, explicitly append and verify same-space journal entries for
+every changed path. Do not use `silverbullet_journal_retry` for CLI operations or
+claim automatic logging. Retain a verified mutation's state if journaling fails;
+retry the journal only, not the original mutation.
+
 This is an agent-write activity log, not a browser/Nvim edit watcher or an atomic
 transaction across pages. Concurrent external edits can still race with writes.
 
 ## Attachments and destructive changes
 
-- Use native upload tools only when the current agent provides them. Binary
-  attachments must be uploaded, not encoded into notes or linked to cache paths.
+- Use native upload tools, or Hermes's approved official CLI file workflow.
+  Binary attachments must be uploaded, not encoded into notes or linked to cache
+  paths. Never claim metadata or matching sizes establish binary identity.
 - Embed the returned durable attachment link into the intended note, then verify
   both embedding and journal recording. An upload alone is not note embedding.
 - Never move credentials into upload roots to bypass source restrictions.

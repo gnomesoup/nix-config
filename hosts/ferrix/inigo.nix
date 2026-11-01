@@ -39,6 +39,7 @@ let
     };
   });
   inigoSilverbulletPlugin = pkgs.callPackage ./inigo-silverbullet/package.nix { };
+  inigoSilverbulletCli = pkgs.callPackage ./silverbullet-cli/package.nix { };
   mcpNixosPackage = mcpNixos.lib.mkMcpNixos { inherit pkgs; };
 in
 {
@@ -235,6 +236,7 @@ in
       gnugrep
       gnused
       himalaya
+      inigoSilverbulletCli
       jq
       mcpNixosPackage
       nix
