@@ -27,7 +27,7 @@ this configuration, add the following public key under the GitHub repository's
 **Settings → Deploy keys**, and select **Allow write access**:
 
 ```text
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFo+8xZSogeIKuV/caK08MV+EK2f4Yi3XwXUj+mqKdL2 inigo@nix-config
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFo+8xZSogeIKuV/caK08MV+EK2f4Yi3XwXUj+mqKdL2
 ```
 
 The private key is encrypted at `inigo/github-deploy-key` in `secrets/secrets.yaml`. On
@@ -80,18 +80,17 @@ Python's standard library. The `inigo/silverbullet-api-token` SOPS secret is loa
 both Hermes units as a private systemd credential rather than copied into the Nix store
 or `.env`.
 
-The dedicated account token for Personal and KSP is encrypted in
-`secrets/inigo.yaml`; no plaintext token belongs in the repository. Existing-page
-mutations require the `last_modified` value from a prior read; soft deletion moves pages
-below `Trash/` unless irreversible deletion was explicitly requested. See
+The dedicated account token for Personal and KSP is encrypted in `secrets/inigo.yaml`;
+no plaintext token belongs in the repository. Existing-page mutations require the
+`last_modified` value from a prior read; soft deletion moves pages below `Trash/` unless
+irreversible deletion was explicitly requested. See
 `hosts/ferrix/inigo-silverbullet/README.md` for the API and concurrency limitations.
 
 Ferrix also installs the upstream `sb` filesystem client and the `inigo-sb`
-credential-only launcher. It reuses the existing private systemd credential;
-file transfer and exact-edit semantics are upstream, not a custom HTTP adapter.
-See [the official CLI guide](silverbullet-cli.md) for invocation, verification,
-manual journaling requirements, and deployment. Pi's native approval flow is
-unchanged.
+credential-only launcher. It reuses the existing private systemd credential; file
+transfer and exact-edit semantics are upstream, not a custom HTTP adapter. See
+[the official CLI guide](silverbullet-cli.md) for invocation, verification, manual
+journaling requirements, and deployment. Pi's native approval flow is unchanged.
 
 ## Authenticate OpenAI Codex
 
@@ -102,8 +101,16 @@ OAuth store without printing or committing token material.
 
 Hermes stores and refreshes its imported credential in
 `/var/lib/inigo/.hermes/auth.json`; NixOS rebuilds preserve this mutable file. If it
-needs reauthorization, first refresh Pi's login and repeat the controlled import, or ask
-the OpenAI workspace administrator to enable Codex device-code authentication. Never
+needs reauthorization, refresh Pi's login, then run this from the Ferrix checkout root:
+
+```bash
+sudo ./hosts/ferrix/import-inigo-codex-credentials.py
+```
+
+The helper reads Pi's private auth file, passes the token to Hermes over a pipe,
+verifies the saved credential, and restarts both Hermes services. It never prints or
+stores token material in the repository, Nix store, or SOPS. For a new login instead,
+ask the OpenAI workspace administrator to enable Codex device-code authentication. Never
 place the OAuth token in Nix configuration or SOPS because Hermes must rotate it at
 runtime.
 
