@@ -10,6 +10,10 @@
 let
   tailnetHost = "ferrix.tailbb897.ts.net";
   system = pkgs.stdenv.hostPlatform.system;
+  hermesPackages = hermesAgent.packages.${system};
+  hermesPackage = hermesPackages.default.override {
+    pmPackages = pkgs.callPackage ../../pkgs/hermes-pm-packages.nix { inherit hermesPackages; };
+  };
   nixConfigRoot = "/var/lib/inigo/nix-config";
   nixConfigUrl = "git@github.com:gnomesoup/nix-config.git";
   gitSshCommand = "${pkgs.openssh}/bin/ssh -i ${
@@ -19,7 +23,7 @@ let
   # The web dashboard hard-codes both its xterm.js font stack and responsive
   # sizes. Patch its source before Vite hashes the assets, and ship the font
   # locally so remote browsers do not depend on Google Fonts.
-  patchedHermesWeb = hermesAgent.packages.${system}.web.overrideAttrs (previousAttrs: {
+  patchedHermesWeb = hermesPackage.hermesWeb.overrideAttrs (previousAttrs: {
     patches = (previousAttrs.patches or [ ]) ++ [ ./hermes-chat-source-code-pro.patch ];
     postPatch = (previousAttrs.postPatch or "") + ''
       cp ${pkgs.source-code-pro}/share/fonts/opentype/SourceCodePro-Regular.otf \
@@ -29,7 +33,7 @@ let
     '';
   });
 
-  patchedHermesPackage = hermesAgent.packages.${system}.default.overrideAttrs (previousAttrs: {
+  patchedHermesPackage = hermesPackage.overrideAttrs (previousAttrs: {
     postInstall = (previousAttrs.postInstall or "") + ''
       rm $out/share/hermes-agent/web_dist
       ln -s ${patchedHermesWeb} $out/share/hermes-agent/web_dist

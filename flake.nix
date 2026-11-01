@@ -86,25 +86,11 @@
           hermes-desktop =
             let
               hermesPackages = hermes-agent.packages.${final.stdenv.hostPlatform.system};
-              # Upstream applies ELF fixups to every pm artifact, including
-              # Mach-O binaries. Disable both automatic and Python-specific
-              # ELF patching on Darwin while preserving the pinned artifacts.
-              darwinPmPackages = nixpkgs.lib.mapAttrs' (
-                name: package:
-                nixpkgs.lib.nameValuePair (nixpkgs.lib.removePrefix "pm-" name) (
-                  package.overrideAttrs (old: {
-                    nativeBuildInputs = builtins.filter (
-                      input: input != final.autoPatchelfHook && input != final.patchelf
-                    ) (old.nativeBuildInputs or [ ]);
-                    postFixup = "";
-                  })
-                )
-              ) (nixpkgs.lib.filterAttrs (name: _: nixpkgs.lib.hasPrefix "pm-" name) hermesPackages);
+              pmPackages = final.callPackage ./pkgs/hermes-pm-packages.nix {
+                inherit hermesPackages;
+              };
             in
-            if final.stdenv.hostPlatform.isDarwin then
-              (hermesPackages.default.override { pmPackages = darwinPmPackages; }).hermesDesktop
-            else
-              hermesPackages.desktop;
+            (hermesPackages.default.override { inherit pmPackages; }).hermesDesktop;
 
           herdr = prev.herdr.overrideAttrs (
             _finalAttrs: previousAttrs: {
@@ -193,6 +179,15 @@
           inigo-silverbullet-plugin = pkgs.callPackage ./hosts/ferrix/inigo-silverbullet/package.nix { };
 
           inigo-silverbullet-cli = pkgs.callPackage ./hosts/ferrix/silverbullet-cli/package.nix { };
+
+          hermes-node-runtime = pkgs.callPackage ./pkgs/hermes-node-check.nix {
+            nodejs =
+              (hermes-agent.packages.x86_64-linux.default.override {
+                pmPackages = pkgs.callPackage ./pkgs/hermes-pm-packages.nix {
+                  hermesPackages = hermes-agent.packages.x86_64-linux;
+                };
+              }).hermesNpmLib.nodejs;
+          };
 
           silverbullet-pi-extension =
             let
