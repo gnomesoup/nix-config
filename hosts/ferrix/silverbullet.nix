@@ -14,6 +14,10 @@ let
     url = "https://github.com/ivanalejandro0/silverbullet-history/releases/download/0.1.0/history.plug.js";
     hash = "sha256-rfkDiC5K3ZwsmTvmVzHWFP8iZmwC4hOvtkApn3IEac0=";
   };
+  silversearchPlug = pkgs.fetchurl {
+    url = "https://github.com/MrMugame/silversearch/releases/download/1.2.6/silversearch.plug.js";
+    hash = "sha256-I7l2BK+RZUXr3Xwi9eFcoKg+KS1DrMppKERW3M1LFWc=";
+  };
   silverbulletGitLibrary = pkgs.fetchurl {
     url = "https://raw.githubusercontent.com/silverbulletmd/silverbullet-libraries/23a185ad53c18e7cc18eb4cb6ca18d5fab2f5a49/Git.md";
     hash = "sha256-+RrwAtOgnwtXsfpWmmk5oMP6rU9YPG2NVjYgSxjlahg=";
@@ -69,6 +73,10 @@ let
   historyPlugSync = mkFileSync {
     filePathOnDisk = silverbulletHistoryPlug;
     filePathInSpace = "_plug/history.plug.js";
+  };
+  silversearchPlugSync = mkFileSync {
+    filePathOnDisk = silversearchPlug;
+    filePathInSpace = "_plug/silversearch.plug.js";
   };
   gitLibrarySync = mkFileSync {
     filePathOnDisk = silverbulletGitLibrary;
@@ -169,6 +177,7 @@ let
     ${pkgs.python3}/bin/python3 ${spacemacsNotebookSync}
     ${pkgs.python3}/bin/python3 ${pdfPlugSync}
     ${pkgs.python3}/bin/python3 ${historyPlugSync}
+    ${pkgs.python3}/bin/python3 ${silversearchPlugSync}
     ${pkgs.python3}/bin/python3 ${gitLibrarySync}
     ${pkgs.python3}/bin/python3 ${iCalendarPlugSync}
     ${pkgs.python3}/bin/python3 ${personalCalendarConfigSync}
