@@ -242,6 +242,19 @@
               touch $out
             '';
 
+          silverbullet-theme-sync =
+            pkgs.runCommand "silverbullet-theme-sync-check"
+              {
+                nativeBuildInputs = [ pkgs.python3 ];
+                THEME_SYNC_PLAN =
+                  self.nixosConfigurations.ferrix.config.systemd.services.silverbullet-plug-sync.serviceConfig.ExecStart;
+                THEME_SOURCE = ./hosts/ferrix/silverbullet-spacemacs-notebook.md;
+              }
+              ''
+                python3 ${./hosts/ferrix/silverbullet-theme-sync_test.py} -v
+                touch $out
+              '';
+
           silverbullet-calendar-proxy =
             pkgs.runCommand "silverbullet-calendar-proxy-check" { nativeBuildInputs = [ pkgs.python3 ]; }
               ''

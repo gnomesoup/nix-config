@@ -57,6 +57,11 @@ let
     filePathInSpace = "_config/journal-navigation.md";
     contentType = "text/markdown; charset=utf-8";
   };
+  spacemacsNotebookSync = mkFileSync {
+    filePathOnDisk = ./silverbullet-spacemacs-notebook.md;
+    filePathInSpace = "_config/spacemacs-notebook.md";
+    contentType = "text/markdown; charset=utf-8";
+  };
   pdfPlugSync = mkFileSync {
     filePathOnDisk = silverbulletPdfPlug;
     filePathInSpace = "_plug/silverbullet-pdf.plug.js";
@@ -161,6 +166,7 @@ let
     ${pkgs.python3}/bin/python3 ${vimLayoutPlugSync}
     ${pkgs.python3}/bin/python3 ${journalNavigationPlugSync}
     ${pkgs.python3}/bin/python3 ${journalNavigationConfigSync}
+    ${pkgs.python3}/bin/python3 ${spacemacsNotebookSync}
     ${pkgs.python3}/bin/python3 ${pdfPlugSync}
     ${pkgs.python3}/bin/python3 ${historyPlugSync}
     ${pkgs.python3}/bin/python3 ${gitLibrarySync}

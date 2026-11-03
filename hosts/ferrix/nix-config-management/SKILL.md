@@ -26,6 +26,9 @@ Safely maintain the multi-host flake in the current working directory. Prefer de
 - The `nixos` MCP server must be available. Use its `nix` tool, registered by Hermes as `mcp_nixos_nix`, before making package or option decisions.
 - Work from the repository root supplied as the session working directory.
 - Follow `AGENTS.md` and host-local conventions.
+- Keep persistent application configuration in this flake, including SilverBullet
+  themes. Extend existing managed-file synchronization instead of only editing live
+  application storage. Treat live-only previews as temporary unless requested otherwise.
 
 ## Procedure
 
