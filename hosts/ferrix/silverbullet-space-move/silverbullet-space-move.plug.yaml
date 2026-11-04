@@ -1,0 +1,15 @@
+name: silverbullet-space-move
+build:
+  - in: ./runtime.ts
+    out: ./assets/runtime.js
+  - type: copy
+    in: ./panel.html
+    out: ./assets/panel.html
+assets:
+  - "assets/**"
+functions:
+  openMover:
+    path: ./space-move.ts:openMover
+    command:
+      name: "Space: Move linked collection…"
+      requireEditor: page

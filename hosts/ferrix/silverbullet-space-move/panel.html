@@ -1,0 +1,56 @@
+<style>
+  #space-move { padding: 1rem; width: min(1100px, 94vw); box-sizing: border-box; }
+  #space-move h2 { margin: 0 0 .5rem; }
+  #space-move .toolbar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .8rem 0; }
+  #space-move input[type=search] { flex: 1; min-width: 12rem; }
+  #space-move button, #space-move select, #space-move input { font: inherit; }
+  #space-move button { cursor: pointer; padding: .4rem .7rem; }
+  #space-move button:disabled { cursor: default; opacity: .5; }
+  #space-move .scroll { max-height: 45vh; overflow: auto; border: 1px solid var(--editor-code-background-color, #8885); }
+  #space-move table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  #space-move th, #space-move td { text-align: left; padding: .5rem; border-bottom: 1px solid #8883; vertical-align: top; }
+  #space-move th { position: sticky; top: 0; background: var(--editor-background-color, Canvas); }
+  #space-move td small { display: block; opacity: .8; }
+  #space-move pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow: auto; padding: .75rem; border: 1px solid #8885; }
+  #space-move .warning { border-left: .25rem solid #d99a32; padding-left: .6rem; }
+  #space-move .error { border-left: .25rem solid #d24e4e; padding-left: .6rem; }
+  #space-move .muted { opacity: .75; font-size: .9rem; }
+  #space-move [hidden] { display: none !important; }
+  #space-move details { margin: .6rem 0; }
+  #space-move #move-status { white-space: pre-wrap; }
+</style>
+<main id="space-move" aria-label="Move linked collection">
+  <div class="toolbar"><h2>Move linked collection</h2><button id="move-close" type="button">Close</button></div>
+  <p id="move-direction"></p>
+  <p id="move-status" role="status" aria-live="polite">Checking browser access to both spaces…</p>
+  <section id="move-pending" hidden><h3>Interrupted operations</h3><div id="move-operation-list"></div></section>
+  <section id="move-selection" hidden>
+    <p class="muted">Discovery follows explicit links only. Incoming references, shared pages and journals are not selected automatically. Deselecting a file keeps it here, but its links may need a separately reviewed edit.</p>
+    <div class="toolbar">
+      <label>Depth <select id="move-depth"><option>1</option><option selected>2</option><option>3</option><option>5</option></select></label>
+      <label>Scan limit <select id="move-limit"><option>1000</option><option>5000</option><option>10000</option></select> pages across both spaces</label>
+      <button id="move-refresh" type="button">Refresh discovery</button>
+      <button id="move-expand" type="button">Expand checked pages</button>
+    </div>
+    <div class="toolbar">
+      <input id="move-search" type="search" aria-label="Filter candidate files" placeholder="Filter candidate files">
+      <select id="move-kind" aria-label="File type"><option value="all">All files</option><option value="page">Pages</option><option value="document">Documents</option></select>
+      <button id="move-select-all" type="button">Check shown</button><button id="move-select-none" type="button">Uncheck shown</button>
+    </div>
+    <div id="move-warnings" class="warning" hidden></div>
+    <div class="scroll"><table><thead><tr><th>Move</th><th>Path / inclusion reason</th><th>Type / size</th><th>Destination</th><th>Inspect</th></tr></thead><tbody id="move-candidates"></tbody></table></div>
+    <p id="move-selection-count" class="muted"></p>
+    <button id="move-review" type="button">Review changes</button>
+  </section>
+  <section id="move-review-panel" hidden>
+    <h3>Review exact changes</h3>
+    <p>Selected originals are retained until destination bytes, recovery copies and all approved link edits are verified. Conflicts stop cleanup; a cross-space move is not atomic.</p>
+    <div id="move-review-list"></div>
+    <div id="move-review-warnings" class="warning" hidden></div>
+    <p><label><input id="move-acknowledge" type="checkbox"> I reviewed the selected files, automatic merges, and link-only edits to retained pages.</label></p>
+    <div class="toolbar"><button id="move-back" type="button">Back to selection</button><button id="move-execute" type="button" disabled>Move selected</button></div>
+  </section>
+  <section id="move-progress-panel" hidden><h3>Transfer progress</h3><pre id="move-progress"></pre><button id="move-cancel" type="button">Stop after current step</button></section>
+  <section id="move-result-panel" hidden><h3 id="move-result-title"></h3><pre id="move-result"></pre><div id="move-result-links"></div></section>
+  <details id="move-preview" hidden><summary id="move-preview-title">File preview</summary><pre id="move-preview-content"></pre></details>
+</main>

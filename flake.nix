@@ -180,6 +180,10 @@
 
           inigo-silverbullet-cli = pkgs.callPackage ./hosts/ferrix/silverbullet-cli/package.nix { };
 
+          silverbullet-space-move = import ./hosts/ferrix/silverbullet-space-move/package.nix {
+            inherit pkgs;
+          };
+
           hermes-node-runtime = pkgs.callPackage ./pkgs/hermes-node-check.nix {
             nodejs =
               (hermes-agent.packages.x86_64-linux.default.override {

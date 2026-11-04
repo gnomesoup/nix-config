@@ -22,6 +22,8 @@ See the [journal integration guide](docs/silverbullet-agent-journal.md) for
 automatic activity logging, retry behavior, tests, and deployment.
 The [official CLI guide](docs/silverbullet-cli.md) covers Nix-managed `sb`,
 protected runtime authentication, binary transfers, and exact section edits.
+The [linked-collection mover](docs/silverbullet-space-move.md) adds a reviewed,
+recoverable Personal/KSP transfer command directly inside SilverBullet.
 
 ## Installation
 

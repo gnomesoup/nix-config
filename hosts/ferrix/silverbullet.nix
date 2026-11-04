@@ -5,6 +5,7 @@ let
   calendarProxyPort = 3901;
   vimLayoutPlug = import ./silverbullet-vim-layout/package.nix { inherit pkgs; };
   journalNavigationPlug = import ./silverbullet-journal-navigation/package.nix { inherit pkgs; };
+  spaceMovePlug = import ./silverbullet-space-move/package.nix { inherit pkgs; };
   iCalendarPlug = import ./silverbullet-icalendar/package.nix { inherit pkgs; };
   silverbulletPdfPlug = pkgs.fetchurl {
     url = "https://github.com/MrMugame/silverbullet-pdf/releases/download/1.1.6/silverbullet-pdf.plug.js";
@@ -60,6 +61,10 @@ let
     filePathOnDisk = ./silverbullet-journal-navigation/journal-navigation.md;
     filePathInSpace = "_config/journal-navigation.md";
     contentType = "text/markdown; charset=utf-8";
+  };
+  spaceMovePlugSync = mkFileSync {
+    filePathOnDisk = "${spaceMovePlug}/silverbullet-space-move.plug.js";
+    filePathInSpace = "_plug/silverbullet-space-move.plug.js";
   };
   spacemacsNotebookSync = mkFileSync {
     filePathOnDisk = ./silverbullet-spacemacs-notebook.md;
@@ -174,6 +179,7 @@ let
     ${pkgs.python3}/bin/python3 ${vimLayoutPlugSync}
     ${pkgs.python3}/bin/python3 ${journalNavigationPlugSync}
     ${pkgs.python3}/bin/python3 ${journalNavigationConfigSync}
+    ${pkgs.python3}/bin/python3 ${spaceMovePlugSync}
     ${pkgs.python3}/bin/python3 ${spacemacsNotebookSync}
     ${pkgs.python3}/bin/python3 ${pdfPlugSync}
     ${pkgs.python3}/bin/python3 ${historyPlugSync}
