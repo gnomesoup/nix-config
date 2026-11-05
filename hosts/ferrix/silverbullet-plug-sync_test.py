@@ -109,6 +109,21 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"OK")
 
+    def do_DELETE(self) -> None:
+        self.record()
+        state = self.server.state
+        if self.path not in EXPECTED_PATHS:
+            self.send_response(418)
+        elif self.headers.get("Authorization") != f"Bearer {state.token}":
+            self.send_response(401)
+        elif self.path == state.fail_path:
+            self.send_response(500, state.token)
+        else:
+            if self.path != state.corrupt_path:
+                state.files.pop(self.path, None)
+            self.send_response(200)
+        self.end_headers()
+
 
 class MockServer(ThreadingHTTPServer):
     def __init__(self, state: State):
@@ -219,6 +234,62 @@ class SyncTest(unittest.TestCase):
         combined = output.getvalue() + str(raised.exception)
         self.assertNotIn(self.token, combined)
         self.assertIn("KSP write failed with HTTP 500", combined)
+
+    def test_removes_only_configured_file_from_both_spaces(self) -> None:
+        self.run_sync()
+        unrelated = "/.fs/_plug/keep.plug.js"
+        self.state.files[unrelated] = (b"keep", "123", "rw")
+        messages: list[str] = []
+        for _ in range(2):
+            sync_module.remove(
+                self.token_file,
+                self.base_url,
+                "_plug/silverbullet-vim-layout.plug.js",
+                timeout_seconds=1,
+                retry_seconds=0.01,
+                log=messages.append,
+            )
+        self.assertEqual(set(self.state.files), {unrelated})
+        deletions = [r for r in self.state.requests if r[0] == "DELETE"]
+        self.assertEqual({r[1] for r in deletions}, set(EXPECTED_PATHS))
+        self.assertEqual(len(deletions), 2)
+        self.assertTrue(all(r[2].get("X-Sync-Mode") == "true" for r in deletions))
+        self.assertTrue(all("already absent" in message for message in messages[2:]))
+
+    def test_removal_failures_are_redacted_and_absence_is_verified(self) -> None:
+        self.run_sync()
+        path = "/.fs/_plug/silverbullet-vim-layout.plug.js"
+        self.state.fail_path = path
+        with self.assertRaisesRegex(sync_module.SyncError, "removal failed with HTTP 500") as error:
+            sync_module.remove(
+                self.token_file, self.base_url, "_plug/silverbullet-vim-layout.plug.js"
+            )
+        self.assertNotIn(self.token, str(error.exception))
+        self.assertIn(path, self.state.files)
+
+        self.state.fail_path = None
+        self.state.corrupt_path = path
+        with self.assertRaisesRegex(sync_module.SyncError, "removal verification failed"):
+            sync_module.remove(
+                self.token_file, self.base_url, "_plug/silverbullet-vim-layout.plug.js"
+            )
+        self.assertIn(path, self.state.files)
+
+    def test_removal_refuses_redirects_and_insecure_tokens(self) -> None:
+        self.run_sync()
+        self.state.redirect_path = "/.fs/_plug/silverbullet-vim-layout.plug.js"
+        with self.assertRaisesRegex(sync_module.SyncError, "read failed with HTTP 302"):
+            sync_module.remove(
+                self.token_file, self.base_url, "_plug/silverbullet-vim-layout.plug.js"
+            )
+        self.assertFalse(any(path == "/leak" for _, path, _, _ in self.state.requests))
+        self.assertFalse(any(method == "DELETE" for method, _, _, _ in self.state.requests))
+
+        self.token_file.chmod(0o640)
+        with self.assertRaisesRegex(sync_module.SyncError, "accessible by group"):
+            sync_module.remove(
+                self.token_file, self.base_url, "_plug/silverbullet-vim-layout.plug.js"
+            )
 
     def test_redirect_is_not_followed_with_authorization(self) -> None:
         self.state.redirect_path = "/.fs/_plug/silverbullet-vim-layout.plug.js"

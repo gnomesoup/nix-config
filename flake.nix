@@ -180,6 +180,25 @@
 
           inigo-silverbullet-cli = pkgs.callPackage ./hosts/ferrix/silverbullet-cli/package.nix { };
 
+          silverbullet-edge = pkgs.callPackage ./hosts/ferrix/silverbullet-edge/package.nix { };
+
+          silverbullet-search-deployment =
+            pkgs.runCommand "silverbullet-search-deployment-check"
+              {
+                nativeBuildInputs = [ pkgs.python3 ];
+                SYNC_PLAN =
+                  self.nixosConfigurations.ferrix.config.systemd.services.silverbullet-plug-sync.serviceConfig.ExecStart;
+                SERVER_START =
+                  self.nixosConfigurations.ferrix.config.systemd.services.silverbullet.serviceConfig.ExecStart;
+                EXPECTED_SERVER = pkgs.lib.getExe (
+                  pkgs.callPackage ./hosts/ferrix/silverbullet-edge/package.nix { }
+                );
+              }
+              ''
+                python3 ${./hosts/ferrix/silverbullet-edge/deployment_test.py}
+                touch $out
+              '';
+
           silverbullet-space-move = import ./hosts/ferrix/silverbullet-space-move/package.nix {
             inherit pkgs;
           };

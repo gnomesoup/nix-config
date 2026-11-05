@@ -209,9 +209,50 @@ def sync(
         log(f"{label}: synchronized {file_path_in_space}")
 
 
+def remove(
+    token_file: Path = TOKEN_FILE,
+    base_url: str = BASE_URL,
+    file_path_in_space: str = FILE_PATH_IN_SPACE,
+    *,
+    space_prefixes: tuple[tuple[str, str], ...] = SPACE_PREFIXES,
+    timeout_seconds: float = 90,
+    retry_seconds: float = 1,
+    log: Callable[[str], None] = print,
+) -> None:
+    """Retire exactly one configured managed file, verifying its absence."""
+    token = read_token(token_file)
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect)
+    wait_until_ready(opener, base_url, timeout_seconds, retry_seconds)
+    for label, prefix in space_prefixes:
+        url = file_url(base_url, prefix, file_path_in_space)
+        current, _, _ = get_current(opener, url, token, label)
+        if current is None:
+            log(f"{label}: {file_path_in_space} already absent")
+            continue
+        try:
+            _, status, _ = request(
+                opener, url, token, method="DELETE", headers={"X-Sync-Mode": "true"}
+            )
+        except urllib.error.HTTPError as error:
+            status = error.code
+            error.close()
+            raise SyncError(f"{label} removal failed with HTTP {status}") from None
+        if status not in (200, 204):
+            raise SyncError(f"{label} removal returned an unexpected status")
+        verified, _, _ = get_current(opener, url, token, label)
+        if verified is not None:
+            raise SyncError(f"{label} removal verification failed")
+        log(f"{label}: removed {file_path_in_space}")
+
+
 def main() -> int:
     try:
-        sync()
+        if sys.argv[1:] == ["--remove"]:
+            remove()
+        elif not sys.argv[1:]:
+            sync()
+        else:
+            raise SyncError("unsupported arguments")
     except SyncError as error:
         print(f"SilverBullet plug sync failed: {error}", file=sys.stderr)
         return 1

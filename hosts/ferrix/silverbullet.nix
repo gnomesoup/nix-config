@@ -3,6 +3,7 @@ let
   baseUrl = "http://127.0.0.1:3000";
   tokenFile = config.sops.secrets."silverbullet/pi-api-token".path;
   calendarProxyPort = 3901;
+  silverbulletEdge = pkgs.callPackage ./silverbullet-edge/package.nix { };
   vimLayoutPlug = import ./silverbullet-vim-layout/package.nix { inherit pkgs; };
   journalNavigationPlug = import ./silverbullet-journal-navigation/package.nix { inherit pkgs; };
   spaceMovePlug = import ./silverbullet-space-move/package.nix { inherit pkgs; };
@@ -14,10 +15,6 @@ let
   silverbulletHistoryPlug = pkgs.fetchurl {
     url = "https://github.com/ivanalejandro0/silverbullet-history/releases/download/0.1.0/history.plug.js";
     hash = "sha256-rfkDiC5K3ZwsmTvmVzHWFP8iZmwC4hOvtkApn3IEac0=";
-  };
-  silversearchPlug = pkgs.fetchurl {
-    url = "https://github.com/MrMugame/silversearch/releases/download/1.2.6/silversearch.plug.js";
-    hash = "sha256-I7l2BK+RZUXr3Xwi9eFcoKg+KS1DrMppKERW3M1LFWc=";
   };
   silverbulletGitLibrary = pkgs.fetchurl {
     url = "https://raw.githubusercontent.com/silverbulletmd/silverbullet-libraries/23a185ad53c18e7cc18eb4cb6ca18d5fab2f5a49/Git.md";
@@ -79,8 +76,10 @@ let
     filePathOnDisk = silverbulletHistoryPlug;
     filePathInSpace = "_plug/history.plug.js";
   };
-  silversearchPlugSync = mkFileSync {
-    filePathOnDisk = silversearchPlug;
+  # Removing the sync alone leaves the old plug installed in existing spaces.
+  silversearchPlugRemoval = mkFileSync {
+    # Removal mode never reads a source file.
+    filePathOnDisk = "/dev/null";
     filePathInSpace = "_plug/silversearch.plug.js";
   };
   gitLibrarySync = mkFileSync {
@@ -176,6 +175,7 @@ let
     contentType = "text/markdown; charset=utf-8";
   };
   managedFilesSync = pkgs.writeShellScript "silverbullet-managed-files-sync-all" ''
+    set -euo pipefail
     ${pkgs.python3}/bin/python3 ${vimLayoutPlugSync}
     ${pkgs.python3}/bin/python3 ${journalNavigationPlugSync}
     ${pkgs.python3}/bin/python3 ${journalNavigationConfigSync}
@@ -183,7 +183,7 @@ let
     ${pkgs.python3}/bin/python3 ${spacemacsNotebookSync}
     ${pkgs.python3}/bin/python3 ${pdfPlugSync}
     ${pkgs.python3}/bin/python3 ${historyPlugSync}
-    ${pkgs.python3}/bin/python3 ${silversearchPlugSync}
+    ${pkgs.python3}/bin/python3 ${silversearchPlugRemoval} --remove
     ${pkgs.python3}/bin/python3 ${gitLibrarySync}
     ${pkgs.python3}/bin/python3 ${iCalendarPlugSync}
     ${pkgs.python3}/bin/python3 ${personalCalendarConfigSync}
@@ -300,7 +300,7 @@ in
     '';
 
     serviceConfig = {
-      ExecStart = "${pkgs.silverbullet}/bin/silverbullet -L 127.0.0.1 -p 3000 /var/lib/silverbullet";
+      ExecStart = "${silverbulletEdge}/bin/silverbullet -L 127.0.0.1 -p 3000 /var/lib/silverbullet";
       DynamicUser = true;
       StateDirectory = "silverbullet";
       StateDirectoryMode = "0750";
