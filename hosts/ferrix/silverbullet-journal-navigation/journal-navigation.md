@@ -1,6 +1,22 @@
 ```space-lua
 journalNavigation = journalNavigation or {}
 
+local function openJournalToday()
+  if editor.getCurrentPage() == "index" then
+    journal.openOrCreate(date.today())
+  end
+end
+
+event.listen {
+  name = "editor:init",
+  run = openJournalToday,
+}
+
+event.listen {
+  name = "editor:pageLoaded",
+  run = openJournalToday,
+}
+
 function journalNavigation.pageDate(pageName)
   local prefix = config.get("journal.prefix", "Journal/")
   if type(pageName) ~= "string" or not pageName:startsWith(prefix) then

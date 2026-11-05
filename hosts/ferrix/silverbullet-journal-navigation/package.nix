@@ -28,6 +28,7 @@ pkgs.buildNpmPackage {
   doCheck = true;
   checkPhase = ''
     runHook preCheck
+    ${pkgs.lua}/bin/lua ${./startup.test.lua} ${./journal-navigation.md}
     npx vitest run plugs/nix-journal-navigation/journal-navigation.test.ts
     npm run check
     grep -F 'name: "Journal: Calendar"' plugs/nix-journal-navigation/silverbullet-journal-navigation.plug.yaml
