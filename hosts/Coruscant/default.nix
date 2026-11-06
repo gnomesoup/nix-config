@@ -9,6 +9,7 @@
   ];
 
   environment.systemPackages = [
+    pkgs.htop
     pkgs.vim
     pkgs.git
     pkgs.python3

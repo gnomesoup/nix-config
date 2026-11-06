@@ -123,6 +123,7 @@ in
   };
 
   environment.systemPackages = with pkgs; [
+    htop
     neovim
     python3
     git

@@ -4,6 +4,7 @@
   # $ nix-env -qaP | grep wget
 
   environment.systemPackages = with pkgs; [
+    htop
     vim
     git
     python3
