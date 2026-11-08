@@ -6,8 +6,9 @@ production backup/restore verification, and provider alerts remain administrator
 actions; this plan is not evidence that those gates have passed.
 
 The inventory below records the original migration, not the current deployment.
-The follow-up Immich v3.3.6/PostgreSQL 17 backup policy uses validated native
-dumps from `/mnt/backup1/immich/backups` instead of the interim `pg_dumpall` hook;
+The follow-up Immich v3.3.6/PostgreSQL 17 backup policy includes native dumps
+under `/mnt/backup1/immich/backups` through the existing folder source, without
+creating or validating dumps as part of the job. This replaces the interim hook;
 both media roots remain protected and the new `immich-db-pg17` live-data directory
 is excluded. Follow `managed-backups.md` for current scope and recovery gates.
 

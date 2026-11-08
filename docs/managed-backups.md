@@ -37,29 +37,19 @@ uses `/home/mpfammatter/docker/immich-db-pg17`; both it and the old `immich-db`
 directory are excluded from live filesystem traversal. A future mount change
 still fails closed until reviewed.
 
-The hook no longer runs `pg_dumpall` or reads PostgreSQL credentials. It requires
-a completed native `immich-db-backup-*.sql.gz` no older than 36 hours and validates
-the entire gzip stream plus the SQL completion footer in place. It
-rejects stale, changed, symlinked, incomplete, or corrupt inputs rather than
-quietly promoting a backup without database coverage. Immich's `.sql.gz.tmp`
-files are not candidates and are excluded from Borg's live media traversal.
-No extra dump or manifest is written into staging: `/mnt/backup1/immich` already
-includes its `backups` subdirectory as a Borg source. The original native filename
-is preserved in the archive. No database contents enter diagnostics or the Nix
-store.
+Immich manages its own database dumps. The backup hook does not create, copy,
+search for, or validate them: no existence, freshness, gzip, or SQL-footer check
+gates the backup. Borg includes whatever files exist beneath the existing
+`/mnt/backup1/immich` source, including its `backups` subdirectory and original
+native filenames. Unfinished `.sql.gz.tmp` files remain excluded. No dump or
+manifest is written into staging, and no PostgreSQL credentials are read.
 
-The recovery point is the latest successful native dump, not the start of Borg.
-Native dumps protect the Immich database, not every database or cluster role;
-retain the deployment configuration needed to recreate its database and user.
-The supplied listing shows nightly dumps finishing around 21:03 Hoth time, before
-the existing 00:30/01:30 Borg schedules, so those schedules remain unchanged.
-Filename timestamps have no timezone suffix: freshness uses the actual source
-mtime, not an assumed UTC interpretation. File validation is not a PostgreSQL
-restore test, and continued media changes mean this is not a joint point-in-time
-database/media snapshot. Validation checks the selected dump remains unchanged
-while being read; it does not freeze Immich's backup directory for the subsequent
-Borg traversal. Retention or manual cleanup must not remove needed dumps during
-an active backup. Borg still protects the photos and videos separately.
+A missing, old, or invalid dump does not block the folder backup. A successful
+Borg archive therefore certifies the file backup, not the presence or
+recoverability of an Immich database dump. When available, the database recovery
+point is the native dump included in that archive. Native dumps do not replace
+media backups or the deployment configuration needed to recreate the database
+and user. Both media roots and existing schedules remain unchanged.
 
 Ordinary Docker volumes are not a general database-backup adapter. Application
 recovery, external Immich libraries, unusual database filenames, and other
@@ -276,7 +266,7 @@ Borg paths are relative to the archive root; list them before selecting files.
   Restore into isolated
   Immich v3.3.6 and PostgreSQL 17 with the deployment's matching extensions and
   recreated database/user. Inspect representative assets with restored media.
-  Native gzip/footer validation and a Borg fixture roundtrip are not proof of
+  A successful Borg file backup and a fixture roundtrip are not proof of
   production PostgreSQL recovery. Never test by overwriting the live database.
 - Restore Frigate configuration, snapshot, and selected media into isolated
   Frigate 0.17.1 and inspect events/media. The DB alone cannot recover footage.
