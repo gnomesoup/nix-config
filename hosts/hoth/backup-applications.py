@@ -1,24 +1,24 @@
-"""Validate Hoth application coverage and prepare its interim Immich export."""
+"""Validate Hoth application coverage and Immich's native compressed dumps."""
 
+import contextlib
+import gzip
 import json
 import os
-import shutil
+import re
+import stat
 import subprocess
+import time
+import zlib
+from datetime import datetime
 from pathlib import Path
 
 
 IMMICH_VOLUME = "4e5d855e02e90178383e8ccb1495a04c9276c8660f890bb777824af98fcfd315"
 IMMICH_DATA = f"/var/lib/docker/volumes/{IMMICH_VOLUME}/_data"
-
-# Resolve passwords inside the database container, never in host argv or logs.
-AUTH = '''
-if [ -n "${POSTGRES_PASSWORD_FILE:-}" ]; then
-  PGPASSWORD="$(cat "$POSTGRES_PASSWORD_FILE")"
-else
-  PGPASSWORD="${POSTGRES_PASSWORD:-}"
-fi
-export PGPASSWORD
-'''
+DUMP_PATTERN = re.compile(
+    r"immich-db-backup-(\d{8}T\d{6})-v\d+\.\d+\.\d+"
+    r"(?:-[0-9A-Za-z.-]+)?-pg\d+(?:\.\d+)+\.sql\.gz"
+)
 
 
 def verify_mounts(container, expected):
@@ -71,55 +71,112 @@ except Exception:
         raise RuntimeError("Frigate database path changed; update its backup declaration")
 
 
-def export_postgres(container, destination, reserve_bytes=2 * 1024**3):
-    destination = Path(destination)
-    destination.mkdir(parents=True, exist_ok=True, mode=0o700)
-    size_command = AUTH + '''
-exec psql --no-password --username "${POSTGRES_USER:-postgres}" \
-  --dbname "${POSTGRES_DB:-${POSTGRES_USER:-postgres}}" \
-  -Atc 'SELECT coalesce(sum(pg_database_size(oid)), 0) FROM pg_database'
-'''
-    result = subprocess.run(
-        ["docker", "exec", container, "sh", "-ec", size_command],
-        check=True, text=True, stdout=subprocess.PIPE, timeout=120,
-    )
-    size = int(result.stdout.strip())
-    if size <= 0 or shutil.disk_usage(destination).free < size * 2 + reserve_bytes:
-        raise RuntimeError("Insufficient staging space for a complete Immich export")
-    temporary = destination / "immich.sql.partial"
+@contextlib.contextmanager
+def open_directory(path):
+    """Pin every directory component without following symlinks, including parents."""
+    path = Path(path).absolute()
+    if ".." in path.parts:
+        raise RuntimeError("Parent traversal is not allowed in backup paths")
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+    descriptor = os.open(path.anchor, flags)
     try:
-        with temporary.open("xb") as output:
-            temporary.chmod(0o600)
-            subprocess.run(
-                ["docker", "exec", container, "sh", "-ec", AUTH +
-                 'exec pg_dumpall --no-password --username "${POSTGRES_USER:-postgres}"'],
-                check=True, stdout=output, timeout=1800,
-            )
-        with temporary.open("rb") as output:
-            output.seek(max(0, temporary.stat().st_size - 512))
-            if b"-- PostgreSQL database cluster dump complete" not in output.read():
-                raise RuntimeError("Immich database export is not complete")
-        temporary.replace(destination / "immich.sql")
+        for component in path.parts[1:]:
+            child = os.open(component, flags, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = child
+        yield descriptor
     finally:
-        temporary.unlink(missing_ok=True)
+        os.close(descriptor)
+
+
+def file_identity(info):
+    return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def validate_gzip(output, timeout_seconds=1800):
+    """Read CRC-checked gzip to EOF with a per-application time/working-set bound."""
+    deadline = time.monotonic() + timeout_seconds
+    output.seek(0)
+    tail = b""
+    total = 0
+    try:
+        with gzip.GzipFile(fileobj=output, mode="rb") as compressed:
+            while True:
+                if time.monotonic() > deadline:
+                    raise RuntimeError("Native Immich dump validation timed out")
+                chunk = compressed.read(1024 * 1024)
+                if not chunk:
+                    break
+                total += len(chunk)
+                tail = (tail + chunk)[-4096:]
+    except (OSError, EOFError, zlib.error):
+        raise RuntimeError("Native Immich gzip is not complete") from None
+    lines = tail.splitlines()
+    if total > len(tail):
+        lines = lines[1:]  # The first retained line may have lost its prefix.
+    footers = {b"-- PostgreSQL database dump complete",
+               b"-- PostgreSQL database cluster dump complete"}
+    # PG17 can put an unrestrict command after its completion marker.
+    if not footers.intersection(lines):
+        raise RuntimeError("Native Immich SQL dump is not complete")
+
+
+def validate_immich_dump(source_directory, max_age_seconds=36 * 3600):
+    """Validate the newest final native dump read-only; Borg captures its original path."""
+    with open_directory(source_directory) as source_fd:
+        candidates = []
+        for name in os.listdir(source_fd):
+            match = DUMP_PATTERN.fullmatch(name)
+            if not match:
+                continue
+            info = os.stat(name, dir_fd=source_fd, follow_symlinks=False)
+            if stat.S_ISREG(info.st_mode):
+                datetime.strptime(match[1], "%Y%m%dT%H%M%S")
+                candidates.append((info.st_mtime_ns, name, info))
+        if not candidates:
+            raise RuntimeError("No complete native Immich dump found")
+        _, name, selected = max(candidates, key=lambda entry: entry[:2])
+        flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC
+        with os.fdopen(os.open(name, flags, dir_fd=source_fd), "rb") as incoming:
+            snapshot = os.fstat(incoming.fileno())
+            if not stat.S_ISREG(snapshot.st_mode) or file_identity(snapshot) != file_identity(selected):
+                raise RuntimeError("Native Immich source changed before validation")
+            # Immich filenames have no timezone: filesystem mtime alone proves age.
+            age = time.time() - snapshot.st_mtime
+            if not -300 <= age <= max_age_seconds:
+                raise RuntimeError("Native Immich dump is stale or has a future mtime")
+            if snapshot.st_size <= 0:
+                raise RuntimeError("Native Immich dump is empty")
+            validate_gzip(incoming)
+            after = os.fstat(incoming.fileno())
+            current = os.stat(name, dir_fd=source_fd, follow_symlinks=False)
+            if (file_identity(snapshot) != file_identity(after) or
+                    file_identity(snapshot) != file_identity(current)):
+                raise RuntimeError("Native Immich source changed during validation")
+            with open_directory(source_directory) as current_source:
+                a, b = os.fstat(source_fd), os.fstat(current_source)
+                if (a.st_dev, a.st_ino) != (b.st_dev, b.st_ino):
+                    raise RuntimeError("Immich backup directory changed during validation")
+            if time.time() - snapshot.st_mtime > max_age_seconds:
+                raise RuntimeError("Native Immich dump became stale during validation")
+    return Path(source_directory) / name
 
 
 def main():
     os.umask(0o077)
-    stage = Path(os.environ["BACKUP_STAGING_DIRECTORY"])
     verify_mounts("immich_server", {
         "/data": IMMICH_DATA,
         "/usr/src/app/upload": "/mnt/backup1/immich",
     })
     verify_mounts("immich_postgres", {
-        "/var/lib/postgresql/data": "/home/mpfammatter/docker/immich-db",
+        "/var/lib/postgresql/data": "/home/mpfammatter/docker/immich-db-pg17",
     })
     verify_mounts("frigate", {
         "/config": "/home/mpfammatter/docker/frigate",
         "/media/frigate": "/home/mpfammatter/docker/frigate/media",
     })
     verify_frigate_database()
-    export_postgres("immich_postgres", stage / "exports")
+    validate_immich_dump("/mnt/backup1/immich/backups")
 
 
 if __name__ == "__main__":

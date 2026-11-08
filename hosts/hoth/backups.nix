@@ -84,6 +84,8 @@ in
         "sh:home/mpfammatter/.local/share/Trash"
         "sh:**/node_modules"
         "sh:home/mpfammatter/docker/immich-db"
+        "sh:home/mpfammatter/docker/immich-db-pg17"
+        "sh:mnt/backup1/immich/backups/*.tmp"
       ]
       ++ map (suffix: "sh:${lib.removePrefix "/" frigate}/**/${suffix}") [
         "*.db"

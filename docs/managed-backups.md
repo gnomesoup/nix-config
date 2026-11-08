@@ -11,7 +11,7 @@ repository roles, and application hooks remain in the owning host's configuratio
 - `hosts/ferrix/backups.nix`: personal files, Inigo, SilverBullet, relay, Zulip
   state, consistent SQLite snapshots, and the existing validated Zulip export.
 - `hosts/hoth/backups.nix`: home, Home Assistant, Dad and AFP Northwestern backups,
-  both supplied Immich media locations, PostgreSQL export, and Frigate coverage.
+  both supplied Immich media locations, native database dumps, and Frigate coverage.
 - `hosts/hoth/borg-repositories.nix`: Ferrix's append-only receiver, independent
   repository monitoring, and Hoth-held maintenance identities.
 
@@ -29,14 +29,37 @@ must not silently drop previously selected footage. Review its size and BorgBase
 quota before seeding; excluding continuous recordings remains an explicit choice.
 The SQLite snapshot and live media traversal are not a joint point-in-time image.
 
-Immich's supplied anonymous `/data` volume and legacy bind root are both included
-pending the separate v3 upgrade. A hook verifies those exact container mounts,
-checks free staging space, and runs `pg_dumpall` inside `immich_postgres`, using
-its own matching client tools and authentication. All databases and roles in that
-container are exported, so no application database name is guessed. The raw
-`/home/mpfammatter/docker/immich-db` directory remains excluded. Dumps include
-sensitive role metadata: staging is root-private and Borg encryption is required.
-A container/storage migration intentionally fails the mount guard until reviewed.
+Immich is now v3.3.6 with PostgreSQL 17. Its supplied anonymous `/data` volume and
+legacy `/usr/src/app/upload` bind root remain included; neither is discarded.
+The latter maps `/mnt/backup1/immich` into the server, and the confirmed native
+dump directory is `/mnt/backup1/immich/backups` on Hoth. The PostgreSQL bind now
+uses `/home/mpfammatter/docker/immich-db-pg17`; both it and the old `immich-db`
+directory are excluded from live filesystem traversal. A future mount change
+still fails closed until reviewed.
+
+The hook no longer runs `pg_dumpall` or reads PostgreSQL credentials. It requires
+a completed native `immich-db-backup-*.sql.gz` no older than 36 hours and validates
+the entire gzip stream plus the SQL completion footer in place. It
+rejects stale, changed, symlinked, incomplete, or corrupt inputs rather than
+quietly promoting a backup without database coverage. Immich's `.sql.gz.tmp`
+files are not candidates and are excluded from Borg's live media traversal.
+No extra dump or manifest is written into staging: `/mnt/backup1/immich` already
+includes its `backups` subdirectory as a Borg source. The original native filename
+is preserved in the archive. No database contents enter diagnostics or the Nix
+store.
+
+The recovery point is the latest successful native dump, not the start of Borg.
+Native dumps protect the Immich database, not every database or cluster role;
+retain the deployment configuration needed to recreate its database and user.
+The supplied listing shows nightly dumps finishing around 21:03 Hoth time, before
+the existing 00:30/01:30 Borg schedules, so those schedules remain unchanged.
+Filename timestamps have no timezone suffix: freshness uses the actual source
+mtime, not an assumed UTC interpretation. File validation is not a PostgreSQL
+restore test, and continued media changes mean this is not a joint point-in-time
+database/media snapshot. Validation checks the selected dump remains unchanged
+while being read; it does not freeze Immich's backup directory for the subsequent
+Borg traversal. Retention or manual cleanup must not remove needed dumps during
+an active backup. Borg still protects the photos and videos separately.
 
 Ordinary Docker volumes are not a general database-backup adapter. Application
 recovery, external Immich libraries, unusual database filenames, and other
@@ -247,10 +270,14 @@ Borg paths are relative to the archive root; list them before selecting files.
 - Restore SQLite snapshots from the destination-specific `staging/sqlite` tree,
   run integrity checks, and inspect committed application data. Review ownership
   metadata; remove stale WAL/SHM only while replacing an offline database.
-- Restore Immich's `staging/exports/immich.sql` into a disposable PostgreSQL 14
-  environment with the deployment's matching extensions. Inspect assets and roles,
-  then test with isolated Immich v2.7.5 and restored media. The v3 upgrade has its
-  own compatibility and migration procedure; do not test by upgrading production.
+- Extract a native dump from the archive's `mnt/backup1/immich/backups/` directory
+  into a private disposable directory. Check gzip integrity without printing SQL.
+  Preserve its original filename for Immich's version-aware restore interface.
+  Restore into isolated
+  Immich v3.3.6 and PostgreSQL 17 with the deployment's matching extensions and
+  recreated database/user. Inspect representative assets with restored media.
+  Native gzip/footer validation and a Borg fixture roundtrip are not proof of
+  production PostgreSQL recovery. Never test by overwriting the live database.
 - Restore Frigate configuration, snapshot, and selected media into isolated
   Frigate 0.17.1 and inspect events/media. The DB alone cannot recover footage.
 - Restore the staged Zulip custom-format dump and uploads in an isolated matching
@@ -263,11 +290,11 @@ obsolete implementations only after administrator read-back and restore acceptan
 
 ## Local checks
 
-Executed locally: both full NixOS host builds, the shared backup check (67 tests,
-no skips), and `nix flake check path:$PWD`. These passed. The shared check includes
-the installed runtime CLI and the actual Hoth/Ferrix exclusion policies, not only
-standalone helpers. Hoth's initial ramdisk derivation is unchanged from the base
-commit; initrd dependency warnings are not introduced by this backup change.
+Local validation uses both full NixOS host builds, the shared backup check, and
+`nix flake check path:$PWD`; report the actual results for each change. The shared
+check includes the installed runtime CLI and actual Hoth/Ferrix exclusion policies,
+not only standalone helpers. Builds do not establish production activation,
+archive completion, alert delivery, or application recovery acceptance.
 
 ```sh
 nix build --no-link path:$PWD#checks.x86_64-linux.managed-backups

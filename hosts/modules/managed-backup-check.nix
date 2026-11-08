@@ -6,6 +6,10 @@
 
 assert ferrix.services.managedBackups.enable;
 assert hoth.services.managedBackups.enable;
+assert builtins.elem "sh:home/mpfammatter/docker/immich-db-pg17"
+  hoth.services.managedBackups.jobs.hoth.excludes;
+assert builtins.elem "sh:mnt/backup1/immich/backups/*.tmp"
+  hoth.services.managedBackups.jobs.hoth.excludes;
 assert hoth.services.managedBackups.jobs.hoth.timeoutSeconds == null;
 assert pkgs.lib.all
   (name: hoth.systemd.services.${name}.serviceConfig.TimeoutStartSec == "infinity")
