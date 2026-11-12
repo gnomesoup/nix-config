@@ -12,6 +12,7 @@ let
   zshPath = "/run/current-system/sw${pkgs.zsh.shellPath}";
 in
 {
+  programs.direnv.enable = true;
   programs.zsh.enable = true;
   environment.shells = [ pkgs.zsh ];
 

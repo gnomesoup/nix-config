@@ -81,8 +81,6 @@ in
     ];
   };
 
-  programs.direnv.enable = true;
-
   services = {
     tailscale.enable = true;
   };

@@ -53,8 +53,6 @@
     ];
   };
 
-  programs.direnv.enable = true;
-
   services.tailscale.enable = true;
 
   users.users.mpfammatter = {
