@@ -650,9 +650,17 @@ async function confirmDestructive(
   if (choice !== PERMISSION_ALLOW_ONCE) throw new Error("SilverBullet update cancelled by user.");
 }
 
+// Pi's enum helper now carries pi-schema types; our tool objects use TypeBox.
+function typeboxStringEnum<T extends readonly string[]>(
+  values: T,
+  options?: { description?: string; default?: T[number] },
+) {
+  return Type.Unsafe<T[number]>(StringEnum(values, options));
+}
+
 function toolSchemas(config: ResolvedConfig) {
   const space = Type.Optional(
-    StringEnum(Object.keys(config.spaces).sort(), {
+    typeboxStringEnum(Object.keys(config.spaces).sort(), {
       description: `Target space; defaults to ${config.defaultSpace}.`,
       default: config.defaultSpace,
     }),
@@ -664,9 +672,9 @@ function toolSchemas(config: ResolvedConfig) {
   return {
     journalRetry: Type.Object({
       retry: Type.Object({
-        space: StringEnum(Object.keys(config.spaces).sort()),
+        space: typeboxStringEnum(Object.keys(config.spaces).sort()),
         page: Type.String(),
-        action: StringEnum(["create", "append", "replace_page", "replace_text", "delete"] as const),
+        action: typeboxStringEnum(["create", "append", "replace_page", "replace_text", "delete"] as const),
         change_summary: Type.String({ minLength: 1, maxLength: 280 }),
         journal_page: Type.String({ pattern: "^Journal/[0-9]{4}-[0-9]{2}-[0-9]{2}\\.md$" }),
         operation_id: Type.String({ minLength: 1, maxLength: 128 }),
@@ -703,7 +711,7 @@ function toolSchemas(config: ResolvedConfig) {
     update: Type.Object({
       space,
       ...mutation,
-      action: StringEnum(["replace_page", "replace_text", "delete"] as const, {
+      action: typeboxStringEnum(["replace_page", "replace_text", "delete"] as const, {
         description: "Destructive operation; requires interactive approval unless granted for this Pi session.",
       }),
       page: Type.String({ description: "Existing space-relative page path." }),

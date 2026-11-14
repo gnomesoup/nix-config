@@ -75,6 +75,10 @@ let
       url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-1.4.0.tgz";
       hash = "sha512-hQM/C4+1w8rHYACzDDf+0vQMnEnpzIop1tptIERVgR3ZeT/hHSzBNG8PaWPgxWQjqSeKCyBZSyp8uTT6eKK1pQ==";
     };
+    "1.5.2" = fetchurl {
+      url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-1.5.2.tgz";
+      hash = "sha512-2tWPSnV3qzfiDIY3aWluBag3vC++Vs+VsXt/UquSU5onPMohPih72FUhIhaqmDdMYubOgB3Byl9uF4Vk40JLvQ==";
+    };
   };
   aiModelDataTarball = aiModelDataTarballs.${version} or null;
   updateScript = writeShellApplication {
@@ -150,6 +154,7 @@ buildNpmPackage (finalAttrs: {
     runHook preBuild
 
     ./node_modules/.bin/tsc -p packages/telemetry/tsconfig.build.json
+    ./node_modules/.bin/tsc -p packages/schema/tsconfig.build.json
     ./node_modules/.bin/tsc -p packages/chord/tsconfig.build.json
     ./node_modules/.bin/tsc -p packages/codemode/tsconfig.build.json
     ./node_modules/.bin/tsc -p packages/mcp/tsconfig.build.json
@@ -176,6 +181,7 @@ buildNpmPackage (finalAttrs: {
               @earendil-works/pi-codemode:packages/codemode \
               @earendil-works/pi-mcp:packages/mcp \
               @earendil-works/pi-ai:packages/ai \
+              @earendil-works/pi-schema:packages/schema \
               @earendil-works/pi-telemetry:packages/telemetry \
               @earendil-works/pi-agent-core:packages/agent \
               @earendil-works/pi-durable:packages/durable \
@@ -186,8 +192,8 @@ buildNpmPackage (finalAttrs: {
       cp -r "$src" "$nm/$pkg"
     done
 
-    # Delete remaining workspace symlinks
-    find "$nm" -type l -lname '*/packages/*' -delete
+    # Delete remaining package and app workspace symlinks.
+    find "$nm" -type l \( -lname '*/packages/*' -o -lname '*/apps/*' \) -delete
 
     # Clean up now-dangling .bin symlinks
     find "$nm/.bin" -xtype l -delete

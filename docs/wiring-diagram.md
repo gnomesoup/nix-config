@@ -129,7 +129,7 @@ flowchart LR
 | --- | --- | --- | --- |
 | `homeConfigurations.mpfammatter-linux` | x86_64 Linux | — | `users/mpfammatter.nix` |
 | `nixosConfigurations.hoth` | x86_64 Linux | `hosts/hoth` | `users/mpfammatter.nix` |
-| `nixosConfigurations.ferrix` | x86_64 Linux | `hosts/ferrix` | `users/mpfammatter-ui.nix` plus `rustdesk` |
+| `nixosConfigurations.ferrix` | x86_64 Linux | `hosts/ferrix` | `users/mpfammatter-ui.nix` |
 | `nixosConfigurations.nixvm` | x86_64 Linux | `hosts/nixvm` | `users/mpfammatter.nix` |
 | `nixosConfigurations.jedha` | x86_64 Linux / WSL | `hosts/jedha` | `users/jedha.nix` |
 | `darwinConfigurations.Tests-Virtual-Machine` | Apple Silicon macOS | `hosts/Tests-Virtual-Machine` | `users/test.nix` |

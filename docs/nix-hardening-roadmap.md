@@ -700,7 +700,7 @@ Test each share from one authorized client and confirm unauthorized guest access
 
 ### Tasks
 
-- [ ] Inventory Tailscale, RustDesk, Input Leap, remote desktop, and related agents by host.
+- [ ] Inventory Tailscale, Input Leap, remote desktop, and related agents by host.
 - [ ] Remove tools from hosts that do not need them.
 - [ ] Verify Input Leap uses authenticated/encrypted transport or is restricted to a trusted network.
 - [ ] Keep remote-access applications out of the generic base profile.

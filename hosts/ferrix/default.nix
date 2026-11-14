@@ -33,10 +33,27 @@
     mode = "0400";
   };
 
-  nix.settings.experimental-features = [
-    "nix-command"
-    "flakes"
-  ];
+  nix.settings = {
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
+    # Collect unreferenced paths before large builds exhaust the root filesystem.
+    min-free = 10 * 1024 * 1024 * 1024;
+    max-free = 20 * 1024 * 1024 * 1024;
+  };
+
+  nix.gc = {
+    automatic = true;
+    dates = "03:15";
+    # Retain a month of rollback history; older generations may be removed.
+    options = "--delete-older-than 30d";
+  };
+
+  nix.optimise = {
+    automatic = true;
+    dates = [ "04:15" ];
+  };
 
   # Bootloader.
   boot.loader.systemd-boot.enable = true;

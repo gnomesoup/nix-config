@@ -399,12 +399,7 @@
                 sops-nix.homeManagerModules.sops
                 kickstart-nixvim.homeManagerModules.default
               ];
-              home-manager.users.mpfammatter =
-                { pkgs, ... }:
-                {
-                  imports = [ ./users/mpfammatter-ui.nix ];
-                  home.packages = [ pkgs.rustdesk ];
-                };
+              home-manager.users.mpfammatter = import ./users/mpfammatter-ui.nix;
               home-manager.backupFileExtension = "backup";
             }
           ];

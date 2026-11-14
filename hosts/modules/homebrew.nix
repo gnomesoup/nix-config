@@ -16,7 +16,6 @@
       "espanso"
       "gimp"
       "nextcloud"
-      "rustdesk"
       "vorta"
       "raspberry-pi-imager"
       "calibre"
