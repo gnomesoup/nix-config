@@ -90,7 +90,16 @@
                 inherit hermesPackages;
               };
             in
-            (hermesPackages.default.override { inherit pmPackages; }).hermesDesktop;
+            (hermesPackages.default.override (
+              {
+                inherit pmPackages;
+              }
+              // final.lib.optionalAttrs final.stdenv.hostPlatform.isDarwin {
+                callPackage = final.newScope {
+                  fetchPnpmDeps = final.callPackage ./pkgs/hermes-pnpm-deps.nix { };
+                };
+              }
+            )).hermesDesktop;
 
           herdr = prev.herdr.overrideAttrs (
             _finalAttrs: previousAttrs: {

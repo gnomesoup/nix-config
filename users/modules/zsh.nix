@@ -476,7 +476,7 @@ in
       "nrs" = nixosSwitch;
       "garbage" =
         if pkgs.stdenv.hostPlatform.isDarwin then
-          "nix-collect-garbage --delete-older-than 7d; sudo nix store optimise"
+          "nix-collect-garbage --delete-older-than 7d"
         else
           "nix-collect-garbage --delete-older-than 7d; sudo nix-collect-garbage --delete-older-than 30d; ${optimiseNixStore}";
       "iud" = "immich upload --delete ~/Downloads";
