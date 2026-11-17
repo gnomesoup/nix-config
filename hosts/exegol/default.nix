@@ -7,7 +7,11 @@
 }:
 
 let
-  freenet = freenet-core.packages.${pkgs.stdenv.hostPlatform.system}.freenet;
+  freenet = freenet-core.packages.${pkgs.stdenv.hostPlatform.system}.freenet.overrideAttrs (old: {
+    # zstd-sys probes libzstd with pkg-config and requests static linkage.
+    nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.pkg-config ];
+    buildInputs = (old.buildInputs or [ ]) ++ [ (pkgs.zstd.override { enableStatic = true; }) ];
+  });
 in
 {
   imports = [
