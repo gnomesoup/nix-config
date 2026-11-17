@@ -31,8 +31,8 @@ in
     freenet
   ];
 
-  # Necessary for using flakes on this system.
-  nix.enable = false;
+  # Remove Determinate before activation; nix-darwin then manages upstream Nix.
+  nix.enable = true;
   nix.settings.experimental-features = "nix-command flakes";
   nix.settings.download-buffer-size = 524288000;
 
