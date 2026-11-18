@@ -69,28 +69,17 @@ in
   nixpkgs = {
     hostPlatform = "aarch64-darwin";
     config.allowUnfree = true;
-    # Logseq currently depends on Electron 39, which is EOL in nixpkgs.
-    config.permittedInsecurePackages = [
-      "electron-39.8.10"
-    ];
     config.allowBroken = true;
     # direnv's Darwin test suite currently hangs in zsh on this host, which
     # blocks darwin-rebuild while the package is built locally.
     overlays = [
-      (_: prev: {
+      (final: prev: {
         direnv = prev.direnv.overrideAttrs (_: {
           doCheck = false;
         });
 
-        # Shadow CLJS 2.19.0 aborts parallel compilation after 60 seconds
-        # without progress. Allow up to 10 minutes for Logseq's Electron target.
-        logseq = prev.logseq.overrideAttrs (old: {
-          postPatch = (old.postPatch or "") + ''
-            substituteInPlace shadow-cljs.edn \
-              --replace-fail ':electron {:target :node-script' \
-                $':electron {:target :node-script\n             :build-options {:par-timeout 600000}'
-          '';
-        });
+        # Use the pinned upstream app instead of compiling Logseq locally.
+        logseq = final.callPackage ./logseq-bin.nix { };
       })
     ];
   };
