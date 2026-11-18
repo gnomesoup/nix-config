@@ -81,6 +81,16 @@ in
         direnv = prev.direnv.overrideAttrs (_: {
           doCheck = false;
         });
+
+        # Shadow CLJS 2.19.0 aborts parallel compilation after 60 seconds
+        # without progress. Allow up to 10 minutes for Logseq's Electron target.
+        logseq = prev.logseq.overrideAttrs (old: {
+          postPatch = (old.postPatch or "") + ''
+            substituteInPlace shadow-cljs.edn \
+              --replace-fail ':electron {:target :node-script' \
+                $':electron {:target :node-script\n             :build-options {:par-timeout 600000}'
+          '';
+        });
       })
     ];
   };
