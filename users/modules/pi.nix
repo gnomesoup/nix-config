@@ -18,7 +18,7 @@ let
   # Keep pi-ask in-tree so its behavior changes atomically with this configuration.
   piAsk = ./pi/pi-ask;
   piSettings = {
-    defaultModel = "gpt-6.1-sol";
+    defaultModel = "gpt-6.2-sol";
     defaultProvider = "openai-codex";
     defaultThinkingLevel = "high";
     npmCommand = [ "${piNpm}/bin/pi-npm" ];
