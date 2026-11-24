@@ -25,6 +25,11 @@ protected runtime authentication, binary transfers, and exact section edits.
 The [linked-collection mover](docs/silverbullet-space-move.md) adds a reviewed,
 recoverable Personal/KSP transfer command directly inside SilverBullet.
 
+## Inigo in Zulip
+
+See the [Zulip integration guide](docs/inigo-zulip.md) for Ferrix activation,
+automatic bot provisioning, credential protection, and owner-only direct messages.
+
 ## Installation
 
 ### Nix-Darwin

@@ -47,6 +47,8 @@ let
   mcpNixosPackage = mcpNixos.lib.mkMcpNixos { inherit pkgs; };
 in
 {
+  imports = [ ./inigo-zulip.nix ];
+
   sops.secrets = {
     "inigo/age-key" = {
       owner = "inigo";
@@ -170,7 +172,10 @@ in
         sampling.enabled = false;
       };
 
-      plugins.enabled = [ "inigo-silverbullet" ];
+      plugins.enabled = [
+        "inigo-silverbullet"
+        "inigo-zulip"
+      ];
       plugins.entries."inigo-silverbullet".settings = {
         base_url = "http://127.0.0.1:3000";
         allow_insecure_http = true;

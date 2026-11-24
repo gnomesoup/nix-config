@@ -1,0 +1,9 @@
+name: inigo-zulip
+version: 1.0.0
+description: Single-owner Zulip DM platform for Inigo, using systemd credentials.
+author: Michael Fammatter
+license: MIT
+# The installed Hermes infers deferred platform names from directory names.
+# Nix installs nix-managed-* symlinks, so eager registration is necessary to
+# preserve plugin name inigo-zulip and platform name zulip without core patches.
+kind: standalone
