@@ -39,7 +39,7 @@ class ProvisionTests(unittest.TestCase):
 
 class IdentityTests(unittest.TestCase):
     def identities(self):
-        realm = {"string_id": "mmjo", "url": "https://chat.mmjo.com", "deactivated": False}
+        realm = {"string_id": "", "url": "https://chat.mmjo.com", "deactivated": False}
         owner = {"id": 17, "delivery_email": "michael@mmjo.com", "is_active": True,
                  "is_bot": False, "role": 100}
         bot = {"id": 44, "email": "inigo-bot@chat.mmjo.com",
@@ -54,6 +54,7 @@ class IdentityTests(unittest.TestCase):
         from policy import decide
         cases = [
             (0, "url", "https://elsewhere.example"), (0, "string_id", "other"),
+            (0, "string_id", "mmjo"), (0, "string_id", "zulipinternal"),
             (0, "deactivated", True), (0, "deactivated", 0),
             (1, "is_active", False), (1, "is_bot", True), (1, "role", 600),
             (1, "delivery_email", "other@mmjo.com"), (1, "id", True),
@@ -133,7 +134,7 @@ class DockerBoundaryTests(unittest.TestCase):
         from unittest.mock import Mock
         from provision import fetch_bot
         secret = "a" * 32
-        valid = {"status": "existing", "realm": "mmjo", "site": "https://chat.mmjo.com",
+        valid = {"status": "existing", "realm": "", "site": "https://chat.mmjo.com",
                  "bot_email": "inigo-bot@chat.mmjo.com", "user_id": 44,
                  "owner_email": "michael@mmjo.com", "api_key": secret}
         responses = [(1, json.dumps(valid)), (0, "unexpected " + secret),
@@ -161,7 +162,7 @@ class DockerBoundaryTests(unittest.TestCase):
         from provision import fetch_bot
         import ast
 
-        payload = {"status": "created", "realm": "mmjo", "site": "https://chat.mmjo.com",
+        payload = {"status": "created", "realm": "", "site": "https://chat.mmjo.com",
                    "bot_email": "inigo-bot@chat.mmjo.com", "user_id": 44,
                    "owner_email": "michael@mmjo.com", "api_key": "a" * 32}
         runner = Mock(return_value=subprocess.CompletedProcess([], 0, json.dumps(payload), "ignored"))
@@ -258,7 +259,7 @@ class OrchestrationTests(unittest.TestCase):
         import tempfile
         import contextlib
         import io
-        payload = {"status": "created", "realm": "mmjo", "site": "https://chat.mmjo.com",
+        payload = {"status": "created", "realm": "", "site": "https://chat.mmjo.com",
                    "bot_email": "inigo-bot@chat.mmjo.com", "user_id": 44,
                    "owner_email": "michael@mmjo.com", "api_key": "a" * 32}
         runner = Mock(return_value=subprocess.CompletedProcess([], 0, json.dumps(payload), ""))

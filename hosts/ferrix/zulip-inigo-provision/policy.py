@@ -1,5 +1,6 @@
 """Pure identity checks shared by the host tests and Zulip-side program."""
-REALM_ID = "mmjo"
+# The root organization has an empty slug; "mmjo" is only its display name.
+REALM_ID = ""
 REALM_URL = "https://chat.mmjo.com"
 OWNER_EMAIL = "michael@mmjo.com"
 BOT_EMAIL = "inigo-bot@chat.mmjo.com"

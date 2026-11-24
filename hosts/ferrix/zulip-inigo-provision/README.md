@@ -7,7 +7,8 @@ not restart services, activate Nix configurations, or request a password.
 
 ## Fixed identity and behavior
 
-- Organization: `string_id=mmjo`, URL `https://chat.mmjo.com`.
+- Organization: root realm `string_id=""`, URL `https://chat.mmjo.com`.
+  `mmjo` is its display name, not the database lookup key.
 - Existing active human owner: `michael@mmjo.com` (looked up at runtime in that
   organization, never assumed to exist and never created by this script).
 - Short name `inigo`, full name `Inigo`, generic bot type `1`, member role `400`.

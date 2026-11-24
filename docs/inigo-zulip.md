@@ -19,6 +19,7 @@ Activation starts `inigo-zulip-provision.service` as root before the gateway.
 It waits for Zulip's local HTTP endpoint, then creates or validates the generic
 bot `inigo-bot@chat.mmjo.com`, named **Inigo**, owned by `michael@mmjo.com`.
 The owner must already be an active human account in organization `mmjo`.
+Its internal realm slug is the empty string, not its display name `mmjo`.
 Provisioning refuses conflicting identities, changed keys, or an unreviewed
 Zulip version. It never rotates an API key or changes an existing account.
 
